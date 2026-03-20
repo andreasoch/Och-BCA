@@ -1211,7 +1211,7 @@
     <div class="contact-cards">
       <div class="contact-card">
         <div class="contact-card-label">E-Mail</div>
-        <div class="contact-card-value"><a href="/cdn-cgi/l/email-protection#c5a4aba1b7a0a4b6ebaaa6ad85a7a6a4eba1a0"><span class="__cf_email__" data-cfemail="4829262c3a2d293b66272b20082a2b29662c2d">[email&#160;protected]</span></a></div>
+        <div class="contact-card-value"><a href="mailto:andreas.och@bca.de">andreas.och@bca.de</a></div>
       </div>
       <div class="contact-card">
         <div class="contact-card-label">Telefon</div>
@@ -1324,13 +1324,13 @@
   </div>
 </div>
   <ul class="footer-links">
-    <li><a href="/cdn-cgi/l/email-protection#6a0b040e180f0b19440509022a08090b440e0f">Kontakt</a></li>
+    <li><a href="mailto:andreas.och@bca.de">Kontakt</a></li>
     <li><a href="#">Impressum</a></li>
     <li><a href="#">Datenschutz</a></li>
   </ul>
 </footer>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
   function showOverlay(which) {
     document.getElementById('overlay').style.display = 'block';
     document.body.style.overflow = 'hidden';
@@ -1343,18 +1343,4 @@
   }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') hideOverlay(); });
 
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry, i) => {
-      if (entry.isIntersecting) {
-        setTimeout(() => {
-          entry.target.classList.add('visible');
-        }, i * 80);
-        observer.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.08 });
-
-  document.querySelectorAll('.fade-in').forEach(el => {
-    el.classList.add('animate');
-    observer.observe(el);
-  });
+  const observer
