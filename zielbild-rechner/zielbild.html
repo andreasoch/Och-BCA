@@ -1,0 +1,499 @@
+<title>Zielbild Rechner OCH</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: Seekarten-Logik – oben die Zonenkarte, dann Ampel als Fahrwassertonnen, dann Geräte-Register mit Ordnerbäumen, unten der Kurs (Fahrplan). */
+:root {
+  --bg: #F3F6F8;
+  --surface: #FFFFFF;
+  --ink: #12283A;
+  --muted: #566B7C;
+  --line: #D5DEE5;
+  --accent: #1F6F8B;
+  --accent-soft: #E1EEF3;
+  --rot: #C23B32;
+  --gruen: #2E8B57;
+  --gelb: #D9A400;
+  --bca: #5B6B8C;
+  --tree-bg: #EAF0F4;
+  --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D1A24; --surface: #13242F; --ink: #E3ECF2; --muted: #93A7B6; --line: #26404F;
+    --accent: #5FB3CF; --accent-soft: #173543; --rot: #E8685E; --gruen: #5CC08A; --gelb: #F0C13A;
+    --bca: #9AA9C7; --tree-bg: #0F202B; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D1A24; --surface: #13242F; --ink: #E3ECF2; --muted: #93A7B6; --line: #26404F;
+  --accent: #5FB3CF; --accent-soft: #173543; --rot: #E8685E; --gruen: #5CC08A; --gelb: #F0C13A;
+  --bca: #9AA9C7; --tree-bg: #0F202B; color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15.5px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 48px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 56px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.1; }
+h1 { font-size: clamp(2.2rem, 6vw, 3.6rem); font-weight: 800; font-stretch: 80%; letter-spacing: -0.01em; }
+h2 { font-size: clamp(1.5rem, 3.2vw, 2rem); font-weight: 700; font-stretch: 85%; }
+h3 { font-size: 1.15rem; font-weight: 700; font-stretch: 90%; }
+p { margin: 0; }
+.label { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.muted { color: var(--muted); }
+section { display: grid; gap: 20px; }
+.sec-head { display: grid; gap: 6px; max-width: 68ch; }
+
+/* Kopf */
+header { padding-block: 48px 0; display: grid; gap: 18px; }
+.lead { font-size: 1.1rem; max-width: 62ch; color: var(--muted); }
+.lead strong { color: var(--ink); font-weight: 600; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font-family: var(--mono); font-size: 0.75rem; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: var(--surface); }
+
+/* Zonenkarte */
+.zonen { display: grid; grid-template-columns: 1fr 64px 1fr 96px 1fr; align-items: stretch; }
+.zone { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 20px; display: grid; gap: 12px; align-content: start; min-width: 0; border-top: 4px solid var(--zc); }
+.zone[data-z="A"] { --zc: var(--bca); }
+.zone[data-z="B"] { --zc: var(--accent); }
+.zone[data-z="C"] { --zc: var(--gruen); }
+.zone-kopf { display: flex; gap: 12px; align-items: baseline; }
+.zone-buchst { font-family: var(--display); font-weight: 800; font-size: 2.4rem; line-height: 1; color: var(--zc); }
+.zone dl { margin: 0; display: grid; gap: 8px; }
+.zone dt { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.zone dd { margin: 0; font-size: 0.92rem; }
+.grenze, .bruecke { display: grid; place-items: center; text-align: center; font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em; color: var(--muted); padding: 8px 4px; }
+.grenze span { writing-mode: vertical-rl; transform: rotate(180deg); }
+.grenze { background: repeating-linear-gradient(135deg, transparent 0 7px, var(--line) 7px 9px); margin-inline: 14px; border-radius: 4px; }
+.grenze span { background: var(--bg); padding: 8px 3px; color: var(--rot); font-weight: 600; }
+.bruecke { gap: 6px; }
+.bruecke .pfeil { width: 100%; height: 2px; background: var(--accent); position: relative; }
+.bruecke .pfeil::before, .bruecke .pfeil::after { content: ""; position: absolute; top: -5px; border: 6px solid transparent; }
+.bruecke .pfeil::before { left: -2px; border-right-color: var(--accent); border-left: 0; }
+.bruecke .pfeil::after { right: -2px; border-left-color: var(--accent); border-right: 0; }
+.bruecke b { color: var(--accent); }
+
+/* Regeln */
+.regeln { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; counter-reset: r; }
+.regel { padding: 18px 20px; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 6px 6px 0; display: grid; gap: 6px; }
+.regel h3 { font-size: 1.05rem; }
+.regel p { font-size: 0.92rem; }
+
+/* Ampel als Tonnen */
+.ampel { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.ampel-zeile { display: grid; grid-template-columns: 150px 1fr 1fr; gap: 20px; background: var(--surface); padding: 18px 20px; align-items: start; }
+.ampel-zeile > * { min-width: 0; }
+.stufe { display: flex; gap: 12px; align-items: center; font-family: var(--display); font-weight: 700; font-size: 1.1rem; }
+.tonne { width: 22px; height: 26px; flex-shrink: 0; }
+.t-rot { background: var(--rot); border-radius: 3px 3px 0 0; }
+.t-gruen { width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-bottom: 26px solid var(--gruen); }
+.t-gelb { background: var(--gelb); border-radius: 50% 50% 3px 3px / 30% 30% 3px 3px; position: relative; }
+.t-gelb::after { content: "×"; position: absolute; top: -18px; left: 50%; transform: translateX(-50%); color: var(--gelb); font-weight: 800; font-size: 1.2rem; font-family: var(--body); }
+.t-bca { background: var(--bca); border-radius: 50%; width: 22px; height: 22px; }
+.ampel-zeile .k { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 2px; }
+.ampel-zeile p { font-size: 0.92rem; }
+.hinweis { font-size: 0.85rem; color: var(--muted); max-width: 72ch; }
+
+/* Geräte-Register */
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.tab { font: 600 0.95rem var(--body); color: var(--muted); background: none; border: 0; padding: 10px 16px; border-bottom: 3px solid transparent; cursor: pointer; margin-bottom: -1px; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tab:focus-visible, .check input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 28px; padding-top: 20px; }
+.panel-intro { grid-column: 1 / -1; max-width: 70ch; display: grid; gap: 6px; }
+.prog { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.prog th { text-align: left; font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 400; padding: 0 10px 8px 0; border-bottom: 1px solid var(--line); }
+.prog td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.prog td:first-child { color: var(--muted); width: 34%; }
+.prog strong { font-weight: 600; }
+.nicht { margin-top: 14px; padding: 12px 14px; border: 1px dashed var(--rot); border-radius: 6px; font-size: 0.88rem; }
+.nicht b { color: var(--rot); }
+.baum-box { min-width: 0; display: grid; gap: 8px; align-content: start; }
+.baum { margin: 0; background: var(--tree-bg); border-radius: 6px; padding: 16px 18px; font: 0.8rem/1.65 var(--mono); overflow-x: auto; color: var(--ink); }
+.baum .c { color: var(--muted); }
+.baum .r { color: var(--rot); font-weight: 600; }
+.baum .f { color: var(--accent); font-weight: 600; background: var(--accent-soft); padding: 0 4px; border-radius: 3px; }
+.legende { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.8rem; color: var(--muted); }
+.legende span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; background: var(--lc); }
+
+/* Fahrplan */
+.kurs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.etappe { background: var(--surface); padding: 16px; display: grid; gap: 6px; align-content: start; }
+.etappe .nr { font-family: var(--display); font-weight: 800; font-size: 1.6rem; color: var(--accent); line-height: 1; }
+.etappe .wann { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); }
+.etappe p { font-size: 0.88rem; }
+.check-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 28px; }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 0.93rem; cursor: pointer; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.check input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--accent); flex-shrink: 0; }
+.check input:checked + span { color: var(--muted); text-decoration: line-through; }
+.fortschritt { display: flex; align-items: center; gap: 14px; font-family: var(--mono); font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.balken { flex: 1; max-width: 320px; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.balken i { display: block; height: 100%; background: var(--gruen); width: 0; transition: width .3s; }
+footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 20px; }
+
+@media (max-width: 900px) {
+  .zonen { grid-template-columns: 1fr; gap: 0; }
+  .grenze { margin: 10px 0; padding: 8px; }
+  .grenze span { writing-mode: horizontal-tb; transform: none; padding: 2px 8px; }
+  .bruecke { padding: 12px 0; grid-template-columns: 1fr; }
+  .bruecke .pfeil { width: 2px; height: 28px; margin: 0 auto; }
+  .bruecke .pfeil::before { left: -5px; top: -2px; border: 6px solid transparent; border-bottom-color: var(--accent); border-top: 0; }
+  .bruecke .pfeil::after { left: -5px; right: auto; top: auto; bottom: -2px; border: 6px solid transparent; border-top-color: var(--accent); border-bottom: 0; }
+  .regeln, .panel { grid-template-columns: 1fr; }
+  .kurs { grid-template-columns: repeat(2, 1fr); }
+  .ampel-zeile { grid-template-columns: 1fr; gap: 10px; }
+  .check-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) { .kurs { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .balken i { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="label">Zielbild · Stand Oktober 2026</span>
+    <h1>Drei Rechner, drei Datenzonen</h1>
+    <p class="lead">Wie BCA-Laptop, OCH-Gewerbe-Laptop und PC aufgebaut sein sollen, damit du <strong>KI konsequent nutzen</strong> kannst und <strong>personenbezogene Daten trotzdem dort bleiben, wo sie hingehören</strong>.</p>
+    <div class="meta">
+      <span class="chip">Windows 11 Pro</span>
+      <span class="chip">DSGVO · FinVermV · GoBD</span>
+      <span class="chip">Tresor O:\ = Cryptomator</span>
+      <span class="chip">KI sieht nur 40_KI\KI-Freigabe</span>
+    </div>
+  </header>
+
+  <section aria-labelledby="h-zonen">
+    <div class="sec-head">
+      <span class="label">Übersicht</span>
+      <h2 id="h-zonen">Die Zonenkarte</h2>
+      <p class="muted">Jedes Gerät gehört genau einer Zone. Zwischen BCA und deinen eigenen Geräten fließt nichts. Gewerbe-Laptop und PC teilen nur den verschlüsselten Tresor.</p>
+    </div>
+    <div class="zonen">
+      <article class="zone" data-z="A">
+        <div class="zone-kopf"><span class="zone-buchst">A</span><h3>BCA-Laptop</h3></div>
+        <dl>
+          <div><dt>Rolle</dt><dd>Arbeitsgerät der BCA AG, verwaltet durch die BCA-IT</dd></div>
+          <div><dt>Daten</dt><dd>Nur BCA-Daten, abgelegt in OneDrive for Business / SharePoint</dd></div>
+          <div><dt>KI</dt><dd>Ausschließlich von BCA freigegebene Tools, z. B. M365 Copilot im BCA-Tenant</dd></div>
+        </dl>
+      </article>
+      <div class="grenze" aria-label="Kein Datenaustausch"><span>kein Austausch</span></div>
+      <article class="zone" data-z="B">
+        <div class="zone-kopf"><span class="zone-buchst">B</span><h3>OCH-Gewerbe-Laptop</h3></div>
+        <dl>
+          <div><dt>Rolle</dt><dd>Och Finanzberatung (§34f) und Och Skippertraining</dd></div>
+          <div><dt>Daten</dt><dd>Kunden, Buchhaltung, Teilnehmer, alles im Tresor O:\</dd></div>
+          <div><dt>KI</dt><dd>Nach Ampel: Kundendaten lokal (Ollama), Rest in Cloud-KI mit AV-Vertrag</dd></div>
+        </dl>
+      </article>
+      <div class="bruecke"><div class="pfeil" aria-hidden="true"></div><span><b>Tresor-Sync</b><br>EU-Cloud,<br>Ende-zu-Ende</span></div>
+      <article class="zone" data-z="C">
+        <div class="zone-kopf"><span class="zone-buchst">C</span><h3>PC</h3></div>
+        <dl>
+          <div><dt>Rolle</dt><dd>Privat, Segeln und KI-Labor mit großen lokalen Modellen auf der GPU</dd></div>
+          <div><dt>Daten</dt><dd>Privates in D:\Privat. Gewerbe nur im eigenen Windows-Konto über den Tresor</dd></div>
+          <div><dt>KI</dt><dd>Ollama als Server für beide Geräte (über Tailscale), dazu Claude Desktop und Claude Code</dd></div>
+        </dl>
+      </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-regeln">
+    <div class="sec-head">
+      <span class="label">Grundsatz</span>
+      <h2 id="h-regeln">Die drei goldenen Regeln</h2>
+    </div>
+    <div class="regeln">
+      <div class="regel"><h3>Zonen nie mischen</h3><p>Keine BCA-Dateien auf eigenen Geräten, keine privaten Clouds, Sticks oder KI-Konten am BCA-Laptop, keine Weiterleitung von BCA-Mails nach privat.</p></div>
+      <div class="regel"><h3>Zone B immer verschlüsselt</h3><p>BitLocker auf dem Laufwerk, Cryptomator in der Cloud, Backup auf verschlüsselter SSD. Gewerbedaten liegen nirgends im Klartext.</p></div>
+      <div class="regel"><h3>KI sieht nur die Freigabe</h3><p>Claude Desktop, Cowork und MCP-Server bekommen ausschließlich den Ordner <code>40_KI\KI-Freigabe</code>, nie das ganze Benutzerprofil.</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-ampel">
+    <div class="sec-head">
+      <span class="label">Datenschutz</span>
+      <h2 id="h-ampel">KI-Ampel, gelesen wie ein Fahrwasser</h2>
+      <p class="muted">Rot und Grün markieren die Fahrwassergrenzen, Gelb ist das Sperrgebiet mit Sonderregeln. Bevor du eine Datei in eine KI gibst, prüfst du, an welcher Tonne du gerade bist.</p>
+    </div>
+    <div class="ampel">
+      <div class="ampel-zeile">
+        <div class="stufe"><span class="tonne t-rot" aria-hidden="true"></span>Rot</div>
+        <div><span class="k">Daten</span><p>Kundennamen, Adressen, Geburtsdaten, Vermögens- und Depotdaten, Beratungsprotokolle, Ausweise, Gesundheitsangaben, Steuer-ID, Teilnehmer mit Notfallkontakten</p></div>
+        <div><span class="k">Erlaubte KI</span><p><strong>Nur lokal:</strong> Ollama oder LM Studio auf PC bzw. Gewerbe-Laptop. Oder vorher pseudonymisieren, dann gilt Gelb.</p></div>
+      </div>
+      <div class="ampel-zeile">
+        <div class="stufe"><span class="tonne t-gelb" aria-hidden="true"></span>Gelb</div>
+        <div><span class="k">Daten</span><p>Geschäftliches ohne Personenbezug: Konzepte, Webinar-Folien, Angebotstexte, anonymisierte Fälle, Marketing, Website-Code</p></div>
+        <div><span class="k">Erlaubte KI</span><p>Cloud-KI <strong>mit Geschäftsvertrag und AV-Vertrag</strong>, z. B. Claude Team oder API. Training mit deinen Daten ausgeschaltet.</p></div>
+      </div>
+      <div class="ampel-zeile">
+        <div class="stufe"><span class="tonne t-gruen" aria-hidden="true"></span>Grün</div>
+        <div><span class="k">Daten</span><p>Öffentliches und Privates: Törnplanung, Recherche, Lernen, deine öffentliche Website</p></div>
+        <div><span class="k">Erlaubte KI</span><p>Jede seriöse Cloud-KI, auch Privattarife.</p></div>
+      </div>
+      <div class="ampel-zeile">
+        <div class="stufe"><span class="tonne t-bca" aria-hidden="true"></span>BCA</div>
+        <div><span class="k">Daten</span><p>Alles aus dem BCA-Kontext: Partner, Vermittler, interne Unterlagen</p></div>
+        <div><span class="k">Erlaubte KI</span><p>Ausschließlich die von BCA bereitgestellten Tools, nur auf dem BCA-Laptop.</p></div>
+      </div>
+    </div>
+    <p class="hinweis"><strong>Pseudonymisieren:</strong> Namen werden zu Kürzeln wie <code>K042</code>. Die Liste „K042 = echter Name“ liegt nur in <code>20_Kunden\_Zuordnung</code> im Tresor und wird nie einer KI gegeben. Das Ersetzen selbst kann ein lokales Modell übernehmen.</p>
+  </section>
+
+  <section aria-labelledby="h-geraete">
+    <div class="sec-head">
+      <span class="label">Programme und Ordner</span>
+      <h2 id="h-geraete">Gerät für Gerät</h2>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Gerät wählen">
+      <button class="tab" role="tab" id="tab-bca" aria-controls="p-bca" data-ziel="bca">A · BCA-Laptop</button>
+      <button class="tab" role="tab" id="tab-gewerbe" aria-controls="p-gewerbe" data-ziel="gewerbe">B · Gewerbe-Laptop</button>
+      <button class="tab" role="tab" id="tab-pc" aria-controls="p-pc" data-ziel="pc">C · PC</button>
+    </div>
+
+    <div class="panel" id="p-bca" role="tabpanel" aria-labelledby="tab-bca">
+      <div class="panel-intro"><h3>BCA-Laptop</h3><p class="muted">Die BCA-IT installiert und verwaltet. Du gestaltest nur deine Ablage innerhalb der BCA-Vorgaben.</p></div>
+      <div>
+        <table class="prog">
+          <thead><tr><th>Zweck</th><th>Programm</th></tr></thead>
+          <tbody>
+            <tr><td>Office, Mail, Kalender</td><td>Microsoft 365 im BCA-Tenant</td></tr>
+            <tr><td>Ablage</td><td><strong>OneDrive for Business</strong>, SharePoint, Teams</td></tr>
+            <tr><td>Fachanwendungen</td><td>DIVA, Investmentshop, IFC, BfV-Tools</td></tr>
+            <tr><td>Webinare</td><td>Teams oder das von BCA vorgegebene Tool</td></tr>
+            <tr><td>KI</td><td>Nur von BCA freigegeben, z. B. M365 Copilot</td></tr>
+            <tr><td>Notizen</td><td>OneNote mit BCA-Konto</td></tr>
+            <tr><td>Passwörter</td><td>Nach BCA-Vorgabe, getrennt von deinem Bitwarden</td></tr>
+          </tbody>
+        </table>
+        <p class="nicht"><b>Nicht auf diesen Rechner:</b> private Cloud-Clients, private Messenger, eigene KI-Konten, Browser-Sync mit privatem Konto, private USB-Sticks.</p>
+      </div>
+      <div class="baum-box">
+        <span class="label">Ordner in OneDrive - BCA AG</span>
+<pre class="baum">OneDrive - BCA AG\
+├── 00_Eingang          <span class="c">← wöchentlich leeren</span>
+├── 10_Vertrieb
+│   ├── Partner_A-Z
+│   ├── Anbindungen
+│   └── Reporting
+├── 20_Veranstaltungen
+│   ├── Messen
+│   └── Webinare
+├── 30_Plattformen
+│   ├── DIVA
+│   ├── Investmentshop
+│   └── IFC_Finanzcockpit
+├── 40_KI               <span class="c">← nur BCA-Tools</span>
+│   ├── Prompts
+│   └── Vorlagen
+├── 50_Wissen
+└── 90_Archiv</pre>
+      </div>
+    </div>
+
+    <div class="panel" id="p-gewerbe" role="tabpanel" aria-labelledby="tab-gewerbe" hidden>
+      <div class="panel-intro"><h3>OCH-Gewerbe-Laptop</h3><p class="muted">Hier liegen die sensibelsten Daten, für die du selbst verantwortlich bist. BitLocker mit Start-PIN, tägliche Arbeit unter einem Standard-Benutzerkonto.</p></div>
+      <div>
+        <table class="prog">
+          <thead><tr><th>Zweck</th><th>Programm</th></tr></thead>
+          <tbody>
+            <tr><td>Browser</td><td><strong>Firefox</strong> mit Gewerbe-Profil, uBlock Origin</td></tr>
+            <tr><td>Passwörter, 2FA</td><td><strong>Bitwarden</strong>, Organisation „OCH Gewerbe“</td></tr>
+            <tr><td>Tresor und Cloud</td><td><strong>Cryptomator</strong> über EU-Cloud (Nextcloud, Proton Drive)</td></tr>
+            <tr><td>Mail</td><td>Thunderbird oder Outlook mit eigener Domain</td></tr>
+            <tr><td>Office</td><td>LibreOffice oder M365 Business (EU, AV-Vertrag)</td></tr>
+            <tr><td>Buchhaltung</td><td>lexoffice, sevDesk oder DATEV</td></tr>
+            <tr><td>PDF</td><td>PDF24 offline, keine Online-Konverter</td></tr>
+            <tr><td>KI Cloud (Gelb, Grün)</td><td><strong>Claude Desktop</strong>, Geschäftskonto, Training aus</td></tr>
+            <tr><td>KI lokal (Rot)</td><td><strong>Ollama</strong> und LM Studio, Modell mit 7–8B</td></tr>
+            <tr><td>Transkription</td><td>Lokales Whisper, nie in der Cloud</td></tr>
+            <tr><td>Wissensbasis</td><td>Obsidian, Vault im Tresor</td></tr>
+            <tr><td>Website</td><td>VS Code und Git</td></tr>
+            <tr><td>Backup</td><td>Veeam Agent oder restic, 3-2-1</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="baum-box">
+        <span class="label">Tresor O:\ (Cryptomator)</span>
+<pre class="baum">O:\
+├── 00_Eingang
+├── 10_Verwaltung
+│   ├── Gewerbe_Zulassung  <span class="c">§34f, IHK, VSH</span>
+│   ├── Datenschutz        <span class="c">VVT, AV-Verträge</span>
+│   ├── Steuern
+│   ├── Versicherungen
+│   └── Vertraege
+├── <span class="r">20_Kunden              ROT</span>
+│   ├── _Zuordnung         <span class="c">Pseudonym-Liste</span>
+│   ├── K001_Name-Vorname
+│   │   ├── 01_Stammdaten
+│   │   ├── 02_Beratung
+│   │   ├── 03_Antraege_Vertraege
+│   │   ├── 04_Korrespondenz
+│   │   └── 05_Depot_Reporting
+│   └── _Ehemalige
+├── 30_Buchhaltung
+│   ├── 2026
+│   └── Steuerberater_Austausch
+├── 35_Skippertraining
+│   ├── Kurse_Toerns
+│   ├── <span class="r">Teilnehmer         ROT</span>
+│   ├── Unterlagen_Schulung
+│   ├── Boot_Ausruestung
+│   └── Website
+├── 40_KI
+│   ├── <span class="f">KI-Freigabe ★</span>
+│   │   ├── Kontext
+│   │   ├── Anonymisiert
+│   │   └── Ausgaben
+│   ├── Prompts
+│   └── Lokal_Modelle_Notizen
+├── 50_Marketing_Wissen
+└── 90_Archiv
+    └── 2026_loeschen-ab-2034
+
+C:\Dev\          <span class="c">Git-Repositories</span>
+C:\KI\Modelle\   <span class="c">Modelldateien</span></pre>
+        <div class="legende"><span style="--lc: var(--rot)">Rot: nie in Cloud-KI</span><span style="--lc: var(--accent)">einziger KI-Ordner</span></div>
+      </div>
+    </div>
+
+    <div class="panel" id="p-pc" role="tabpanel" aria-labelledby="tab-pc" hidden>
+      <div class="panel-intro"><h3>PC</h3><p class="muted">Dein stärkstes Gerät. Getrennte Windows-Konten „Andreas-Privat“ und „Andreas-Gewerbe“. Der Tresor wird nur im Gewerbe-Konto eingebunden, so sieht privat installierte Software ihn nicht.</p></div>
+      <div>
+        <table class="prog">
+          <thead><tr><th>Zweck</th><th>Programm</th></tr></thead>
+          <tbody>
+            <tr><td>Browser</td><td>Firefox oder Brave, Profile getrennt</td></tr>
+            <tr><td>Passwörter</td><td>Bitwarden, privat plus Gewerbe-Organisation</td></tr>
+            <tr><td>Cloud privat</td><td>Proton Drive oder Nextcloud</td></tr>
+            <tr><td>Tresor Gewerbe</td><td>Cryptomator, nur im Gewerbe-Konto</td></tr>
+            <tr><td>KI lokal</td><td><strong>Ollama</strong> als Server, dazu LM Studio oder Open WebUI, Modelle mit 14–32B</td></tr>
+            <tr><td>KI Cloud</td><td>Claude Desktop, Claude Code</td></tr>
+            <tr><td>Entwicklung</td><td>VS Code, Git, Python, Docker mit WSL2</td></tr>
+            <tr><td>Automatisierung</td><td>n8n im Docker-Container</td></tr>
+            <tr><td>Netz</td><td><strong>Tailscale</strong>: Laptop nutzt die PC-Modelle, ohne offenen Port</td></tr>
+            <tr><td>Backup</td><td>Veeam Agent oder restic, NAS plus Cloud</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="baum-box">
+        <span class="label">Konto Andreas-Privat</span>
+<pre class="baum">D:\Privat\
+├── 00_Eingang
+├── <span class="r">10_Persoenlich        ROT</span>
+├── <span class="r">20_Finanzen_Privat    ROT</span>
+├── 30_Segeln            <span class="c">Törns, Logbücher</span>
+├── 40_KI-Labor
+│   ├── <span class="f">KI-Freigabe ★</span>
+│   ├── Prompts
+│   ├── Experimente      <span class="c">n8n, Modelltests</span>
+│   └── Obsidian-Vault-Privat
+├── 50_Medien
+├── 60_Projekte
+└── 90_Archiv
+
+D:\Dev\          <span class="c">Git-Repositories</span>
+D:\KI\Modelle\   <span class="c">OLLAMA_MODELS</span>
+
+<span class="c">Konto Andreas-Gewerbe:</span>
+O:\              <span class="c">Tresor, synchron zum Laptop</span></pre>
+        <div class="legende"><span style="--lc: var(--rot)">Rot: nie in Cloud-KI</span><span style="--lc: var(--accent)">einziger KI-Ordner</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-kurs">
+    <div class="sec-head">
+      <span class="label">Umsetzung</span>
+      <h2 id="h-kurs">Der Kurs in acht Etappen</h2>
+      <p class="muted">Die Reihenfolge ist wichtig: erst sichern, dann absichern, dann umbauen.</p>
+    </div>
+    <div class="kurs">
+      <div class="etappe"><span class="nr">1</span><h3>Sichern</h3><span class="wann">Tag 1 · B, C</span><p>Vollbackup des heutigen Zustands.</p></div>
+      <div class="etappe"><span class="nr">2</span><h3>Absichern</h3><span class="wann">Woche 1 · B, C</span><p>BitLocker, Standard-Konten, Updates, Bitwarden, 2FA.</p></div>
+      <div class="etappe"><span class="nr">3</span><h3>Struktur</h3><span class="wann">Woche 1 · B, C</span><p>Tresor anlegen, <code>setup-ordner.ps1</code> ausführen.</p></div>
+      <div class="etappe"><span class="nr">4</span><h3>Programme</h3><span class="wann">Woche 2 · B, C</span><p><code>setup-programme.ps1</code>, Altlasten deinstallieren.</p></div>
+      <div class="etappe"><span class="nr">5</span><h3>Umziehen</h3><span class="wann">Woche 2–3 · B</span><p>Altbestand über 00_Eingang einsortieren, Kunden pseudonymisieren.</p></div>
+      <div class="etappe"><span class="nr">6</span><h3>KI einrichten</h3><span class="wann">Woche 3 · B, C</span><p>Ollama und Modelle, Claude-Freigabe, Prompt-Bibliothek, Tailscale.</p></div>
+      <div class="etappe"><span class="nr">7</span><h3>Dokumentieren</h3><span class="wann">Woche 4 · B</span><p>VVT, AV-Verträge und KI-Ampel in 10_Verwaltung\Datenschutz.</p></div>
+      <div class="etappe"><span class="nr">8</span><h3>BCA</h3><span class="wann">laufend · A</span><p>Ablage nach Struktur, KI-Nutzung mit BCA-IT klären.</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-check">
+    <div class="sec-head">
+      <span class="label">Ziel erreicht?</span>
+      <h2 id="h-check">Checkliste</h2>
+      <p class="muted">Deine Haken werden nur in diesem Browser gespeichert.</p>
+    </div>
+    <div class="fortschritt"><div class="balken"><i id="balken"></i></div><span id="zaehler">0 von 10</span></div>
+    <div class="check-grid" id="checks">
+      <label class="check"><input type="checkbox" id="c1"><span>Kein BCA-Dokument auf B oder C, keine private Software oder KI auf A</span></label>
+      <label class="check"><input type="checkbox" id="c2"><span>BitLocker aktiv auf B und C, Wiederherstellungsschlüssel sicher abgelegt</span></label>
+      <label class="check"><input type="checkbox" id="c3"><span>Tägliche Arbeit unter Standard-Benutzer, nicht als Admin</span></label>
+      <label class="check"><input type="checkbox" id="c4"><span>Alle Gewerbedaten im Cryptomator-Tresor O:\</span></label>
+      <label class="check"><input type="checkbox" id="c5"><span>Jedes KI-Tool mit Dateizugriff sieht nur 40_KI\KI-Freigabe</span></label>
+      <label class="check"><input type="checkbox" id="c6"><span>Kundendaten nur in lokaler KI oder pseudonymisiert</span></label>
+      <label class="check"><input type="checkbox" id="c7"><span>Cloud-KI fürs Gewerbe mit AV-Vertrag, Training deaktiviert</span></label>
+      <label class="check"><input type="checkbox" id="c8"><span>Bitwarden: Privat und Gewerbe getrennt, 2FA überall</span></label>
+      <label class="check"><input type="checkbox" id="c9"><span>3-2-1-Backup läuft, Wiederherstellung einmal getestet</span></label>
+      <label class="check"><input type="checkbox" id="c10"><span>Datenschutz-Dokumentation in 10_Verwaltung\Datenschutz vollständig</span></label>
+    </div>
+  </section>
+
+  <footer>
+    Aufbewahrung als Orientierung: Buchungsbelege 8 Jahre, Geschäftsbriefe 6 Jahre, Bücher und Abschlüsse 10 Jahre, FinVermV-Aufzeichnungen mindestens 5 Jahre. Mit dem Steuerberater abstimmen. Ausführliche Fassung und Skripte im Ordner <code>zielbild-rechner/</code> des Repositorys.
+  </footer>
+</div>
+
+<script>
+(function () {
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+  function zeige(ziel) {
+    if (!document.getElementById('p-' + ziel)) ziel = 'gewerbe';
+    tabs.forEach(function (t) {
+      var aktiv = t.dataset.ziel === ziel;
+      t.setAttribute('aria-selected', aktiv ? 'true' : 'false');
+      t.tabIndex = aktiv ? 0 : -1;
+      document.getElementById('p-' + t.dataset.ziel).hidden = !aktiv;
+    });
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () { location.hash = t.dataset.ziel; zeige(t.dataset.ziel); });
+    t.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      var n = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+      n.focus(); n.click();
+    });
+  });
+  window.addEventListener('hashchange', function () { zeige(location.hash.slice(1)); });
+  zeige(location.hash.slice(1) || 'gewerbe');
+
+  var boxen = Array.prototype.slice.call(document.querySelectorAll('#checks input'));
+  var KEY = 'zielbild-checks';
+  var gespeichert = {};
+  try { gespeichert = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) {}
+  function stand() {
+    var n = boxen.filter(function (b) { return b.checked; }).length;
+    document.getElementById('zaehler').textContent = n + ' von ' + boxen.length;
+    document.getElementById('balken').style.width = (n / boxen.length * 100) + '%';
+  }
+  boxen.forEach(function (b) {
+    if (gespeichert[b.id]) b.checked = true;
+    b.addEventListener('change', function () {
+      gespeichert[b.id] = b.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(gespeichert)); } catch (e) {}
+      stand();
+    });
+  });
+  stand();
+})();
+</script>
