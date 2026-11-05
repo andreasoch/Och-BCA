@@ -937,15 +937,22 @@ async function save() {
     const fname = (S.name || 'foto') + '-lichtwerk.jpg';
     if (lastUrl) URL.revokeObjectURL(lastUrl);
     lastUrl = URL.createObjectURL(blob);
-    let shared = false;
+    let shared = false, saveMsg = '';
+    if (window.claude && window.claude.use) {
+      const dl = await window.claude.use('downloads').catch(() => null);
+      if (dl) {
+        try { await dl.save({ filename: fname, data: blob }); shared = true; saveMsg = 'Gespeichert. '; }
+        catch (e) { shared = true; saveMsg = e && e.code === 'declined' ? 'Speichern abgebrochen. ' : ''; }
+      }
+    }
     const file = new File([blob], fname, { type: 'image/jpeg' });
-    if (matchMedia('(pointer: coarse)').matches && navigator.canShare && navigator.canShare({ files: [file] })) {
+    if (!shared && matchMedia('(pointer: coarse)').matches && navigator.canShare && navigator.canShare({ files: [file] })) {
       try { await navigator.share({ files: [file] }); shared = true; } catch (e) { if (e && e.name === 'AbortError') shared = true; }
     }
     if (!shared) { const a = document.createElement('a'); a.href = lastUrl; a.download = fname; document.body.append(a); a.click(); a.remove(); }
     hideToast();
     $('resultImg').src = lastUrl;
-    $('resultText').textContent = '„' + fname + '“ · ' + lookName(S.look) + '. Falls kein Download gestartet ist: Bild gedrückt halten (Handy) oder Rechtsklick › „Bild speichern unter …“. Lichtwerk hat sich deine Wahl gemerkt.';
+    $('resultText').textContent = saveMsg + '„' + fname + '“ · ' + lookName(S.look) + '. Falls kein Download gestartet ist: Bild gedrückt halten (Handy) oder Rechtsklick › „Bild speichern unter …“. Lichtwerk hat sich deine Wahl gemerkt.';
     $('resultSheet').hidden = false; $('resultClose').focus();
     refreshLearned();
   } catch (e) {
