@@ -202,6 +202,16 @@ details.box[open] > summary::after { content: "–"; }
 .keys .kbd { opacity: 1; justify-self: start; }
 .sheet-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(80px + env(safe-area-inset-bottom, 0px)); z-index: 60; background: var(--text); color: var(--ink); padding: 10px 16px; border-radius: 999px; font-weight: 600; font-size: 14px; max-width: calc(100% - 32px); text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.batch { background: var(--panel); border: 1px solid var(--amber); border-radius: var(--r); padding: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.bstrip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+.bthumb { flex: 0 0 auto; position: relative; border: 2px solid transparent; border-radius: 8px; padding: 0; background: var(--stage); width: 68px; height: 52px; overflow: hidden; }
+.bthumb canvas { width: 100%; height: 100%; display: block; }
+.bthumb.active { border-color: var(--amber); }
+.bthumb.bad { opacity: .35; }
+.bthumb .ok { position: absolute; right: 3px; bottom: 3px; width: 17px; height: 17px; border-radius: 50%; background: var(--good); color: #08160d; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+.batch-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.batch-actions .btn, .batch .btn { height: auto; min-height: 44px; padding: 8px 10px; font-size: 13.5px; line-height: 1.25; text-align: center; }
+.btn.accent { background: var(--amber); color: var(--amber-ink); border-color: var(--amber); font-size: 15px; }
 .sample-note { font-size: 12.5px; color: var(--muted); background: var(--panel); border: 1px dashed var(--line); border-radius: var(--r); padding: 10px 12px; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 
 @media (min-width: 900px) {
@@ -231,7 +241,7 @@ details.box[open] > summary::after { content: "–"; }
     <button class="learn-badge" id="learnBadge" type="button" title="Was Lichtwerk gelernt hat"><span class="pulse" aria-hidden="true"></span><span id="learnBadgeText">lernt mit</span></button>
     <button class="icon-btn" id="helpBtn" type="button" aria-label="Hilfe und Kurzbefehle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg></button>
     <button class="icon-btn" id="openBtn" type="button" aria-label="Foto öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-9 8"/></svg><span class="open-label">Foto öffnen</span></button>
-    <input type="file" id="fileInput" accept="image/*" hidden>
+    <input type="file" id="fileInput" accept="image/*" multiple hidden>
   </header>
 
   <main class="work">
@@ -244,9 +254,19 @@ details.box[open] > summary::after { content: "–"; }
     </section>
 
     <aside class="panel" id="panel">
+      <div class="batch" id="batchBox" hidden>
+        <div class="sec-h"><h2>Stapel</h2><span class="hint num" id="batchInfo"></span></div>
+        <div class="bstrip" id="bstrip"></div>
+        <div class="batch-actions">
+          <button class="btn" id="applyAll" type="button">Look auf alle übertragen</button>
+          <button class="btn" id="smartAll" type="button">Jedes Foto: beste Empfehlung</button>
+        </div>
+        <button class="btn accent" id="saveAll" type="button">Alle speichern</button>
+      </div>
+
       <div class="sample-note" id="sampleNote">
-        <span>Das ist ein Beispielbild. Öffne dein eigenes Foto – es bleibt auf deinem Gerät.</span>
-        <button class="link-btn" id="sampleOpen" type="button">Eigenes Foto wählen</button>
+        <span>Das ist ein Beispielbild. Öffne eigene Fotos – gern mehrere auf einmal. Sie bleiben auf deinem Gerät.</span>
+        <button class="link-btn" id="sampleOpen" type="button">Fotos wählen</button>
       </div>
 
       <div class="sec">
@@ -308,9 +328,11 @@ details.box[open] > summary::after { content: "–"; }
       <span class="kbd">Leertaste</span><span>Gedrückt halten: Vorher zeigen</span>
       <span class="kbd">Strg/⌘ Z</span><span>Rückgängig</span>
       <span class="kbd">R</span><span>Zurück zum Original</span>
-      <span class="kbd">O</span><span>Foto öffnen</span>
+      <span class="kbd">O</span><span>Foto(s) öffnen</span>
+      <span class="kbd">← / →</span><span>Im Stapel blättern</span>
       <span class="kbd">Strg/⌘ S</span><span>Speichern</span>
     </div>
+    <p>Stapel: Wähle mehrere Fotos auf einmal. Bearbeite eins, tippe „Look auf alle übertragen“ – oder lass jedes Foto seine beste Empfehlung bekommen – und speichere alle zusammen.</p>
     <p>Am Handy: Foto antippen öffnet, „Vorher zeigen“ gedrückt halten vergleicht. Über das Browser-Menü „Zum Startbildschirm“ wird Lichtwerk zur App.</p>
     <div class="sheet-actions"><button class="btn primary" id="helpClose" type="button">Alles klar</button></div>
   </div>
@@ -320,9 +342,12 @@ details.box[open] > summary::after { content: "–"; }
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
     <h3 id="resultTitle">Fertig</h3>
     <img id="resultImg" alt="Dein bearbeitetes Foto">
+    <div class="bstrip" id="resultStrip" hidden></div>
     <p id="resultText"></p>
     <div class="sheet-actions">
-      <button class="btn primary" id="resultClose" type="button">Weiter bearbeiten</button>
+      <button class="btn primary" id="resultShare" type="button" hidden>In Fotos sichern</button>
+      <button class="btn primary" id="resultZip" type="button" hidden>ZIP speichern</button>
+      <button class="btn" id="resultClose" type="button">Weiter bearbeiten</button>
       <button class="btn" id="resultNew" type="button">Nächstes Foto</button>
     </div>
   </div>
@@ -573,17 +598,17 @@ function learnFromPick(id) {
   bump(sc, id, .15); LRN.picks++;
   S.lastPick = { id, t: now }; saveLearn();
 }
-function learnFromExport() {
-  const sc = S.analysis.scene, s = LRN.scene[sc] || (LRN.scene[sc] = {});
+function learnFromExport(sc = S.analysis.scene, look = S.look, manual = S.manual, eff = effective()) {
+  const s = LRN.scene[sc] || (LRN.scene[sc] = {});
   for (const k in s) s[k] *= .92;
   LRN.exports++; LRN.sceneCount[sc] = (LRN.sceneCount[sc] || 0) + 1;
-  if (S.look !== 'none') {
-    bump(sc, S.look, 1);
-    const t = LRN.tweaks[S.look] || zero(), n = (LRN.tweakN[S.look] || 0) + 1, a = Math.max(.3, 1 / n);
-    for (const k of KEYS) t[k] = Math.round((t[k] + (S.manual[k] - t[k]) * a) * 1000) / 1000;
-    LRN.tweaks[S.look] = t; LRN.tweakN[S.look] = n;
+  if (look !== 'none') {
+    bump(sc, look, 1);
+    const t = LRN.tweaks[look] || zero(), n = (LRN.tweakN[look] || 0) + 1, a = Math.max(.3, 1 / n);
+    for (const k of KEYS) t[k] = Math.round((t[k] + ((manual[k] || 0) - t[k]) * a) * 1000) / 1000;
+    LRN.tweaks[look] = t; LRN.tweakN[look] = n;
   }
-  const eff = effective(), st = LRN.style || {}, a = Math.max(.3, 1 / (LRN.styleN + 1));
+  const st = LRN.style || {}, a = Math.max(.3, 1 / (LRN.styleN + 1));
   for (const k of STYLE_KEYS) st[k] = Math.round(((st[k] ?? eff[k]) + (eff[k] - (st[k] ?? eff[k])) * a) * 1000) / 1000;
   LRN.style = st; LRN.styleN++;
   saveLearn();
@@ -610,8 +635,8 @@ function fitOf(id, a) {
   }
   return [0, ''];
 }
-function recommend() {
-  const a = S.analysis, ids = LOOKS.map(l => l.id).concat(hasStyle() ? ['mystil'] : []);
+function recommend(a = S.analysis) {
+  const ids = LOOKS.map(l => l.id).concat(hasStyle() ? ['mystil'] : []);
   const sceneTotal = Object.values(LRN.scene[a.scene] || {}).reduce((x, y) => x + Math.max(0, y), 0);
   return ids.map(id => {
     const [fit, why] = fitOf(id, a), pref = prefFor(a.scene, id);
@@ -627,20 +652,20 @@ const S = {
   prev: null, thumb: null, analysis: null, auto: null,
   look: 'none', intensity: 1, manual: zero(), history: [], lastPick: null, holding: false,
 };
-function lookParams(id) {
+function lookParams(id, autoP = S.auto && S.auto.p) {
   if (id === 'none') return zero();
-  if (id === 'auto') return S.auto.p;
-  if (id === 'mystil') { const p = Object.assign({}, S.auto.p); for (const k of STYLE_KEYS) p[k] = LRN.style[k] || 0; return p; }
+  if (id === 'auto') return autoP;
+  if (id === 'mystil') { const p = Object.assign({}, autoP); for (const k of STYLE_KEYS) p[k] = LRN.style[k] || 0; return p; }
   return LOOK[id].p;
 }
 const lookName = id => id === 'auto' ? 'Auto-Zauber' : id === 'mystil' ? 'Mein Stil' : id === 'none' ? 'Original' : LOOK[id].name;
-function effective(id = S.look, intensity = S.intensity, manual = S.manual) {
-  const base = lookParams(id), out = {};
+function effective(id = S.look, intensity = S.intensity, manual = S.manual, autoP) {
+  const base = lookParams(id, autoP), out = {};
   for (const p of PARAMS) out[p.k] = clamp(base[p.k] * intensity + manual[p.k], p.min, p.max);
   return out;
 }
 const snapshot = () => ({ look: S.look, intensity: S.intensity, manual: Object.assign({}, S.manual) });
-function pushHistory() { S.history.push(snapshot()); if (S.history.length > 60) S.history.shift(); $('undoBtn').disabled = false; }
+function pushHistory() { if (B.idx >= 0 && B.items[B.idx]) B.items[B.idx].touched = true; S.history.push(snapshot()); if (S.history.length > 60) S.history.shift(); $('undoBtn').disabled = false; }
 
 /* ---------- Darstellung ---------- */
 const view = $('view'), vctx = ctx2d(view);
@@ -773,6 +798,7 @@ function updateSliderUI() {
   $('strengthName').textContent = 'Stärke · ' + lookName(S.look);
 }
 function markActive() {
+  if (B.idx >= 0) updateBatchUI();
   document.querySelectorAll('.look, .rec').forEach(b => b.classList.toggle('active', b.dataset.id === S.look));
   $('autoBtn').classList.toggle('active', S.look === 'auto');
 }
@@ -839,7 +865,7 @@ function refreshLearned() { renderInsights(); buildStrip(); buildRecs(); }
 /* ---------- Bild laden ---------- */
 async function setSource(source, w, h, name, isSample) {
   S.source = source; S.srcW = w; S.srcH = h; S.name = name; S.isSample = isSample;
-  const edge = window.innerWidth >= 900 ? 1600 : 1200;
+  const edge = previewEdge();
   $('busy').hidden = false; await frame();
   S.prev = prepare(source, w, h, edge);
   S.thumb = prepare(S.prev.canvas, S.prev.w, S.prev.h, 150, S.prev.grid);
@@ -852,13 +878,25 @@ async function setSource(source, w, h, name, isSample) {
   applyLook('auto', false); S.history = []; $('undoBtn').disabled = true;
   $('busy').hidden = true;
 }
-async function loadFile(file) {
-  if (!file) return;
-  if (!/^image\//.test(file.type) && !/\.(jpe?g|png|webp|gif|bmp|avif|heic|heif)$/i.test(file.name)) { toast('Das ist keine Bilddatei.'); return; }
+const isImageFile = f => f && (/^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|bmp|avif|heic|heif)$/i.test(f.name));
+const decodeHint = f => /hei[cf]/i.test(f.name + f.type) ? 'HEIC kann dieser Browser nicht öffnen. Am iPhone: Einstellungen › Kamera › Formate › „Maximale Kompatibilität“.' : '„' + f.name + '“ lässt sich nicht öffnen. Versuche JPEG oder PNG.';
+let srcUrl = null;
+async function decodeFile(file) {
   const url = URL.createObjectURL(file), img = new Image();
   img.src = url;
-  try { await img.decode(); }
-  catch (e) { URL.revokeObjectURL(url); toast(/hei[cf]/i.test(file.name + file.type) ? 'HEIC kann dieser Browser nicht öffnen. Am iPhone: Einstellungen › Kamera › Formate › „Maximale Kompatibilität“.' : 'Dieses Bild lässt sich nicht öffnen. Versuche JPEG oder PNG.'); return; }
+  try { await img.decode(); return img; } catch (e) { URL.revokeObjectURL(url); return null; }
+}
+function handleFiles(list) {
+  const files = [...(list || [])].filter(isImageFile);
+  if (!files.length) { if (list && list.length) toast('Das ist keine Bilddatei.'); return; }
+  if (files.length === 1) { endBatch(); loadFile(files[0]); } else startBatch(files);
+}
+async function loadFile(file) {
+  if (!file) return;
+  if (!isImageFile(file)) { toast('Das ist keine Bilddatei.'); return; }
+  const img = await decodeFile(file);
+  if (!img) { toast(decodeHint(file)); return; }
+  if (srcUrl) URL.revokeObjectURL(srcUrl); srcUrl = img.src;
   await setSource(img, img.naturalWidth, img.naturalHeight, file.name.replace(/\.[^.]+$/, ''), false);
   toast('Analysiert: ' + SCENES[S.analysis.scene] + ' – Auto-Zauber angewendet');
 }
@@ -907,14 +945,16 @@ function sampleImage() {
 }
 
 /* ---------- Speichern ---------- */
-async function exportFull() {
-  const sw = S.srcW, sh = S.srcH, sc = Math.min(1, Math.sqrt(16e6 / (sw * sh)));
+const previewEdge = () => window.innerWidth >= 900 ? 1600 : 1200;
+const exportFull = () => renderFull(S.source, S.srcW, S.srcH, effective(), S.prev.grid);
+async function renderFull(source, sw, sh, p, lv) {
+  const sc = Math.min(1, Math.sqrt(16e6 / (sw * sh)));
   const w = Math.round(sw * sc), h = Math.round(sh * sc);
   const c = makeCanvas(w, h), x = ctx2d(c);
-  x.imageSmoothingQuality = 'high'; x.drawImage(S.source, 0, 0, w, h);
-  const p = effective();
-  const G = makeGrid(c, w, h, S.prev.grid);
-  const sctx = p.sharpen ? ctx2d(blurredCopy(c, w, h, 2.5 * Math.max(1, w / S.prev.w) ** .5)) : null;
+  x.imageSmoothingQuality = 'high'; x.drawImage(source, 0, 0, w, h);
+  const G = makeGrid(c, w, h, lv);
+  const prevW = w * Math.min(1, previewEdge() / Math.max(w, h));
+  const sctx = p.sharpen ? ctx2d(blurredCopy(c, w, h, 2.5 * Math.max(1, w / prevW) ** .5)) : null;
   const STRIP = 256;
   for (let y = 0; y < h; y += STRIP) {
     const rows = Math.min(STRIP, h - y), id = x.getImageData(0, y, w, rows);
@@ -923,7 +963,9 @@ async function exportFull() {
     x.putImageData(id, 0, y);
     if ((y / STRIP) % 4 === 3) await frame();
   }
-  return new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('toBlob')), 'image/jpeg', .92));
+  const blob = await new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('toBlob')), 'image/jpeg', .92));
+  c.width = c.height = 1; if (sctx) sctx.canvas.width = sctx.canvas.height = 1;
+  return blob;
 }
 let lastUrl = null, saving = false;
 async function save() {
@@ -934,6 +976,7 @@ async function save() {
     await frame();
     const blob = await exportFull();
     learnFromExport();
+    if (B.idx >= 0) B.items[B.idx].touched = false;
     const fname = (S.name || 'foto') + '-lichtwerk.jpg';
     if (lastUrl) URL.revokeObjectURL(lastUrl);
     lastUrl = URL.createObjectURL(blob);
@@ -951,6 +994,8 @@ async function save() {
     }
     if (!shared) { const a = document.createElement('a'); a.href = lastUrl; a.download = fname; document.body.append(a); a.click(); a.remove(); }
     hideToast();
+    $('resultTitle').textContent = 'Fertig'; $('resultImg').hidden = false; $('resultStrip').hidden = true;
+    $('resultShare').hidden = $('resultZip').hidden = true; $('resultNew').hidden = false;
     $('resultImg').src = lastUrl;
     $('resultText').textContent = saveMsg + '„' + fname + '“ · ' + lookName(S.look) + '. Falls kein Download gestartet ist: Bild gedrückt halten (Handy) oder Rechtsklick › „Bild speichern unter …“. Lichtwerk hat sich deine Wahl gemerkt.';
     $('resultSheet').hidden = false; $('resultClose').focus();
@@ -958,6 +1003,198 @@ async function save() {
   } catch (e) {
     toast('Speichern hat nicht geklappt. Das Foto ist evtl. zu groß für diesen Browser.');
   } finally { saving = false; $('saveBtn').disabled = false; }
+}
+
+/* ---------- Stapel ---------- */
+const B = { items: [], idx: -1, results: [] };
+function startBatch(files) {
+  B.items = files.map(f => ({ file: f, name: f.name.replace(/\.[^.]+$/, ''), settings: null, touched: false, bad: false, cv: null }));
+  B.idx = -1;
+  $('batchBox').hidden = false;
+  buildBatchStrip();
+  openBatchItem(0).then(() => toast(files.length + ' Fotos geladen. Bearbeite eins und übertrage den Look auf alle.', 4500));
+  makeBatchThumbs();
+}
+function endBatch() { B.items = []; B.idx = -1; $('batchBox').hidden = true; }
+function storeCurrent() { const it = B.items[B.idx]; if (it) it.settings = snapshot(); }
+function restoreSettings(st) {
+  let look = st.look, manual = st.manual;
+  if (look === '@best') { look = recommend()[0].id; manual = LRN.tweaks[look]; }
+  S.look = look; S.intensity = st.intensity; S.manual = Object.assign(zero(), manual || {});
+  $('tweakNote').hidden = true;
+  updateSliderUI(); markActive(); scheduleRender();
+}
+let opening = false;
+async function openBatchItem(i) {
+  if (opening || i < 0 || i >= B.items.length || i === B.idx) return;
+  opening = true;
+  try {
+    const it = B.items[i];
+    const img = await decodeFile(it.file);
+    if (!img) { it.bad = true; toast(decodeHint(it.file) + ' Wird übersprungen.'); updateBatchUI(); return; }
+    storeCurrent();
+    if (srcUrl) URL.revokeObjectURL(srcUrl); srcUrl = img.src;
+    const touched = it.touched;
+    B.idx = i;
+    await setSource(img, img.naturalWidth, img.naturalHeight, it.name, false);
+    if (it.settings) restoreSettings(it.settings);
+    it.touched = touched;
+    updateBatchUI();
+  } finally { opening = false; }
+}
+function stepBatch(d) {
+  if (B.idx < 0) return;
+  for (let i = B.idx + d; i >= 0 && i < B.items.length; i += d) if (!B.items[i].bad) { openBatchItem(i); return; }
+}
+function buildBatchStrip() {
+  const st = $('bstrip'); st.textContent = '';
+  B.items.forEach((it, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'bthumb'; b.setAttribute('aria-label', 'Foto ' + (i + 1) + ': ' + it.file.name);
+    it.cv = document.createElement('canvas'); it.cv.width = 136; it.cv.height = 104;
+    const ok = document.createElement('span'); ok.className = 'ok'; ok.textContent = '✓'; ok.hidden = true;
+    b.append(it.cv, ok); b.addEventListener('click', () => openBatchItem(i));
+    it.btn = b; it.ok = ok; st.append(b);
+  });
+}
+async function makeBatchThumbs() {
+  const items = B.items;
+  for (const it of items) {
+    if (B.items !== items) return;
+    const img = await decodeFile(it.file);
+    if (!img) { it.bad = true; updateBatchUI(); continue; }
+    const c = it.cv, x = c.getContext('2d'), s = Math.max(c.width / img.naturalWidth, c.height / img.naturalHeight);
+    const w = img.naturalWidth * s, h = img.naturalHeight * s;
+    x.imageSmoothingQuality = 'high'; x.drawImage(img, (c.width - w) / 2, (c.height - h) / 2, w, h);
+    URL.revokeObjectURL(img.src);
+    await frame();
+  }
+}
+function updateBatchUI() {
+  if (B.idx < 0) return;
+  const n = B.items.length, done = B.items.filter(it => it.settings || it === B.items[B.idx]).length, bad = B.items.filter(it => it.bad).length;
+  $('batchInfo').textContent = 'Foto ' + (B.idx + 1) + ' von ' + n + (bad ? ' · ' + bad + ' nicht lesbar' : '');
+  B.items.forEach((it, i) => {
+    it.btn.classList.toggle('active', i === B.idx); it.btn.classList.toggle('bad', it.bad);
+    it.ok.hidden = !(it.settings || i === B.idx) || it.bad;
+  });
+  const a = $('applyAll');
+  a.textContent = S.look === 'none' ? 'Erst einen Look wählen' : '„' + lookName(S.look) + '“ auf alle übertragen';
+  a.disabled = S.look === 'none';
+  $('saveAll').textContent = 'Alle ' + (n - bad) + ' Fotos speichern';
+}
+function applyAll() {
+  const st = snapshot();
+  B.items.forEach((it, i) => { if (i !== B.idx) { it.settings = { look: st.look, intensity: st.intensity, manual: Object.assign({}, st.manual) }; it.touched = false; } });
+  updateBatchUI();
+  toast('„' + lookName(st.look) + '“ auf alle ' + B.items.filter(it => !it.bad).length + ' Fotos übertragen' + (st.look === 'auto' || st.look === 'mystil' ? ' – passt sich an jedes Foto an' : ''), 4000);
+}
+function smartAll() {
+  B.items.forEach((it, i) => { it.settings = { look: '@best', intensity: 1, manual: null }; it.touched = false; });
+  pushHistory(); restoreSettings(B.items[B.idx].settings); B.items[B.idx].touched = false;
+  updateBatchUI();
+  toast('Jedes Foto bekommt seine beste Empfehlung');
+}
+function uniqueName(name, used) {
+  let n = name, i = 2; while (used.has(n)) n = name.replace(/(\.jpg)$/, '-' + (i++) + '$1'); used.add(n); return n;
+}
+async function saveAll() {
+  if (saving || B.idx < 0) return;
+  storeCurrent();
+  saving = true; $('saveAll').disabled = $('saveBtn').disabled = true;
+  const list = B.items.filter(it => !it.bad), used = new Set(), out = [];
+  let sharedLearned = false, k = 0;
+  try {
+    for (const it of list) {
+      toast('Speichere ' + (++k) + ' von ' + list.length + ' …', 600000);
+      await frame();
+      const img = await decodeFile(it.file);
+      if (!img) { it.bad = true; continue; }
+      try {
+        const w = img.naturalWidth, h = img.naturalHeight, a = analyze(img, w, h), auto = autoParams(a);
+        const st = it.settings || { look: 'auto', intensity: 1, manual: null };
+        let look = st.look, manual = st.manual;
+        if (look === '@best') { look = recommend(a)[0].id; manual = LRN.tweaks[look]; }
+        manual = Object.assign(zero(), manual || {});
+        const p = effective(look, st.intensity, manual, auto.p);
+        const blob = await renderFull(img, w, h, p, { lo: a.lo, hi: a.hi });
+        out.push({ name: uniqueName(it.name + '-lichtwerk.jpg', used), blob });
+        if (it.touched) { learnFromExport(a.scene, look, manual, p); it.touched = false; }
+        else if (it.settings && st.look !== '@best' && !sharedLearned) { learnFromExport(a.scene, look, manual, p); sharedLearned = true; }
+      } catch (e) { it.bad = true; }
+      finally { URL.revokeObjectURL(img.src); }
+    }
+  } finally { saving = false; $('saveAll').disabled = $('saveBtn').disabled = false; }
+  hideToast();
+  updateBatchUI(); refreshLearned();
+  if (!out.length) { toast('Keines der Fotos ließ sich speichern.'); return; }
+  B.results = out;
+  showBatchResult();
+}
+const canShareFiles = files => !(window.claude && window.claude.use) && matchMedia('(pointer: coarse)').matches && navigator.canShare && navigator.canShare({ files });
+function showBatchResult() {
+  const files = B.results.map(r => new File([r.blob], r.name, { type: 'image/jpeg' }));
+  const failed = B.items.filter(it => it.bad).length;
+  $('resultTitle').textContent = B.results.length + ' Fotos fertig';
+  $('resultImg').hidden = true; $('resultNew').hidden = true;
+  const strip = $('resultStrip'); strip.textContent = ''; strip.hidden = false;
+  B.results.slice(0, 24).forEach(r => {
+    const im = document.createElement('img'); im.src = URL.createObjectURL(r.blob); im.alt = r.name;
+    im.style.cssText = 'width:68px;height:52px;object-fit:cover;border-radius:8px;flex:0 0 auto;max-height:none';
+    im.onload = () => URL.revokeObjectURL(im.src); strip.append(im);
+  });
+  const share = canShareFiles(files);
+  $('resultShare').hidden = !share; $('resultZip').hidden = false;
+  $('resultZip').className = share ? 'btn' : 'btn primary';
+  $('resultText').textContent = (failed ? (failed === 1 ? '1 Foto konnte' : failed + ' Fotos konnten') + ' nicht gelesen werden. ' : '') +
+    (share ? '„In Fotos sichern“ öffnet das Teilen-Menü – dort „Bilder sichern“ wählen. ' : 'Alle Fotos kommen gebündelt in einer ZIP-Datei. ') +
+    'Lichtwerk hat sich deine Auswahl gemerkt.';
+  $('resultSheet').hidden = false;
+  (share ? $('resultShare') : $('resultZip')).focus();
+}
+async function shareResults() {
+  const files = B.results.map(r => new File([r.blob], r.name, { type: 'image/jpeg' }));
+  try { await navigator.share({ files }); } catch (e) { if (!e || e.name !== 'AbortError') toast('Teilen klappt hier nicht – nutze „ZIP speichern“.'); }
+}
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let j = 0; j < 8; j++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u) { let c = 0xFFFFFFFF; for (let i = 0; i < u.length; i++) c = CRC[(c ^ u[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+async function makeZip(entries) {
+  const enc = new TextEncoder(), parts = [], central = [], d = new Date();
+  const tm = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1), dt = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  let off = 0;
+  for (const e of entries) {
+    const data = new Uint8Array(await e.blob.arrayBuffer()), name = enc.encode(e.name), crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(10, tm, true); h.setUint16(12, dt, true);
+    h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, name.length, true);
+    parts.push(h, name, data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(12, tm, true); c.setUint16(14, dt, true);
+    c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true); c.setUint16(28, name.length, true); c.setUint32(42, off, true);
+    central.push(c, name);
+    off += 30 + name.length + data.length;
+  }
+  const size = central.reduce((s, x) => s + x.byteLength, 0), end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, entries.length, true); end.setUint16(10, entries.length, true); end.setUint32(12, size, true); end.setUint32(16, off, true);
+  return new Blob([...parts, ...central, end], { type: 'application/zip' });
+}
+async function deliver(blob, fname) {
+  if (window.claude && window.claude.use) {
+    const dl = await window.claude.use('downloads').catch(() => null);
+    if (dl) { try { await dl.save({ filename: fname, data: blob }); return 'Gespeichert.'; } catch (e) { return e && e.code === 'declined' ? 'Speichern abgebrochen.' : 'Speichern ist hier nicht möglich.'; } }
+  }
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = fname; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  return 'Download gestartet.';
+}
+async function zipResults() {
+  const btn = $('resultZip'); btn.disabled = true; btn.textContent = 'Packe ZIP …';
+  try {
+    const zip = await makeZip(B.results), d = new Date();
+    const fname = 'lichtwerk-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + '.zip';
+    toast(await deliver(zip, fname));
+  } finally { btn.disabled = false; btn.textContent = 'ZIP speichern'; }
 }
 
 /* ---------- Kleinteile ---------- */
@@ -978,7 +1215,12 @@ function nudgeStrength(d) { if (S.look === 'none') return; pushHistory(); S.inte
 $('openBtn').addEventListener('click', openPicker);
 $('sampleOpen').addEventListener('click', openPicker);
 $('view').addEventListener('click', () => { if (S.isSample) openPicker(); });
-$('fileInput').addEventListener('change', e => loadFile(e.target.files[0]));
+$('fileInput').addEventListener('change', e => handleFiles(e.target.files));
+$('applyAll').addEventListener('click', applyAll);
+$('smartAll').addEventListener('click', smartAll);
+$('saveAll').addEventListener('click', saveAll);
+$('resultShare').addEventListener('click', shareResults);
+$('resultZip').addEventListener('click', zipResults);
 $('autoBtn').addEventListener('click', () => applyLook('auto', true));
 $('resetBtn').addEventListener('click', () => applyLook('none', false));
 $('undoBtn').addEventListener('click', undo);
@@ -1001,8 +1243,8 @@ document.querySelectorAll('.overlay').forEach(o => o.addEventListener('click', e
 const stage = $('stage');
 ['dragenter', 'dragover'].forEach(t => document.addEventListener(t, e => { if ([...(e.dataTransfer?.types || [])].includes('Files')) { e.preventDefault(); stage.classList.add('drag'); } }));
 ['dragleave', 'drop'].forEach(t => document.addEventListener(t, e => { if (t === 'dragleave' && e.relatedTarget) return; stage.classList.remove('drag'); }));
-document.addEventListener('drop', e => { e.preventDefault(); const f = e.dataTransfer?.files?.[0]; if (f) loadFile(f); });
-document.addEventListener('paste', e => { const it = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/')); if (it) loadFile(it.getAsFile()); });
+document.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer?.files?.length) handleFiles(e.dataTransfer.files); });
+document.addEventListener('paste', e => { const it = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/')); if (it) { endBatch(); loadFile(it.getAsFile()); } });
 
 const lookByKey = Object.fromEntries(LOOKS.filter(l => l.key).map(l => [l.key, l.id]));
 document.addEventListener('keydown', e => {
@@ -1022,6 +1264,8 @@ document.addEventListener('keydown', e => {
   else if (lookByKey[k]) applyLook(lookByKey[k], true);
   else if (k === 'r') applyLook('none', false);
   else if (k === 'o') openPicker();
+  else if (k === 'arrowright' || k === ']') stepBatch(1);
+  else if (k === 'arrowleft' || k === '[') stepBatch(-1);
   else if (k === '+' || k === '=') nudgeStrength(.1);
   else if (k === '-') nudgeStrength(-.1);
   else if (k === '?' || k === 'h') { $('helpSheet').hidden = false; }

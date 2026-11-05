@@ -11,6 +11,9 @@ Fotos mit einem Tipp optimieren – auf Handy und Rechner, direkt im Browser.
 - **Selbstlernend:** Jedes gespeicherte Foto bringt Lichtwerk bei, welche Looks du bei welcher Szene wählst
   und wie du sie nachjustierst. Empfehlungen und Looks passen sich an; nach 3 Fotos entsteht „Mein Stil“.
   Gelerntes bleibt lokal im Browser (localStorage) und lässt sich zurücksetzen.
+- **Stapel:** Mehrere Fotos auf einmal öffnen, eins bearbeiten und den Look auf alle übertragen –
+  oder jedem Foto automatisch seine beste Empfehlung geben. „Alle speichern“ rechnet jedes Foto in voller
+  Auflösung; am Handy direkt in die Fotos-App (Teilen-Menü), am Rechner als ZIP. Mit `←`/`→` blätterst du.
 - **Datenschutz:** Fotos werden nie hochgeladen; alles wird auf dem Gerät gerechnet. Export in voller Auflösung (JPEG).
 
 ## Kurzbefehle (Rechner)
