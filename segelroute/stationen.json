@@ -1,0 +1,100 @@
+{
+  "_hinweis": "Erlaubte Werte für status: umgesetzt, test, geplant, ziel. statusText erscheint im Detailfeld. notiz wird nicht angezeigt.",
+  "titel": "Meine Route durch den BCA-Alltag",
+  "einstieg": "Auf Kurs zum leeren Hafen.",
+  "schluss": "Jede Station macht den nächsten Tag leichter.",
+  "stationen": [
+    {
+      "nr": 1,
+      "name": "Automatische Ablage",
+      "kurz": "Mails landen von selbst im richtigen Ordner.",
+      "detail": "Regeln sortieren eingehende Mails nach Absender und Thema in die passenden Ordner. Du suchst nicht mehr, du findest. Im Posteingang bleibt nur, was wirklich offen ist.",
+      "status": "umgesetzt",
+      "statusText": "umgesetzt"
+    },
+    {
+      "nr": 2,
+      "name": "Posteingang aufgeräumt",
+      "kurz": "Dreimal täglich Ordnung, zwischendurch per Kurzbefehl.",
+      "detail": "Morgens, mittags und am Nachmittag wird der Posteingang einmal sortiert, dazwischen genügt ein Kurzbefehl. So bleibt er überschaubar, und bis zum Abend stapelt sich nichts.",
+      "status": "umgesetzt",
+      "statusText": "umgesetzt"
+    },
+    {
+      "nr": 3,
+      "name": "Mein Schreibstil",
+      "kurz": "Entwürfe klingen nach mir, nicht nach KI.",
+      "detail": "Eine Stilvorlage beschreibt, wie du schreibst: Anrede, Satzlänge, typische Wendungen. Entwürfe passen dadurch schon beim ersten Lesen und brauchen kaum Nacharbeit.",
+      "status": "test",
+      "statusText": "im Test, läuft gut"
+    },
+    {
+      "nr": 4,
+      "name": "FAQ-Grundlage",
+      "kurz": "Standardantworten mit Datum und Prüffrist, technisch gelegt.",
+      "detail": "Standardantworten liegen an einer Stelle, jede mit Datum und Prüffrist. Die Technik steht, die Inhalte wachsen Schritt für Schritt. Wiederkehrende Fragen beantwortest du dann aus einer geprüften Quelle statt aus dem Gedächtnis.",
+      "status": "test",
+      "statusText": "Technik steht, Inhalte im Aufbau"
+    },
+    {
+      "nr": 5,
+      "name": "Vorpriorisierung und Antwortentwürfe",
+      "kurz": "Das Wichtige zuerst, der Entwurf liegt schon bereit.",
+      "detail": "Eingehende Anfragen werden nach Dringlichkeit vorsortiert, für die häufigen liegt ein Antwortentwurf bereit. Du entscheidest und gibst frei, statt jedes Mal bei null anzufangen.",
+      "status": "test",
+      "statusText": "im Test"
+    },
+    {
+      "nr": 6,
+      "name": "Salesforce-Routine",
+      "kurz": "Freitags prüfe ich, ob alles protokolliert ist. Kalender läuft synchron.",
+      "detail": "Freitags ein fester Blick: Ist jeder Kontakt der Woche protokolliert? Der Kalender gleicht sich von selbst ab. Die Dokumentation bleibt aktuell, ohne dich die ganze Woche zu begleiten.",
+      "status": "umgesetzt",
+      "statusText": "umgesetzt"
+    },
+    {
+      "nr": 7,
+      "name": "Nachfass-Radar",
+      "kurz": "Nichts bleibt unbeantwortet, keine Zusage geht verloren.",
+      "detail": "Offene Anfragen und gegebene Zusagen werden erkannt und rechtzeitig wieder vorgelegt. Nichts versandet, und du musst dir nicht alles merken.",
+      "status": "geplant",
+      "statusText": "geplant",
+      "notiz": "bitte bestätigen"
+    },
+    {
+      "nr": 8,
+      "name": "Gesprächsvorbereitung",
+      "kurz": "Eine halbe Seite pro Termin, bevor es losgeht.",
+      "detail": "Vor jedem Termin entsteht eine halbe Seite mit dem Stand, den offenen Punkten und dem Ziel des Gesprächs. Du gehst vorbereitet hinein, ohne vorher Mails und Notizen zusammenzusuchen.",
+      "status": "geplant",
+      "statusText": "geplant",
+      "notiz": "bitte bestätigen"
+    },
+    {
+      "nr": 9,
+      "name": "Aufgaben, die mich erreichen",
+      "kurz": "Fälliges kommt zu mir, in Kalender und Posteingang.",
+      "detail": "Fällige Aufgaben erscheinen dort, wo du ohnehin hinschaust: im Kalender und im Posteingang. Das Konzept steht. Ans Erinnern denkt dann das System, nicht dein Kopf.",
+      "status": "geplant",
+      "statusText": "Konzept steht"
+    },
+    {
+      "nr": 10,
+      "name": "Der leere Hafen",
+      "kurz": "Bearbeitungsordner leer, Überblick da, keine Zeitbomben.",
+      "detail": "Das Ziel hinter allen Stationen: leere Bearbeitungsordner, ein leichter Überblick, keine ständige Neu-Priorisierung und keine tickenden Zeitbomben. Jede Station bringt dich ein Stück näher.",
+      "status": "ziel",
+      "statusText": "Ziel"
+    }
+  ],
+  "hintergrund": [
+    {
+      "name": "Morning Briefing aus Newslettern",
+      "kurz": "Die Newsletter des Morgens als eine kurze Übersicht.",
+      "detail": "Newsletter werden morgens zu einer kurzen Übersicht zusammengefasst. Du bleibst informiert, ohne jeden einzeln zu öffnen.",
+      "status": "geplant",
+      "statusText": "geplant",
+      "notiz": "bitte bestätigen"
+    }
+  ]
+}

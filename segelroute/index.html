@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auf Kurs zum leeren Hafen</title>
+<style>
+  /* ===== Farben und Schriften: hier anpassen (z. B. auf BCA-Farben) ===== */
+  :root {
+    --grund: #0F2A47;          /* Navy, Hintergrund */
+    --grund-tief: #0A1F36;     /* dunklere Flächen */
+    --akzent: #C9A961;         /* Gold */
+    --akzent-hell: #E6D09A;    /* Licht des Leuchtfeuers */
+    --text: #F4EFE6;           /* Warmweiß */
+    --text-gedaempft: #A9B4C6; /* ruhiger Text, geplante Stationen */
+    --route: #5B7899;          /* noch nicht gefahrene Route */
+    --welle: rgba(201, 169, 97, 0.10);
+    --schrift-titel: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+    --schrift-text: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { background: var(--grund); }
+  body {
+    margin: 0;
+    background: var(--grund);
+    color: var(--text);
+    font-family: var(--schrift-text);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1500px; margin: 0 auto; padding: 32px 24px 48px; }
+
+  /* Kopf */
+  .eyebrow {
+    margin: 0 0 4px;
+    color: var(--akzent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 16px;
+  }
+  h1 {
+    margin: 0;
+    font-family: var(--schrift-titel);
+    font-weight: normal;
+    font-size: clamp(28px, 4vw, 44px);
+    line-height: 1.15;
+  }
+  .caption {
+    min-height: 1.6em;
+    margin: 12px 0 0;
+    font-family: var(--schrift-titel);
+    font-style: italic;
+    font-size: clamp(18px, 2.2vw, 24px);
+    color: var(--akzent);
+    opacity: 0;
+    transition: opacity 1.4s ease;
+  }
+  .caption.sichtbar { opacity: 1; }
+
+  /* Karte */
+  .karte { position: relative; width: 100%; margin-top: 16px; }
+  .karte svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; display: block; }
+  .labels { position: absolute; inset: 0; pointer-events: none; }
+
+  .label {
+    position: absolute;
+    pointer-events: auto;
+    background: none;
+    border: 0;
+    padding: 6px 8px;
+    margin: 0;
+    color: var(--text-gedaempft);
+    font: inherit;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: color 0.8s ease;
+  }
+  .label.oben { transform: translateY(-100%); }
+  .label:hover .label-name { text-decoration: underline; text-decoration-color: var(--akzent); text-underline-offset: 4px; }
+  .label:focus-visible { outline: 2px solid var(--akzent); outline-offset: 2px; }
+  .label-nr {
+    display: block;
+    font-family: var(--schrift-titel);
+    color: var(--text-gedaempft);
+  }
+  .label-name {
+    display: block;
+    font-family: var(--schrift-titel);
+    font-size: 18px;
+    line-height: 1.25;
+  }
+  .label-kurz {
+    display: block;
+    margin-top: 4px;
+    font-size: 16px;
+    line-height: 1.35;
+    color: var(--text-gedaempft);
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 1s ease, transform 1s ease;
+  }
+  .label.erreicht { color: var(--text); }
+  .label.erreicht .label-nr { color: var(--akzent); }
+  .label.erreicht .label-kurz { opacity: 1; transform: none; }
+  .label.ziel .label-name { color: var(--akzent); }
+  .vertikal .label { text-align: left; }
+
+  /* SVG-Elemente */
+  .welle { fill: none; stroke: var(--welle); stroke-width: 1.5; }
+  .wellen-a { animation: drift 28s linear infinite; }
+  .wellen-b { animation: drift 40s linear infinite reverse; }
+  @keyframes drift { from { transform: translateX(0); } to { transform: translateX(-240px); } }
+
+  .route-offen { fill: none; stroke: var(--route); stroke-width: 2; stroke-dasharray: 2 10; stroke-linecap: round; }
+  .route-gefahren { fill: none; stroke: var(--akzent); stroke-width: 2.5; stroke-linecap: round; opacity: 0.85; }
+
+  .station { cursor: pointer; opacity: 0.55; transition: opacity 0.8s ease; }
+  .station.erreicht { opacity: 1; }
+  .station .kreis { stroke-width: 2.5; }
+  .station.umgesetzt .kreis { fill: var(--akzent); stroke: var(--akzent); }
+  .station.umgesetzt .haken { fill: none; stroke: var(--grund); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+  .station.test .kreis { fill: rgba(201, 169, 97, 0.35); stroke: var(--akzent); }
+  .station.geplant .kreis { fill: var(--grund); stroke: var(--text-gedaempft); stroke-dasharray: 4 4; }
+  .station .puls { fill: none; stroke: var(--akzent); stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; }
+  .station.test.erreicht .puls { animation: puls 2.8s ease-out infinite; }
+  @keyframes puls { 0% { opacity: 0.7; transform: scale(1); } 100% { opacity: 0; transform: scale(2.1); } }
+  .station .blitz { fill: none; stroke: var(--akzent-hell); stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; }
+  .station.blitzt .blitz { animation: blitz 1.3s ease-out 1; }
+  @keyframes blitz { 0% { opacity: 0.9; transform: scale(0.8); } 100% { opacity: 0; transform: scale(2.8); } }
+
+  /* Hafen und Leuchtturm */
+  .becken { fill: rgba(201, 169, 97, 0.06); stroke: var(--akzent); stroke-width: 1.5; stroke-dasharray: 3 6; }
+  .mole { fill: var(--grund-tief); stroke: var(--text-gedaempft); stroke-width: 1.5; }
+  .turm { fill: var(--text); }
+  .turm-streifen { fill: var(--akzent); }
+  .turm-dach { fill: var(--grund-tief); stroke: var(--text); stroke-width: 1.5; }
+  .lampe { fill: var(--grund-tief); transition: fill 1.2s ease; }
+  .strahl { fill: url(#strahlVerlauf); opacity: 0; transition: opacity 2s ease; transform-box: view-box; }
+  .hafen.an .lampe { fill: var(--akzent-hell); filter: url(#glimmen); }
+  .hafen.an .strahl { opacity: 0.4; }
+  .halo { fill: var(--akzent-hell); opacity: 0; transition: opacity 2s ease; filter: url(#glimmen); }
+  .hafen.an .halo { opacity: 0.18; }
+  .strahl-dreh { transform-box: view-box; transform-origin: 0px -66px; }
+  .hafen.an .strahl-dreh { animation: schwenk 9s ease-in-out infinite alternate; }
+  @keyframes schwenk { from { transform: rotate(-14deg); } to { transform: rotate(10deg); } }
+
+  /* Boot */
+  .rumpf { fill: var(--text); }
+  .grosssegel { fill: var(--akzent); }
+  .vorsegel { fill: var(--text); opacity: 0.85; }
+  .mast { stroke: var(--text); stroke-width: 2; }
+  .kielwasser { fill: none; stroke: var(--text); stroke-width: 1.5; stroke-linecap: round; opacity: 0.35; }
+
+  /* Fuß: Kurs-Balken und Knöpfe */
+  .fuss {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px 32px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(169, 180, 198, 0.25);
+  }
+  .kurs { flex: 1 1 320px; max-width: 560px; }
+  .kurs-balken { display: flex; gap: 6px; height: 8px; }
+  .kurs-balken span {
+    flex: 1;
+    border-radius: 4px;
+    background: rgba(169, 180, 198, 0.22);
+    transition: background 0.8s ease;
+  }
+  .kurs-balken span.voll { background: var(--akzent); }
+  .kurs-text { margin: 8px 0 0; color: var(--text-gedaempft); }
+  .kurs-text strong { color: var(--text); font-weight: 600; }
+
+  .steuerung { display: flex; gap: 12px; flex-wrap: wrap; }
+  button.knopf {
+    font: inherit;
+    font-size: 16px;
+    padding: 10px 18px;
+    border-radius: 999px;
+    border: 1.5px solid var(--akzent);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+  button.knopf:hover { background: var(--akzent); color: var(--grund); }
+  button.knopf:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+
+  .legende {
+    list-style: none;
+    margin: 24px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    color: var(--text-gedaempft);
+  }
+  .legende li { display: flex; align-items: center; gap: 8px; }
+  .legende svg { width: 22px; height: 22px; flex: none; }
+
+  .hintergrund { margin-top: 16px; color: var(--text-gedaempft); }
+  .hintergrund button {
+    font: inherit;
+    color: var(--text);
+    background: none;
+    border: 0;
+    border-bottom: 1px dashed var(--text-gedaempft);
+    padding: 0;
+    cursor: pointer;
+  }
+  .hintergrund button:focus-visible { outline: 2px solid var(--akzent); outline-offset: 3px; }
+  .quelle { margin-top: 24px; color: var(--text-gedaempft); }
+
+  /* Detailfeld */
+  .schleier {
+    position: fixed;
+    inset: 0;
+    background: rgba(6, 18, 32, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 10;
+  }
+  .schleier[hidden] { display: none; }
+  .detail {
+    background: var(--grund-tief);
+    border: 1px solid rgba(201, 169, 97, 0.45);
+    border-radius: 14px;
+    padding: 28px 28px 24px;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  }
+  .detail-nr { margin: 0; color: var(--akzent); font-family: var(--schrift-titel); }
+  .detail h2 { margin: 4px 0 8px; font-family: var(--schrift-titel); font-weight: normal; font-size: 26px; line-height: 1.2; }
+  .detail-status { margin: 0 0 16px; color: var(--akzent); }
+  .detail-text { margin: 0 0 20px; }
+  .detail .knopf { float: right; }
+  .detail::after { content: ""; display: block; clear: both; }
+
+  @media (max-width: 600px) {
+    .wrap { padding: 24px 16px 40px; }
+    .fuss { flex-direction: column; align-items: stretch; }
+    .kurs { flex: none; max-width: none; }
+    .steuerung .knopf { flex: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wellen-a, .wellen-b, .station .puls, .station .blitz, .hafen.an .strahl-dreh { animation: none !important; }
+    .caption, .label, .label-kurz, .station, .kurs-balken span, .lampe, .strahl { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <p class="eyebrow">Meine BCA-Maßnahmen</p>
+    <h1 id="titel">Meine Route durch den BCA-Alltag</h1>
+    <p class="caption" id="caption" aria-live="polite"></p>
+  </header>
+
+  <section aria-label="Seekarte mit allen Stationen">
+    <div class="karte" id="karte">
+      <svg id="svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Segelroute von Station 1 bis zum leeren Hafen"></svg>
+      <div class="labels" id="labels"></div>
+    </div>
+  </section>
+
+  <section class="fuss">
+    <div class="kurs">
+      <div class="kurs-balken" id="kursBalken" aria-hidden="true"></div>
+      <p class="kurs-text" id="kursText"></p>
+    </div>
+    <div class="steuerung" id="steuerung">
+      <button type="button" class="knopf" id="btnNochmal">Noch einmal</button>
+      <button type="button" class="knopf" id="btnHafen">Zum Hafen</button>
+    </div>
+  </section>
+
+  <ul class="legende" aria-label="Legende">
+    <li><svg viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="8" fill="#C9A961" style="fill:var(--akzent)"/></svg>Umgesetzt</li>
+    <li><svg viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="8" style="fill:rgba(201,169,97,.35);stroke:var(--akzent);stroke-width:2"/></svg>Im Test</li>
+    <li><svg viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="8" style="fill:none;stroke:var(--text-gedaempft);stroke-width:2;stroke-dasharray:3 3"/></svg>Geplant</li>
+    <li><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M8 19 L9.5 6 L12.5 6 L14 19 Z" style="fill:var(--text)"/><rect x="9" y="3" width="4" height="3" style="fill:var(--akzent)"/></svg>Ziel: der leere Hafen</li>
+  </ul>
+
+  <p class="hintergrund" id="hintergrund" hidden></p>
+  <p class="quelle" id="quelle" hidden></p>
+</main>
+
+<div class="schleier" id="schleier" hidden>
+  <div class="detail" role="dialog" aria-modal="true" aria-labelledby="detailTitel">
+    <p class="detail-nr" id="detailNr"></p>
+    <h2 id="detailTitel"></h2>
+    <p class="detail-status" id="detailStatus"></p>
+    <p class="detail-text" id="detailText"></p>
+    <button type="button" class="knopf" id="detailZu">Schließen</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // Kopie von stationen.json. Wird nur genutzt, wenn die Datei nicht gelesen werden kann
+  // (z. B. beim Öffnen per Doppelklick in Chrome oder Edge).
+  var FALLBACK = {
+    "_hinweis": "Erlaubte Werte für status: umgesetzt, test, geplant, ziel. statusText erscheint im Detailfeld. notiz wird nicht angezeigt.",
+    "titel": "Meine Route durch den BCA-Alltag",
+    "einstieg": "Auf Kurs zum leeren Hafen.",
+    "schluss": "Jede Station macht den nächsten Tag leichter.",
+    "stationen": [
+      {
+        "nr": 1,
+        "name": "Automatische Ablage",
+        "kurz": "Mails landen von selbst im richtigen Ordner.",
+        "detail": "Regeln sortieren eingehende Mails nach Absender und Thema in die passenden Ordner. Du suchst nicht mehr, du findest. Im Posteingang bleibt nur, was wirklich offen ist.",
+        "status": "umgesetzt",
+        "statusText": "umgesetzt"
+      },
+      {
+        "nr": 2,
+        "name": "Posteingang aufgeräumt",
+        "kurz": "Dreimal täglich Ordnung, zwischendurch per Kurzbefehl.",
+        "detail": "Morgens, mittags und am Nachmittag wird der Posteingang einmal sortiert, dazwischen genügt ein Kurzbefehl. So bleibt er überschaubar, und bis zum Abend stapelt sich nichts.",
+        "status": "umgesetzt",
+        "statusText": "umgesetzt"
+      },
+      {
+        "nr": 3,
+        "name": "Mein Schreibstil",
+        "kurz": "Entwürfe klingen nach mir, nicht nach KI.",
+        "detail": "Eine Stilvorlage beschreibt, wie du schreibst: Anrede, Satzlänge, typische Wendungen. Entwürfe passen dadurch schon beim ersten Lesen und brauchen kaum Nacharbeit.",
+        "status": "test",
+        "statusText": "im Test, läuft gut"
+      },
+      {
+        "nr": 4,
+        "name": "FAQ-Grundlage",
+        "kurz": "Standardantworten mit Datum und Prüffrist, technisch gelegt.",
+        "detail": "Standardantworten liegen an einer Stelle, jede mit Datum und Prüffrist. Die Technik steht, die Inhalte wachsen Schritt für Schritt. Wiederkehrende Fragen beantwortest du dann aus einer geprüften Quelle statt aus dem Gedächtnis.",
+        "status": "test",
+        "statusText": "Technik steht, Inhalte im Aufbau"
+      },
+      {
+        "nr": 5,
+        "name": "Vorpriorisierung und Antwortentwürfe",
+        "kurz": "Das Wichtige zuerst, der Entwurf liegt schon bereit.",
+        "detail": "Eingehende Anfragen werden nach Dringlichkeit vorsortiert, für die häufigen liegt ein Antwortentwurf bereit. Du entscheidest und gibst frei, statt jedes Mal bei null anzufangen.",
+        "status": "test",
+        "statusText": "im Test"
+      },
+      {
+        "nr": 6,
+        "name": "Salesforce-Routine",
+        "kurz": "Freitags prüfe ich, ob alles protokolliert ist. Kalender läuft synchron.",
+        "detail": "Freitags ein fester Blick: Ist jeder Kontakt der Woche protokolliert? Der Kalender gleicht sich von selbst ab. Die Dokumentation bleibt aktuell, ohne dich die ganze Woche zu begleiten.",
+        "status": "umgesetzt",
+        "statusText": "umgesetzt"
+      },
+      {
+        "nr": 7,
+        "name": "Nachfass-Radar",
+        "kurz": "Nichts bleibt unbeantwortet, keine Zusage geht verloren.",
+        "detail": "Offene Anfragen und gegebene Zusagen werden erkannt und rechtzeitig wieder vorgelegt. Nichts versandet, und du musst dir nicht alles merken.",
+        "status": "geplant",
+        "statusText": "geplant",
+        "notiz": "bitte bestätigen"
+      },
+      {
+        "nr": 8,
+        "name": "Gesprächsvorbereitung",
+        "kurz": "Eine halbe Seite pro Termin, bevor es losgeht.",
+        "detail": "Vor jedem Termin entsteht eine halbe Seite mit dem Stand, den offenen Punkten und dem Ziel des Gesprächs. Du gehst vorbereitet hinein, ohne vorher Mails und Notizen zusammenzusuchen.",
+        "status": "geplant",
+        "statusText": "geplant",
+        "notiz": "bitte bestätigen"
+      },
+      {
+        "nr": 9,
+        "name": "Aufgaben, die mich erreichen",
+        "kurz": "Fälliges kommt zu mir, in Kalender und Posteingang.",
+        "detail": "Fällige Aufgaben erscheinen dort, wo du ohnehin hinschaust: im Kalender und im Posteingang. Das Konzept steht. Ans Erinnern denkt dann das System, nicht dein Kopf.",
+        "status": "geplant",
+        "statusText": "Konzept steht"
+      },
+      {
+        "nr": 10,
+        "name": "Der leere Hafen",
+        "kurz": "Bearbeitungsordner leer, Überblick da, keine Zeitbomben.",
+        "detail": "Das Ziel hinter allen Stationen: leere Bearbeitungsordner, ein leichter Überblick, keine ständige Neu-Priorisierung und keine tickenden Zeitbomben. Jede Station bringt dich ein Stück näher.",
+        "status": "ziel",
+        "statusText": "Ziel"
+      }
+    ],
+    "hintergrund": [
+      {
+        "name": "Morning Briefing aus Newslettern",
+        "kurz": "Die Newsletter des Morgens als eine kurze Übersicht.",
+        "detail": "Newsletter werden morgens zu einer kurzen Übersicht zusammengefasst. Du bleibst informiert, ohne jeden einzeln zu öffnen.",
+        "status": "geplant",
+        "statusText": "geplant",
+        "notiz": "bitte bestätigen"
+      }
+    ]
+  };
+
+  var NS = "http://www.w3.org/2000/svg";
+  var STATUS_NAME = { umgesetzt: "Umgesetzt", test: "Im Test", geplant: "Geplant", ziel: "Ziel" };
+
+  // Zeiten in Sekunden
+  var EINFAHRT = 6;      // Boot fährt ins Bild bis Station 1
+  var FAHRT = 26;        // reine Fahrzeit von Station 1 bis zum Hafen
+  var HALT = 0.9;        // kurzer Halt an jeder Station
+
+  var svg = document.getElementById("svg");
+  var karte = document.getElementById("karte");
+  var labelsEl = document.getElementById("labels");
+  var caption = document.getElementById("caption");
+  var kursBalken = document.getElementById("kursBalken");
+  var kursText = document.getElementById("kursText");
+  var schleier = document.getElementById("schleier");
+  var bewegungAus = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  var daten, stationen;
+  var L = {};               // aktuelles Layout
+  var plan = [], gesamt = 0;
+  var zeit = 0, laeuft = false, pausiert = false, letzterTick = null;
+  var erreichtBis = -1, fertig = false;
+  var folgen = true;        // Handy: Ansicht folgt dem Boot
+  var ausloeser = null;     // Element, das das Detailfeld geöffnet hat
+
+  function el(name, attrs, parent) {
+    var n = document.createElementNS(NS, name);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+
+  function laden() {
+    return fetch("stationen.json", { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+      .then(function (d) { return { d: d, fallback: false }; })
+      .catch(function () { return { d: FALLBACK, fallback: true }; });
+  }
+
+  // ---------- Layout ----------
+  function layoutBerechnen() {
+    var n = stationen.length;
+    var vertikal = karte.clientWidth < 1000;
+    var p = [], start, W, H, lw;
+    if (!vertikal) {
+      W = 1600; H = 720; lw = 260;
+      for (var i = 0; i < n; i++) {
+        var y = (i % 2 === 0) ? 310 : 430;
+        if (i === n - 1) y = 380;
+        p.push({ x: 120 + (1400 - 120) * i / (n - 1), y: y });
+      }
+      start = { x: -90, y: 380 };
+    } else {
+      W = 400; lw = 250;
+      var schritt = 190;
+      for (var j = 0; j < n; j++) p.push({ x: (j === n - 1) ? 98 : (j % 2 === 0) ? 58 : 86, y: 120 + schritt * j });
+      H = p[n - 1].y + 150;
+      start = { x: 72, y: -70 };
+    }
+    return { vertikal: vertikal, W: W, H: H, p: p, start: start, lw: lw };
+  }
+
+  function glattePfad(pts) {
+    var d = "M" + pts[0].x + "," + pts[0].y;
+    for (var i = 0; i < pts.length - 1; i++) {
+      var p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+      var c1x = p1.x + (p2.x - p0.x) / 6, c1y = p1.y + (p2.y - p0.y) / 6;
+      var c2x = p2.x - (p3.x - p1.x) / 6, c2y = p2.y - (p3.y - p1.y) / 6;
+      d += " C" + c1x.toFixed(1) + "," + c1y.toFixed(1) + " " + c2x.toFixed(1) + "," + c2y.toFixed(1) + " " + p2.x + "," + p2.y;
+    }
+    return d;
+  }
+
+  function aufbauen() {
+    L = layoutBerechnen();
+    svg.innerHTML = "";
+    labelsEl.innerHTML = "";
+    karte.classList.toggle("vertikal", L.vertikal);
+    karte.style.aspectRatio = L.W + " / " + L.H;
+    svg.setAttribute("viewBox", "0 0 " + L.W + " " + L.H);
+
+    var defs = el("defs", {}, svg);
+    var grad = el("linearGradient", { id: "strahlVerlauf", x1: "0", y1: "0", x2: "1", y2: "0" }, defs);
+    el("stop", { offset: "0", "stop-color": "#E6D09A", "stop-opacity": "0.9" }, grad);
+    el("stop", { offset: "1", "stop-color": "#E6D09A", "stop-opacity": "0" }, grad);
+    var f = el("filter", { id: "glimmen", x: "-200%", y: "-200%", width: "500%", height: "500%" }, defs);
+    el("feGaussianBlur", { stdDeviation: "3", result: "b" }, f);
+    var m = el("feMerge", {}, f);
+    el("feMergeNode", { "in": "b" }, m);
+    el("feMergeNode", { "in": "SourceGraphic" }, m);
+
+    // Wellenlinien im Hintergrund
+    ["wellen-a", "wellen-b"].forEach(function (cls, k) {
+      var g = el("g", { "class": cls }, svg);
+      var abstand = L.vertikal ? 70 : 90;
+      for (var y = 40 + k * abstand / 2; y < L.H; y += abstand) {
+        var d = "M-240," + y;
+        for (var x = -240; x < L.W + 480; x += 120) {
+          d += " q30,-6 60,0 t60,0";
+        }
+        el("path", { d: d, "class": "welle" }, g);
+      }
+    });
+
+    // Route
+    var alle = [L.start].concat(L.p);
+    var d = glattePfad(alle);
+    L.pfad = el("path", { d: d, "class": "route-offen" }, svg);
+    L.spur = el("path", { d: d, "class": "route-gefahren" }, svg);
+    L.laenge = L.pfad.getTotalLength();
+    L.spur.style.strokeDasharray = L.laenge + " " + L.laenge;
+    L.spur.style.strokeDashoffset = L.laenge;
+
+    // Längen der Stationen auf dem Pfad
+    var proben = 2400, idx = 0;
+    L.sl = L.p.map(function (pt) {
+      var best = Infinity, bestL = 0;
+      for (var s = idx; s <= proben; s++) {
+        var len = L.laenge * s / proben;
+        var q = L.pfad.getPointAtLength(len);
+        var dist = (q.x - pt.x) * (q.x - pt.x) + (q.y - pt.y) * (q.y - pt.y);
+        if (dist < best) { best = dist; bestL = len; idx = s; }
+        else if (dist > best + 4000 && best < 25) break;
+      }
+      return bestL;
+    });
+
+    // Stationen
+    L.st = [];
+    L.lb = [];
+    stationen.forEach(function (s, i) {
+      var pt = L.p[i];
+      var g = el("g", { "class": "station " + s.status, transform: "translate(" + pt.x + "," + pt.y + ")", "aria-hidden": "true" }, svg);
+      if (s.status === "ziel") {
+        hafenZeichnen(g);
+      } else {
+        el("circle", { r: 14, "class": "blitz" }, g);
+        el("circle", { r: 14, "class": "puls" }, g);
+        el("circle", { r: 14, "class": "kreis" }, g);
+        if (s.status === "umgesetzt") el("path", { d: "M-6,0 L-1.5,4.5 L6.5,-4.5", "class": "haken" }, g);
+      }
+      g.addEventListener("click", function () { oeffnen(s, L.lb[i]); });
+      L.st.push(g);
+
+      // Beschriftung als HTML-Knopf
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "label " + s.status;
+      b.setAttribute("aria-label", "Station " + s.nr + ": " + s.name + ", " + (STATUS_NAME[s.status] || s.status) + ". Details öffnen");
+      b.innerHTML = '<span class="label-nr"></span><span class="label-name"></span><span class="label-kurz"></span>';
+      b.querySelector(".label-nr").textContent = s.status === "ziel" ? "Ziel" : String(s.nr).padStart(2, "0");
+      b.querySelector(".label-name").textContent = s.name;
+      b.querySelector(".label-kurz").textContent = s.kurz;
+      var breite = (!L.vertikal && i === stationen.length - 1) ? 210 : L.lw;
+      if (!L.vertikal) {
+        var oben = pt.y < 380 || i === stationen.length - 1;
+        var links = Math.min(Math.max(pt.x - breite / 2, 0), L.W - breite);
+        if (i === stationen.length - 1) links = L.W - breite;
+        b.style.left = (links / L.W * 100) + "%";
+        b.style.width = (breite / L.W * 100) + "%";
+        if (oben) {
+          b.classList.add("oben");
+          b.style.top = ((pt.y - (i === stationen.length - 1 ? 110 : 34)) / L.H * 100) + "%";
+          if (i === stationen.length - 1) b.style.textAlign = "right";
+        } else {
+          b.style.top = ((pt.y + 30) / L.H * 100) + "%";
+        }
+      } else {
+        var lx = 130;
+        b.style.left = (lx / L.W * 100) + "%";
+        b.style.width = ((L.W - lx - 4) / L.W * 100) + "%";
+        b.style.top = ((pt.y - 26) / L.H * 100) + "%";
+      }
+      b.addEventListener("click", function () { oeffnen(s, b); });
+      labelsEl.appendChild(b);
+      L.lb.push(b);
+    });
+
+    // Boot
+    L.boot = el("g", { "class": "boot", "aria-hidden": "true" }, svg);
+    var innen = el("g", { transform: "scale(" + (L.vertikal ? 0.85 : 1.25) + ")" }, L.boot);
+    L.bootInnen = el("g", {}, innen);
+    el("path", { d: "M-44,4 q-8,2 -16,0 M-40,10 q-10,3 -20,0", "class": "kielwasser" }, L.bootInnen);
+    el("line", { x1: 0, y1: -4, x2: 0, y2: -54, "class": "mast" }, L.bootInnen);
+    el("path", { d: "M3,-52 L3,-8 L27,-8 Z", "class": "grosssegel" }, L.bootInnen);
+    el("path", { d: "M-3,-47 L-3,-8 L-24,-8 Z", "class": "vorsegel" }, L.bootInnen);
+    el("path", { d: "M-30,-4 L30,-4 L21,8 L-23,8 Z", "class": "rumpf" }, L.bootInnen);
+
+    planErstellen();
+  }
+
+  function hafenZeichnen(g) {
+    g.classList.add("hafen");
+    L.hafen = g;
+    el("circle", { r: 26, "class": "becken" }, g);
+    el("path", { d: "M14,22 Q40,30 62,14 L66,20 Q42,38 12,28 Z", "class": "mole", transform: L.vertikal ? "scale(-1,1)" : "" }, g);
+    var t = el("g", { transform: L.vertikal ? "translate(-68,6) scale(0.8)" : "translate(58,4)" }, g);
+    el("circle", { cx: 0, cy: -66, r: 22, "class": "halo" }, t);
+    if (!L.vertikal) {
+      var dreh = el("g", { "class": "strahl-dreh" }, t);
+      el("path", { d: "M0,-66 L170,-96 L170,-40 Z", "class": "strahl" }, dreh);
+    }
+    el("path", { d: "M-10,0 L10,0 L6,-58 L-6,-58 Z", "class": "turm" }, t);
+    el("path", { d: "M-8.6,-20 L8.6,-20 L8,-30 L-8,-30 Z", "class": "turm-streifen" }, t);
+    el("path", { d: "M-7.3,-40 L7.3,-40 L6.8,-48 L-6.8,-48 Z", "class": "turm-streifen" }, t);
+    el("rect", { x: -7, y: -72, width: 14, height: 13, rx: 2, "class": "lampe" }, t);
+    el("path", { d: "M-9,-72 L0,-80 L9,-72 Z", "class": "turm-dach" }, t);
+  }
+
+  // ---------- Zeitplan ----------
+  function planErstellen() {
+    plan = [];
+    var t = 0, n = stationen.length;
+    var fahrtLaenge = L.sl[n - 1] - L.sl[0];
+    plan.push({ art: "fahrt", von: 0, bis: L.sl[0], t0: t, dauer: EINFAHRT, einfahrt: true });
+    t += EINFAHRT;
+    for (var i = 0; i < n; i++) {
+      plan.push({ art: "halt", station: i, t0: t, dauer: i === n - 1 ? 0 : HALT, len: L.sl[i] });
+      t += i === n - 1 ? 0 : HALT;
+      if (i < n - 1) {
+        var dauer = FAHRT * (L.sl[i + 1] - L.sl[i]) / fahrtLaenge;
+        plan.push({ art: "fahrt", von: L.sl[i], bis: L.sl[i + 1], t0: t, dauer: dauer });
+        t += dauer;
+      }
+    }
+    gesamt = t;
+  }
+
+  function sanft(x) { return 0.5 - 0.5 * Math.cos(Math.PI * x); }
+  function auslaufend(x) { return 1 - Math.pow(1 - x, 2.4); }
+
+  function zustandBei(t) {
+    var len = 0, station = -1;
+    for (var i = 0; i < plan.length; i++) {
+      var s = plan[i];
+      if (t < s.t0) break;
+      if (s.art === "halt") { station = s.station; len = s.len; }
+      else {
+        var x = Math.min(1, (t - s.t0) / s.dauer);
+        len = s.von + (s.bis - s.von) * (s.einfahrt ? auslaufend(x) : sanft(x));
+      }
+    }
+    return { len: len, station: station };
+  }
+
+  function bootSetzen(len, t) {
+    var a = L.pfad.getPointAtLength(Math.max(0, len));
+    var b = L.pfad.getPointAtLength(Math.min(L.laenge, len + 2));
+    var winkel = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+    var neigung = L.vertikal ? 0 : Math.max(-9, Math.min(9, winkel));
+    var wippen = Math.sin(t * 1.6) * 1.6;
+    neigung += Math.sin(t * 1.1) * 1.5;
+    L.boot.setAttribute("transform", "translate(" + a.x.toFixed(1) + "," + (a.y + wippen).toFixed(1) + ")");
+    L.bootInnen.setAttribute("transform", "rotate(" + neigung.toFixed(2) + ")");
+    L.spur.style.strokeDashoffset = Math.max(0, L.laenge - len);
+  }
+
+  // ---------- Stationen erreichen ----------
+  function erreichen(i, mitBlitz) {
+    var g = L.st[i], b = L.lb[i];
+    g.classList.add("erreicht");
+    b.classList.add("erreicht");
+    if (mitBlitz) {
+      g.classList.remove("blitzt");
+      void g.getBoundingClientRect();
+      g.classList.add("blitzt");
+      if (L.vertikal && folgen) b.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+    kursAktualisieren(i);
+  }
+
+  function kursAktualisieren(bis) {
+    var segmente = kursBalken.children;
+    var k = 0, umgesetzt = 0, test = 0, zaehlbar = 0;
+    stationen.forEach(function (s, i) {
+      if (s.status === "ziel") return;
+      zaehlbar++;
+      if (s.status === "umgesetzt") {
+        if (i <= bis && segmente[k]) segmente[k].classList.add("voll");
+        if (i <= bis) umgesetzt++;
+        k++;
+      }
+      if (s.status === "test" && i <= bis) test++;
+    });
+    kursText.innerHTML = "";
+    var st = document.createElement("strong");
+    st.textContent = umgesetzt + " von " + zaehlbar;
+    kursText.appendChild(st);
+    kursText.appendChild(document.createTextNode(" Stationen umgesetzt" + (test ? ", " + test + " im Test" : "")));
+  }
+
+  function kursAufbauen() {
+    kursBalken.innerHTML = "";
+    stationen.forEach(function (s) {
+      if (s.status === "umgesetzt") kursBalken.appendChild(document.createElement("span"));
+    });
+    stationen.forEach(function (s) {
+      if (s.status !== "umgesetzt" && s.status !== "ziel") kursBalken.appendChild(document.createElement("span"));
+    });
+    kursAktualisieren(-1);
+  }
+
+  function hafenAn() {
+    if (L.hafen) L.hafen.classList.add("an");
+    fertig = true;
+    captionZeigen(daten.schluss);
+  }
+
+  function captionZeigen(text) {
+    caption.classList.remove("sichtbar");
+    setTimeout(function () {
+      caption.textContent = text || "";
+      caption.classList.add("sichtbar");
+    }, bewegungAus.matches ? 0 : 500);
+  }
+
+  // ---------- Ablauf ----------
+  function tick(ts) {
+    if (!laeuft) return;
+    if (letzterTick === null) letzterTick = ts;
+    var dt = Math.min(0.1, (ts - letzterTick) / 1000);
+    letzterTick = ts;
+    if (!pausiert) zeit += dt;
+    var z = zustandBei(Math.min(zeit, gesamt));
+    bootSetzen(z.len, zeit);
+    while (erreichtBis < z.station) {
+      erreichtBis++;
+      erreichen(erreichtBis, true);
+      if (erreichtBis === stationen.length - 1) hafenAn();
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function zuruecksetzen() {
+    erreichtBis = -1;
+    fertig = false;
+    L.st.forEach(function (g) { g.classList.remove("erreicht", "blitzt"); });
+    L.lb.forEach(function (b) { b.classList.remove("erreicht"); });
+    if (L.hafen) L.hafen.classList.remove("an");
+    Array.prototype.forEach.call(kursBalken.children, function (s) { s.classList.remove("voll"); });
+    kursAktualisieren(-1);
+  }
+
+  function starten() {
+    zuruecksetzen();
+    zeit = 0;
+    folgen = true;
+    caption.classList.remove("sichtbar");
+    caption.textContent = "";
+    setTimeout(function () { if (zeit < EINFAHRT) captionZeigen(daten.einstieg); }, 700);
+    if (L.vertikal) window.scrollTo({ top: 0, behavior: "smooth" });
+    if (!laeuft) { laeuft = true; letzterTick = null; requestAnimationFrame(tick); }
+  }
+
+  function zumHafen() {
+    zeit = gesamt;
+    for (var i = erreichtBis + 1; i < stationen.length; i++) erreichen(i, false);
+    erreichtBis = stationen.length - 1;
+    if (!fertig) hafenAn();
+    if (!laeuft) { laeuft = true; letzterTick = null; requestAnimationFrame(tick); }
+    if (L.vertikal) L.lb[stationen.length - 1].scrollIntoView({ block: "center", behavior: bewegungAus.matches ? "auto" : "smooth" });
+  }
+
+  function statisch() {
+    laeuft = false;
+    zeit = gesamt;
+    zuruecksetzen();
+    for (var i = 0; i < stationen.length; i++) erreichen(i, false);
+    erreichtBis = stationen.length - 1;
+    bootSetzen(L.sl[stationen.length - 1], 0);
+    if (L.hafen) L.hafen.classList.add("an");
+    fertig = true;
+    caption.textContent = daten.schluss;
+    caption.classList.add("sichtbar");
+    document.getElementById("steuerung").hidden = true;
+  }
+
+  // Zustand nach Neuaufbau (z. B. Drehen des Handys) wiederherstellen
+  function zustandWiederherstellen() {
+    var bis = erreichtBis;
+    erreichtBis = -1;
+    for (var i = 0; i <= bis; i++) erreichen(i, false);
+    erreichtBis = bis;
+    if (fertig && L.hafen) L.hafen.classList.add("an");
+    bootSetzen(zustandBei(Math.min(zeit, gesamt)).len, zeit);
+  }
+
+  // ---------- Detailfeld ----------
+  function oeffnen(s, von) {
+    ausloeser = von || null;
+    document.getElementById("detailNr").textContent = s.nr ? (s.status === "ziel" ? "Ziel" : "Station " + s.nr) : "Im Hintergrund";
+    document.getElementById("detailTitel").textContent = s.name;
+    var stName = STATUS_NAME[s.status] || s.status;
+    var zusatz = s.statusText && s.statusText.toLowerCase() !== stName.toLowerCase() ? " · " + s.statusText : "";
+    document.getElementById("detailStatus").textContent = stName + zusatz;
+    document.getElementById("detailText").textContent = s.detail || s.kurz || "";
+    schleier.hidden = false;
+    pausiert = true;
+    document.getElementById("detailZu").focus();
+  }
+
+  function schliessen() {
+    schleier.hidden = true;
+    pausiert = false;
+    if (ausloeser) ausloeser.focus();
+  }
+
+  schleier.addEventListener("click", function (e) { if (e.target === schleier) schliessen(); });
+  document.getElementById("detailZu").addEventListener("click", schliessen);
+  document.addEventListener("keydown", function (e) {
+    if (schleier.hidden) return;
+    if (e.key === "Escape") { e.preventDefault(); schliessen(); }
+    if (e.key === "Tab") { e.preventDefault(); document.getElementById("detailZu").focus(); }
+  });
+
+  // Auf dem Handy: wer selbst scrollt, übernimmt die Ansicht
+  ["wheel", "touchmove"].forEach(function (ev) {
+    window.addEventListener(ev, function () { folgen = false; }, { passive: true });
+  });
+
+  // ---------- Start ----------
+  laden().then(function (r) {
+    daten = r.d;
+    stationen = daten.stationen || [];
+    if (daten.titel) document.getElementById("titel").textContent = daten.titel;
+
+    if (r.fallback) {
+      var q = document.getElementById("quelle");
+      q.textContent = "Hinweis: stationen.json konnte nicht gelesen werden, angezeigt wird die eingebaute Kopie.";
+      q.hidden = false;
+    }
+
+    var hg = daten.hintergrund || [];
+    if (hg.length) {
+      var p = document.getElementById("hintergrund");
+      p.appendChild(document.createTextNode("Im Hintergrund: "));
+      hg.forEach(function (h, i) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.textContent = h.name;
+        b.addEventListener("click", function () { oeffnen(h, b); });
+        if (i) p.appendChild(document.createTextNode(", "));
+        p.appendChild(b);
+        p.appendChild(document.createTextNode(" (" + (STATUS_NAME[h.status] || h.status) + ")"));
+      });
+      p.hidden = false;
+    }
+
+    aufbauen();
+    kursAufbauen();
+
+    document.getElementById("btnNochmal").addEventListener("click", starten);
+    document.getElementById("btnHafen").addEventListener("click", zumHafen);
+
+    if (bewegungAus.matches) statisch(); else starten();
+
+    bewegungAus.addEventListener && bewegungAus.addEventListener("change", function () {
+      if (bewegungAus.matches) statisch();
+      else { document.getElementById("steuerung").hidden = false; starten(); }
+    });
+
+    var warVertikal = L.vertikal;
+    var timer;
+    window.addEventListener("resize", function () {
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        var jetzt = karte.clientWidth < 1000;
+        if (jetzt === warVertikal) return;
+        warVertikal = jetzt;
+        aufbauen();
+        kursAufbauen();
+        zustandWiederherstellen();
+        if (bewegungAus.matches) statisch();
+      }, 150);
+    });
+  });
+})();
+</script>
+</body>
+</html>
