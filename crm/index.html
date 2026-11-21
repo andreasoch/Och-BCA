@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' blob: data:; media-src blob:; frame-src blob:; object-src 'none'; base-uri 'none'; form-action 'none'; connect-src 'none'; manifest-src 'self'; worker-src 'self'">
+<meta name="theme-color" content="#0B1426">
+<title>Och · CRM</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Och CRM">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230B1426'/%3E%3Ctext x='32' y='43' font-family='Georgia,serif' font-size='30' text-anchor='middle' fill='%23C9A84C'%3EO%3C/text%3E%3C/svg%3E">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0B1426;--bg2:#101b33;--panel:#152040;--panel2:#1b2a50;--line:rgba(201,168,76,.14);--line2:rgba(138,149,171,.18);
+  --ink:#F5F0E8;--ink2:#D4CCBC;--muted:#8A95AB;--gold:#C9A84C;--gold2:#E2C97A;--goldsoft:rgba(201,168,76,.12);
+  --ok:#5fb98a;--warn:#e0a83c;--bad:#e06a5f;--shadow:0 20px 60px rgba(0,0,0,.45);
+  --serif:'Cormorant Garant','Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
+  --sans:'DM Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  color-scheme:dark;
+}
+:root[data-theme="light"]{
+  --bg:#F5F0E8;--bg2:#efe8dc;--panel:#fffdf9;--panel2:#f6f0e4;--line:rgba(140,110,40,.2);--line2:rgba(11,20,38,.12);
+  --ink:#0B1426;--ink2:#26324d;--muted:#5f6a80;--gold:#9a7a22;--gold2:#7d6318;--goldsoft:rgba(154,122,34,.1);
+  --ok:#2f8a5c;--warn:#a86f0c;--bad:#b9443a;--shadow:0 20px 50px rgba(11,20,38,.15);color-scheme:light;
+}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]):not([data-theme="light"]){
+  --bg:#F5F0E8;--bg2:#efe8dc;--panel:#fffdf9;--panel2:#f6f0e4;--line:rgba(140,110,40,.2);--line2:rgba(11,20,38,.12);
+  --ink:#0B1426;--ink2:#26324d;--muted:#5f6a80;--gold:#9a7a22;--gold2:#7d6318;--goldsoft:rgba(154,122,34,.1);
+  --ok:#2f8a5c;--warn:#a86f0c;--bad:#b9443a;--shadow:0 20px 50px rgba(11,20,38,.15);color-scheme:light}}
+html,body{height:100%}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--gold2)}
+svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.serif{font-family:var(--serif)}
+.muted{color:var(--muted)}
+.hidden{display:none!important}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+/* ---------- Lock screen ---------- */
+#lock{position:fixed;inset:0;display:grid;place-items:center;padding:24px;z-index:50;
+  background:radial-gradient(ellipse 70% 60% at 80% 20%,var(--goldsoft),transparent 60%),var(--bg)}
+#lock .card{width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:36px 30px;box-shadow:var(--shadow)}
+.brand{display:flex;align-items:center;gap:12px}
+.mark{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--goldsoft);border:1px solid var(--line);color:var(--gold);font-family:var(--serif);font-size:24px}
+.brand h1{font-family:var(--serif);font-weight:500;font-size:28px;letter-spacing:.02em}
+#lock p.lead{margin:18px 0 22px;color:var(--ink2)}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field>span{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.input,select.input,textarea.input{width:100%;background:var(--bg2);border:1px solid var(--line2);border-radius:11px;padding:10px 12px;outline:none;transition:border-color .2s}
+.input:focus{border-color:var(--gold)}
+textarea.input{resize:vertical;min-height:90px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line2);background:var(--panel2);border-radius:11px;padding:9px 14px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:hover{border-color:var(--gold);color:var(--gold2)}
+.btn.primary{background:var(--gold);color:#0B1426;border-color:var(--gold);font-weight:500}
+.btn.primary:hover{background:var(--gold2);color:#0B1426}
+.btn.ghost{background:transparent;border-color:transparent}
+.btn.ghost:hover{background:var(--goldsoft);border-color:transparent}
+.btn.danger{color:var(--bad)}
+.btn.danger:hover{border-color:var(--bad);color:var(--bad)}
+.btn.sm{padding:6px 10px;font-size:13px;border-radius:9px}
+.btn.icon{padding:8px;border-radius:10px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.meter{height:4px;border-radius:4px;background:var(--line2);overflow:hidden;margin-top:6px}
+.meter i{display:block;height:100%;width:0;background:var(--bad);transition:all .3s}
+.err{color:var(--bad);font-size:13px;min-height:20px}
+.note{font-size:12.5px;color:var(--muted);margin-top:14px;line-height:1.5}
+
+/* ---------- App shell ---------- */
+#app{display:grid;grid-template-columns:240px 1fr;height:100vh;height:100dvh}
+aside.side{background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:22px 14px;gap:4px}
+aside .brand{padding:0 8px 22px}
+aside .brand h1{font-size:22px}
+.nav button{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border:0;background:none;border-radius:10px;cursor:pointer;color:var(--ink2);text-align:left}
+.nav button:hover{background:var(--goldsoft)}
+.nav button.on{background:var(--goldsoft);color:var(--gold2)}
+.nav button .count{margin-left:auto;font-size:12px;color:var(--muted)}
+aside .spacer{flex:1}
+main{overflow:auto;position:relative}
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;padding:18px 28px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top h2{font-family:var(--serif);font-weight:500;font-size:28px;flex:1;line-height:1.1}
+.searchbtn{display:flex;align-items:center;gap:10px;min-width:220px;color:var(--muted);justify-content:flex-start}
+.searchbtn kbd{margin-left:auto;font-size:11px;border:1px solid var(--line2);border-radius:6px;padding:1px 6px}
+.view{padding:26px 28px 120px;max-width:1280px}
+.bottomnav{display:none}
+#syncBtn{position:relative}
+#syncBtn .sdot{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:transparent}
+#syncBtn.dirty .sdot{background:var(--warn)}
+#syncBtn.ok .sdot{background:var(--ok)}
+#syncBtn.err .sdot{background:var(--bad)}
+#syncBtn.busy svg{animation:spin 1.2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.top{padding-top:calc(18px + env(safe-area-inset-top))}
+#drawer .pane{padding-top:env(safe-area-inset-top)}
+
+/* ---------- Cards & lists ---------- */
+.grid{display:grid;gap:16px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
+.card h3{font-family:var(--serif);font-weight:500;font-size:20px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card h3 .btn{margin-left:auto;font-family:var(--sans)}
+.kpi .lbl{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.kpi .val{font-family:var(--serif);font-size:38px;line-height:1.1;margin-top:6px}
+.kpi .sub{font-size:13px;color:var(--muted)}
+.two{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.row{display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:10px;cursor:pointer}
+.row:hover{background:var(--goldsoft)}
+.row .main{flex:1;min-width:0}
+.row .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .s{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.empty{color:var(--muted);padding:18px 8px;text-align:center;font-size:14px}
+.av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex:none;font-family:var(--serif);font-size:17px;color:#0B1426;object-fit:cover;overflow:hidden}
+.av.lg{width:84px;height:84px;font-size:34px}
+.av.sq{border-radius:12px}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:2px 9px;border-radius:20px;border:1px solid var(--line2);color:var(--ink2);white-space:nowrap}
+.chip.gold{border-color:var(--line);color:var(--gold2);background:var(--goldsoft)}
+.chip.ok{color:var(--ok);border-color:currentColor}
+.chip.warn{color:var(--warn);border-color:currentColor}
+.chip.bad{color:var(--bad);border-color:currentColor}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.stars{color:var(--gold);letter-spacing:1px;font-size:13px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+.toolbar .input{width:auto;min-width:150px}
+.toolbar .grow{flex:1;min-width:200px}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:11px;overflow-x:auto;max-width:100%;scrollbar-width:none}
+.seg button{flex:none}
+.seg button{border:0;background:none;padding:8px 12px;cursor:pointer;color:var(--muted)}
+.seg button.on{background:var(--goldsoft);color:var(--gold2)}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.ccard{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:10px;transition:transform .15s,border-color .15s}
+.ccard:hover{border-color:var(--gold);transform:translateY(-2px)}
+.ccard .hd{display:flex;gap:12px;align-items:center}
+.ccard .nm{font-weight:500}
+table.list{width:100%;border-collapse:collapse}
+table.list th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:400;text-align:left;padding:8px;border-bottom:1px solid var(--line)}
+table.list td{padding:10px 8px;border-bottom:1px solid var(--line2)}
+table.list tr.click{cursor:pointer}
+table.list tr.click:hover td{background:var(--goldsoft)}
+
+/* ---------- Drawer (detail) ---------- */
+#drawer{position:fixed;inset:0;z-index:20;display:flex;justify-content:flex-end;background:rgba(5,10,20,.45);opacity:0;pointer-events:none;transition:opacity .2s}
+#drawer.open{opacity:1;pointer-events:auto}
+#drawer .pane{width:min(760px,100%);height:100%;background:var(--bg);border-left:1px solid var(--line);overflow:auto;transform:translateX(30px);transition:transform .25s;box-shadow:var(--shadow)}
+#drawer.open .pane{transform:none}
+.dhead{display:flex;gap:18px;align-items:center;padding:26px 26px 18px;background:linear-gradient(180deg,var(--goldsoft),transparent)}
+.dhead h2{font-family:var(--serif);font-weight:500;font-size:32px;line-height:1.1}
+.dclose{position:sticky;top:0;display:flex;justify-content:flex-end;gap:6px;padding:12px 16px 0;z-index:2}
+.dbody{padding:0 26px 60px;display:flex;flex-direction:column;gap:16px}
+.quick{display:flex;gap:8px;flex-wrap:wrap}
+dl.facts{display:grid;grid-template-columns:130px 1fr;gap:8px 14px;font-size:14px}
+dl.facts dt{color:var(--muted)}
+dl.facts dd{word-break:break-word}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:4px;overflow-x:auto}
+.tabs button{border:0;background:none;padding:10px 14px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
+.tabs button.on{color:var(--gold2);border-bottom-color:var(--gold)}
+.timeline{position:relative;padding-left:26px}
+.timeline::before{content:'';position:absolute;left:8px;top:6px;bottom:6px;width:1px;background:var(--line)}
+.tl{position:relative;padding:0 0 18px}
+.tl .dot{position:absolute;left:-26px;top:2px;width:18px;height:18px;border-radius:50%;background:var(--panel);border:1px solid var(--gold);display:grid;place-items:center;color:var(--gold)}
+.tl .dot svg{width:10px;height:10px}
+.tl .meta{font-size:12.5px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tl .txt{white-space:pre-wrap;margin-top:4px;word-break:break-word}
+.tl .acts{margin-left:auto;display:flex;gap:2px;opacity:.0;transition:opacity .15s}
+.tl:hover .acts,.tl:focus-within .acts{opacity:1}
+.media{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:8px}
+.media.sm{grid-template-columns:repeat(auto-fill,minmax(84px,1fr))}
+.tile{position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--panel2);border:1px solid var(--line2);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--muted);text-align:center;padding:6px}
+.tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.tile .nm{font-size:11px;line-height:1.2;word-break:break-all;max-height:2.4em;overflow:hidden}
+.tile .badge{position:absolute;bottom:6px;left:6px;font-size:10px;background:rgba(11,20,38,.75);color:#F5F0E8;padding:1px 6px;border-radius:8px}
+.tile:hover{border-color:var(--gold)}
+.tile svg.i{width:28px;height:28px}
+.dropzone{border:1.5px dashed var(--line2);border-radius:14px;padding:16px;text-align:center;color:var(--muted);font-size:14px;transition:all .15s}
+.dropzone.over{border-color:var(--gold);background:var(--goldsoft);color:var(--gold2)}
+
+/* ---------- Kanban ---------- */
+.kanban{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(170px,1fr);gap:14px;overflow-x:auto;padding-bottom:10px}
+.col{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:12px;min-height:200px;display:flex;flex-direction:column;gap:10px}
+.col.over{border-color:var(--gold);background:var(--goldsoft)}
+.col h4{font-weight:500;font-size:14px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.col h4 small{color:var(--muted);font-weight:400}
+.deal{background:var(--panel);border:1px solid var(--line2);border-radius:12px;padding:12px;cursor:grab}
+.deal:hover{border-color:var(--gold)}
+.deal .v{font-family:var(--serif);font-size:20px}
+.deal select{margin-top:8px;width:100%;font-size:12px;padding:4px 6px;border-radius:8px;background:var(--bg2);border:1px solid var(--line2)}
+
+/* ---------- Tasks ---------- */
+.task{display:flex;gap:12px;align-items:flex-start;padding:10px 8px;border-radius:10px}
+.task:hover{background:var(--goldsoft)}
+.task input[type=checkbox]{width:18px;height:18px;margin-top:3px;accent-color:var(--gold);flex:none;cursor:pointer}
+.task.done .t{text-decoration:line-through;color:var(--muted)}
+.task .main{flex:1;min-width:0;cursor:pointer}
+
+/* ---------- Charts ---------- */
+.chart{width:100%;height:auto;display:block;overflow:visible}
+.chart .bar{fill:var(--gold);transition:opacity .15s}
+.chart .bar:hover,.chart .hit:hover+.bar{opacity:.75}
+.chart .axis{fill:var(--muted);font-size:13px}
+.chart .grid{stroke:var(--line2);stroke-width:1}
+.tip{position:fixed;z-index:80;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:6px 10px;font-size:13px;box-shadow:var(--shadow);opacity:0;transition:opacity .1s}
+.hbar{display:grid;grid-template-columns:110px 1fr auto;gap:10px;align-items:center;font-size:13px;margin:7px 0}
+.hbar .trk{height:10px;border-radius:5px;background:var(--line2);overflow:hidden}
+.hbar .trk i{display:block;height:100%;background:var(--gold);border-radius:0 4px 4px 0}
+
+/* ---------- Dialog ---------- */
+dialog{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:18px;padding:0;width:min(640px,calc(100% - 24px));max-height:calc(100dvh - 40px);box-shadow:var(--shadow);margin:auto}
+dialog::backdrop{background:rgba(5,10,20,.6);backdrop-filter:blur(3px)}
+dialog form{display:flex;flex-direction:column;max-height:calc(100dvh - 40px)}
+dialog .dh{padding:20px 22px 8px;font-family:var(--serif);font-size:24px;font-weight:500}
+dialog .db{padding:8px 22px;overflow:auto}
+dialog .df{padding:14px 22px 20px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--line2);margin-top:8px;flex-wrap:wrap}
+dialog .df .left{margin-right:auto}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.fgrid .full{grid-column:1/-1}
+#viewer{width:min(1100px,calc(100% - 24px));background:var(--bg)}
+#viewer .vb{display:grid;place-items:center;padding:10px;min-height:200px}
+#viewer img,#viewer video{max-width:100%;max-height:75dvh;border-radius:10px}
+#viewer iframe{width:100%;height:75dvh;border:0;border-radius:10px;background:#fff}
+#viewer audio{width:min(520px,100%)}
+#palette{width:min(620px,calc(100% - 24px));margin-top:12vh}
+#palette .pin{border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;padding:18px 20px;font-size:17px}
+#palette .res{max-height:55dvh;overflow:auto;padding:8px}
+#palette .row.sel{background:var(--goldsoft)}
+.rec{display:inline-flex;align-items:center;gap:8px}
+.rec .dotr{width:10px;height:10px;border-radius:50%;background:var(--bad);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.3}}
+#toasts{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:8px;align-items:center}
+.toast{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 16px;box-shadow:var(--shadow);font-size:14px;animation:tin .2s}
+.toast.bad{border-color:var(--bad)}
+@keyframes tin{from{transform:translateY(10px);opacity:0}}
+.fab{display:none}
+.drag-file{outline:2px dashed var(--gold);outline-offset:-8px}
+
+/* ---------- Responsive ---------- */
+@media (max-width:860px){
+  #app{grid-template-columns:1fr}
+  aside.side{display:none}
+  .top{padding:calc(14px + env(safe-area-inset-top)) 16px 14px}
+  .top h2{font-size:24px}
+  .searchbtn{min-width:0}
+  .searchbtn span,.searchbtn kbd{display:none}
+  .view{padding:18px 16px 110px}
+  .bottomnav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:15;background:var(--bg2);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom));justify-content:space-around}
+  .bottomnav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:none;color:var(--muted);font-size:10.5px;padding:6px 0;cursor:pointer}
+  .bottomnav button.on{color:var(--gold2)}
+  .fgrid{grid-template-columns:1fr}
+  dl.facts{grid-template-columns:1fr;gap:2px}
+  dl.facts dd{margin-bottom:8px}
+  .dhead{padding:18px 16px 14px}.dbody{padding:0 16px 60px}
+  .dhead h2{font-size:26px}.av.lg{width:64px;height:64px;font-size:26px}
+  .hide-m{display:none}
+  .tl .acts{opacity:1}
+}
+@media print{aside,.top,.bottomnav,#drawer{display:none!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ============ LOCK SCREEN ============ -->
+<section id="lock" aria-live="polite">
+  <div class="card">
+    <div class="brand"><div class="mark">O</div><h1>Och · CRM</h1></div>
+    <form id="lockForm" autocomplete="off">
+      <p class="lead" id="lockLead">Dein privates, verschlüsseltes CRM.</p>
+      <label class="field"><span>Passphrase</span>
+        <input class="input" type="password" id="pw1" autocomplete="current-password" required minlength="12" autofocus>
+      </label>
+      <div id="pwNew" class="hidden">
+        <div class="meter"><i id="pwMeter"></i></div>
+        <p class="note" id="pwHint" style="margin-top:6px">Mindestens 12 Zeichen. Am besten ein Satz aus 4–5 Wörtern.</p>
+        <label class="field" style="margin-top:12px"><span>Passphrase wiederholen</span>
+          <input class="input" type="password" id="pw2" autocomplete="new-password" minlength="12">
+        </label>
+      </div>
+      <div class="err" id="lockErr"></div>
+      <button class="btn primary" style="width:100%;padding:12px" id="lockBtn" type="submit">Entsperren</button>
+      <p class="note" id="lockNote"></p>
+      <p class="note"><a href="#" id="restoreLink">Backup oder Sync-Datei einspielen (z. B. neues Gerät) …</a></p>
+    </form>
+  </div>
+</section>
+
+<!-- ============ APP ============ -->
+<div id="app" class="hidden">
+  <aside class="side">
+    <div class="brand"><div class="mark">O</div><h1>Och · CRM</h1></div>
+    <nav class="nav" id="nav"></nav>
+    <div class="spacer"></div>
+    <div class="nav">
+      <button id="themeBtn"><svg class="i"><use href="#i-moon"/></svg>Hell / Dunkel</button>
+      <button id="lockBtn2"><svg class="i"><use href="#i-lock"/></svg>Sperren</button>
+    </div>
+  </aside>
+  <main id="main">
+    <header class="top">
+      <h2 id="viewTitle">Übersicht</h2>
+      <button class="btn icon" id="syncBtn" title="Synchronisieren" aria-label="Synchronisieren"><svg class="i"><use href="#i-sync"/></svg><i class="sdot"></i></button>
+      <button class="btn searchbtn" id="searchBtn" aria-label="Suchen"><svg class="i"><use href="#i-search"/></svg><span>Suchen …</span><kbd>⌘K</kbd></button>
+      <button class="btn primary" id="newBtn"><svg class="i"><use href="#i-plus"/></svg><span class="hide-m">Neu</span></button>
+    </header>
+    <div class="view" id="view"></div>
+  </main>
+  <nav class="bottomnav" id="bnav"></nav>
+</div>
+
+<!-- Drawer -->
+<div id="drawer" aria-hidden="true"><div class="pane" id="pane" role="dialog" aria-modal="true"></div></div>
+<!-- Generic dialog -->
+<dialog id="dlg"></dialog>
+<dialog id="viewer"></dialog>
+<dialog id="palette"></dialog>
+<div id="toasts"></div>
+<div class="tip" id="tip"></div>
+<input type="file" id="fileIn" multiple hidden>
+
+<!-- ============ ICONS ============ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c2 .7 3.2 2.4 3.6 5.2"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.2 4-6.5 8-6.5s7 2.3 8 6.5"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><path d="M4 21V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v16M15 9h4a1 1 0 0 1 1 1v11M2 21h20M8 8h3M8 12h3M8 16h3"/></symbol>
+  <symbol id="i-kanban" viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="10" rx="1.5"/><rect x="17" y="4" width="4" height="13" rx="1.5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12.5 9 17.5 20 6.5"/></symbol>
+  <symbol id="i-tasks" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="m7.5 11 2.5 2.5 5-5M8 2v4M16 2v4"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></symbol>
+  <symbol id="i-msg" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.5L3 21l2-5.7A8.5 8.5 0 1 1 21 11.5z"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10a7 7 0 0 1-14 0M12 17v5M8 22h8"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24"><path d="m21.4 11-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></symbol>
+  <symbol id="i-video" viewBox="0 0 24 24"><rect x="2" y="5" width="14" height="14" rx="2"/><path d="m16 10 6-4v12l-6-4"/></symbol>
+  <symbol id="i-audio" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+  <symbol id="i-pdf" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><text x="7" y="18" font-size="6" stroke="none" fill="currentColor" font-family="sans-serif">PDF</text></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v9H5v-9M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-euro" viewBox="0 0 24 24"><path d="M18 6.5A7 7 0 1 0 18 17.5M4 10h10M4 14h10"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></symbol>
+  <symbol id="i-sync" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M3 21v-5h5"/></symbol>
+  <symbol id="i-app" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></symbol>
+</svg>
+
+<script>
+'use strict';
+/* =====================================================================
+   Och · CRM — privat, lokal, verschlüsselt.
+   Daten: IndexedDB, jeder Datensatz und jede Datei einzeln mit
+   AES-256-GCM verschlüsselt. Datenschlüssel (DEK) wird mit einem
+   aus der Passphrase per PBKDF2-SHA256 abgeleiteten Schlüssel verpackt.
+   ===================================================================== */
+const VERSION = '1.0';
+const DB_NAME = 'och-crm', DB_VER = 1;
+const PBKDF2_ITER = 600000;
+const te = new TextEncoder(), td = new TextDecoder();
+
+let db = null, KEY = null;
+const R = new Map();           // entschlüsselter Arbeitsspeicher: id -> Objekt
+const SNAP = new Map();        // letzter gespeicherter Stand je id (für Feld-Zeitstempel)
+const URLS = new Map();        // Datei-id -> objectURL
+let SET = null;                // Einstellungen
+
+const DEFAULT_SETTINGS = {
+  id:'settings', kind:'settings', autolock:10, theme:'auto',
+  stages:['Idee','Erstkontakt','Angebot','Verhandlung','Gewonnen','Verloren'],
+  statuses:['Lead','Interessent','Kunde','Partner','Netzwerk','Privat'],
+  view:'cards'
+};
+const KINDS = {
+  'Notiz':'i-note','Anruf':'i-phone','Treffen':'i-users','E-Mail':'i-mail',
+  'Nachricht':'i-msg','Termin':'i-cal','Sprachnotiz':'i-mic','Medien':'i-image'
+};
+
+/* ---------------- Helfer ---------------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'style') el.style.cssText = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (k === 'html') el.innerHTML = v; // nur für statische Inhalte!
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const k of kids.flat(Infinity)) {
+    if (k == null || k === false) continue;
+    el.append(k instanceof Node ? k : document.createTextNode(String(k)));
+  }
+  return el;
+}
+function icon(name, cls = 'i') {
+  const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  s.setAttribute('class', cls);
+  const u = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+  u.setAttribute('href', '#' + name);
+  s.append(u); return s;
+}
+const uid = () => Date.now().toString(36) + '-' + [...crypto.getRandomValues(new Uint8Array(8))].map(b => b.toString(16).padStart(2, '0')).join('');
+const fmtDate = (t, opt = { day: '2-digit', month: '2-digit', year: 'numeric' }) => t ? new Date(t).toLocaleDateString('de-DE', opt) : '';
+const fmtDT = t => t ? new Date(t).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+const fmtEUR = n => (Number(n) || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+const fmtSize = b => b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(0) + ' KB' : (b / 1048576).toFixed(1) + ' MB';
+const DAY = 86400000;
+const startOfDay = (t = Date.now()) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+function rel(t) {
+  if (!t) return '';
+  const d = Math.round((startOfDay(t) - startOfDay()) / DAY);
+  if (d === 0) return 'heute'; if (d === -1) return 'gestern'; if (d === 1) return 'morgen';
+  if (d < 0) return d > -30 ? `vor ${-d} Tagen` : d > -365 ? `vor ${Math.round(-d / 30)} Mon.` : `vor ${Math.round(-d / 365 * 10) / 10} J.`;
+  return d < 30 ? `in ${d} Tagen` : `in ${Math.round(d / 30)} Mon.`;
+}
+const norm = s => (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+function toast(msg, bad) {
+  const t = h('div', { class: 'toast' + (bad ? ' bad' : ''), role: 'status' }, msg);
+  $('#toasts').append(t); setTimeout(() => t.remove(), 3200);
+}
+function hue(str) { let x = 0; for (const c of str || '?') x = (x * 31 + c.charCodeAt(0)) >>> 0; return x % 360; }
+const b64 = buf => { const u = new Uint8Array(buf); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
+const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+function download(name, data, type) {
+  const url = URL.createObjectURL(data instanceof Blob ? data : new Blob([data], { type }));
+  const a = h('a', { href: url, download: name }); document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+const stamp = () => new Date().toISOString().slice(0, 10);
+
+/* ---------------- IndexedDB ---------------- */
+function idbOpen() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, DB_VER);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      if (!d.objectStoreNames.contains('meta')) d.createObjectStore('meta');
+      if (!d.objectStoreNames.contains('rec')) d.createObjectStore('rec', { keyPath: 'id' });
+      if (!d.objectStoreNames.contains('blob')) d.createObjectStore('blob', { keyPath: 'id' });
+    };
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+}
+function tx(store, mode, fn) {
+  return new Promise((res, rej) => {
+    const t = db.transaction(store, mode); let out;
+    const r = fn(t.objectStore(store));
+    if (r) r.onsuccess = () => { out = r.result; };
+    t.oncomplete = () => res(out); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error || new Error('abort'));
+  });
+}
+const metaGet = k => tx('meta', 'readonly', s => s.get(k));
+const metaPut = (k, v) => tx('meta', 'readwrite', s => s.put(v, k));
+
+/* ---------------- Krypto ---------------- */
+async function kek(pass, salt, iter) {
+  const base = await crypto.subtle.importKey('raw', te.encode(pass), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' }, base,
+    { name: 'AES-KW', length: 256 }, false, ['wrapKey', 'unwrapKey']);
+}
+async function createVault(pass) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const dek = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+  const k = await kek(pass, salt, PBKDF2_ITER);
+  const wrapped = await crypto.subtle.wrapKey('raw', dek, k, 'AES-KW');
+  await metaPut('vault', { v: 1, salt, iter: PBKDF2_ITER, wrapped, created: Date.now() });
+  return crypto.subtle.unwrapKey('raw', wrapped, k, 'AES-KW', 'AES-GCM', false, ['encrypt', 'decrypt']);
+}
+async function openVault(pass, extractable = false) {
+  const v = await metaGet('vault');
+  const k = await kek(pass, v.salt, v.iter);
+  return crypto.subtle.unwrapKey('raw', v.wrapped, k, 'AES-KW', 'AES-GCM', extractable, ['encrypt', 'decrypt']);
+}
+async function encrypt(bytes) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, KEY, bytes);
+  return { iv, ct };
+}
+const decrypt = (iv, ct) => crypto.subtle.decrypt({ name: 'AES-GCM', iv }, KEY, ct);
+
+/* ---------------- Datensätze ---------------- */
+async function save(obj, silent) {
+  const now = Date.now();
+  if (!obj.id) obj.id = uid();
+  if (!obj.createdAt) obj.createdAt = now;
+  if (!silent) {
+    obj.updatedAt = now;
+    // Je Feld merken, wann es zuletzt geändert wurde -> feldgenaues Zusammenführen beim Sync
+    const prev = SNAP.has(obj.id) ? JSON.parse(SNAP.get(obj.id)) : {};
+    obj._ft = obj._ft || {};
+    for (const k of new Set([...Object.keys(obj), ...Object.keys(prev)]))
+      if (!['_ft', 'updatedAt', 'createdAt'].includes(k) && JSON.stringify(obj[k]) !== JSON.stringify(prev[k])) obj._ft[k] = now;
+  }
+  const { iv, ct } = await encrypt(te.encode(JSON.stringify(obj)));
+  await tx('rec', 'readwrite', s => s.put({ id: obj.id, iv, ct }));
+  R.set(obj.id, obj); SNAP.set(obj.id, JSON.stringify(obj));
+  markDirty();
+  return obj;
+}
+async function del(id) {
+  await tx('rec', 'readwrite', s => s.delete(id));
+  R.delete(id); SNAP.delete(id);
+  // Grabstein, damit die Löschung auf andere Geräte übertragen wird
+  if (!id.startsWith('t~') && id !== 'settings') await save({ id: 't~' + id, kind: 'tomb', target: id, deletedAt: Date.now() });
+  markDirty();
+}
+const all = kind => [...R.values()].filter(o => o.kind === kind);
+const get = id => R.get(id);
+async function loadAll() {
+  const rows = await tx('rec', 'readonly', s => s.getAll());
+  R.clear();
+  SNAP.clear();
+  for (const r of rows) { const j = td.decode(await decrypt(r.iv, r.ct)); R.set(r.id, JSON.parse(j)); SNAP.set(r.id, j); }
+  SET = Object.assign({}, DEFAULT_SETTINGS, R.get('settings') || {});
+}
+
+/* ---------------- Dateien (verschlüsselt) ---------------- */
+async function storeFile(file, link = {}) {
+  const id = uid();
+  const buf = await file.arrayBuffer();
+  const { iv, ct } = await encrypt(buf);
+  await tx('blob', 'readwrite', s => s.put({ id, iv, ct }));
+  let thumb = null;
+  if (/^image\//.test(file.type)) thumb = await makeThumb(file).catch(() => null);
+  else if (/^video\//.test(file.type)) thumb = await videoThumb(file).catch(() => null);
+  if (thumb) {
+    const t = await encrypt(await thumb.arrayBuffer());
+    await tx('blob', 'readwrite', s => s.put({ id: id + ':t', iv: t.iv, ct: t.ct }));
+  }
+  return save({ id, kind: 'file', name: file.name || 'Datei', type: file.type || 'application/octet-stream', size: file.size, thumb: !!thumb, ...link });
+}
+async function fileURL(id, thumb) {
+  const key = thumb ? id + ':t' : id;
+  if (URLS.has(key)) return URLS.get(key);
+  const row = await tx('blob', 'readonly', s => s.get(key));
+  if (!row) return null;
+  const meta = get(id);
+  const blob = new Blob([await decrypt(row.iv, row.ct)], { type: thumb ? 'image/jpeg' : (meta?.type || '') });
+  const url = URL.createObjectURL(blob); URLS.set(key, url); return url;
+}
+async function fileBlob(id) {
+  const row = await tx('blob', 'readonly', s => s.get(id));
+  return new Blob([await decrypt(row.iv, row.ct)], { type: get(id)?.type || '' });
+}
+async function delBlob(id) {
+  await tx('blob', 'readwrite', s => { s.delete(id + ':t'); return s.delete(id); });
+  for (const k of [id, id + ':t']) if (URLS.has(k)) { URL.revokeObjectURL(URLS.get(k)); URLS.delete(k); }
+}
+async function delFile(id) { await delBlob(id); await del(id); }
+function makeThumb(file) {
+  return new Promise((res, rej) => {
+    const img = new Image(); const u = URL.createObjectURL(file);
+    img.onload = () => {
+      const m = 360, sc = Math.min(1, m / Math.max(img.width, img.height));
+      const c = h('canvas', { width: Math.round(img.width * sc), height: Math.round(img.height * sc) });
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(u); c.toBlob(b => b ? res(b) : rej(), 'image/jpeg', .8);
+    };
+    img.onerror = () => { URL.revokeObjectURL(u); rej(); }; img.src = u;
+  });
+}
+function videoThumb(file) {
+  return new Promise((res, rej) => {
+    const v = document.createElement('video'); const u = URL.createObjectURL(file);
+    v.muted = true; v.preload = 'metadata'; v.src = u;
+    const to = setTimeout(() => { URL.revokeObjectURL(u); rej(); }, 5000);
+    v.onloadeddata = () => { v.currentTime = Math.min(1, (v.duration || 2) / 2); };
+    v.onseeked = () => {
+      const m = 360, sc = Math.min(1, m / Math.max(v.videoWidth, v.videoHeight));
+      const c = h('canvas', { width: Math.round(v.videoWidth * sc), height: Math.round(v.videoHeight * sc) });
+      c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+      clearTimeout(to); URL.revokeObjectURL(u); c.toBlob(b => b ? res(b) : rej(), 'image/jpeg', .8);
+    };
+    v.onerror = () => { clearTimeout(to); URL.revokeObjectURL(u); rej(); };
+  });
+}
+const ftype = t => /^image\//.test(t) ? 'image' : /^video\//.test(t) ? 'video' : /^audio\//.test(t) ? 'audio' : t === 'application/pdf' ? 'pdf' : 'file';
+const FICON = { image: 'i-image', video: 'i-video', audio: 'i-audio', pdf: 'i-pdf', file: 'i-file' };
+
+/* ---------------- Domänenlogik ---------------- */
+const isCompany = c => c.type === 'company';
+const cname = c => !c ? '—' : isCompany(c) ? (c.company || 'Ohne Namen') : ([c.firstName, c.lastName].filter(Boolean).join(' ') || c.company || 'Ohne Namen');
+const contacts = () => all('contact');
+const actsOf = id => all('activity').filter(a => a.contactId === id).sort((a, b) => b.date - a.date);
+const filesOf = id => all('file').filter(f => f.contactId === id).sort((a, b) => b.createdAt - a.createdAt);
+const tasksOf = id => all('task').filter(t => t.contactId === id);
+const dealsOf = id => all('deal').filter(d => d.contactId === id);
+const lastContact = c => { const a = actsOf(c.id).filter(a => a.type !== 'Notiz')[0]; return a ? a.date : null; };
+function nextBirthday(c) {
+  if (!c.birthday) return null;
+  const [, m, d] = c.birthday.split('-').map(Number); if (!m || !d) return null;
+  const today = startOfDay(); let y = new Date().getFullYear();
+  let t = new Date(y, m - 1, d).getTime(); if (t < today) t = new Date(y + 1, m - 1, d).getTime();
+  return t;
+}
+function dueKeepInTouch(c) {
+  if (!c.cadence) return null;
+  const lc = lastContact(c) || c.createdAt;
+  return lc + c.cadence * DAY;
+}
+function members(company) { return contacts().filter(c => c.companyId === company.id); }
+
+/* ---------------- Avatar ---------------- */
+function avatar(c, cls = '') {
+  const initials = isCompany(c) ? (c.company || '?').slice(0, 2) : ((c.firstName || '')[0] || '') + ((c.lastName || '')[0] || '') || (c.company || '?')[0];
+  const el = h('div', { class: 'av ' + cls + (isCompany(c) ? ' sq' : ''), style: `background:hsl(${hue(cname(c))} 45% 72%)`, 'aria-hidden': 'true' }, initials.toUpperCase());
+  if (c.avatarId && get(c.avatarId)) fileURL(c.avatarId, get(c.avatarId).thumb).then(u => {
+    if (u) el.replaceWith(Object.assign(h('img', { class: 'av ' + cls + (isCompany(c) ? ' sq' : ''), alt: '' }), { src: u }));
+  });
+  return el;
+}
+
+/* =====================================================================
+   SPERRBILDSCHIRM
+   ===================================================================== */
+let lockMode = 'unlock';
+async function initLock() {
+  db = await idbOpen();
+  const v = await metaGet('vault');
+  lockMode = v ? 'unlock' : 'create';
+  if (lockMode === 'create') {
+    $('#lockLead').textContent = 'Willkommen. Lege eine Passphrase fest. Sie verschlüsselt alle deine Daten auf diesem Gerät.';
+    $('#pwNew').classList.remove('hidden'); $('#pw2').required = true;
+    $('#lockBtn').textContent = 'CRM anlegen';
+    $('#pw1').autocomplete = 'new-password';
+    $('#lockNote').textContent = 'Wichtig: Es gibt keine „Passwort vergessen“-Funktion. Ohne Passphrase sind die Daten nicht wiederherstellbar. Bewahre sie in deinem Passwortmanager auf.';
+  } else {
+    $('#lockNote').textContent = 'Daten bleiben auf diesem Gerät. Nichts wird übertragen.';
+  }
+  $('#pw1').focus();
+}
+function strength(p) {
+  let s = 0; if (p.length >= 12) s++; if (p.length >= 16) s++; if (p.length >= 22) s++;
+  if (/[a-z]/.test(p) && /[A-Z]/.test(p)) s++; if (/\d/.test(p)) s++; if (/[^\w\s]/.test(p) || / /.test(p.trim())) s++;
+  if (/^(.)\1+$/.test(p) || /^(passwort|password|12345|qwertz|qwerty)/i.test(p)) s = 0;
+  return Math.min(5, s);
+}
+$('#pw1').addEventListener('input', e => {
+  if (lockMode !== 'create') return;
+  const s = strength(e.target.value), m = $('#pwMeter');
+  m.style.width = (s * 20) + '%';
+  m.style.background = s < 2 ? 'var(--bad)' : s < 4 ? 'var(--warn)' : 'var(--ok)';
+});
+let fails = +(sessionStorageSafe('get', 'fails') || 0);
+function sessionStorageSafe(op, k, v) { try { return op === 'get' ? sessionStorage.getItem(k) : sessionStorage.setItem(k, v); } catch { return null; } }
+$('#lockForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const p1 = $('#pw1').value, err = $('#lockErr'), btn = $('#lockBtn');
+  err.textContent = '';
+  if (lockMode === 'create') {
+    if (p1.length < 12) return err.textContent = 'Bitte mindestens 12 Zeichen.';
+    if (strength(p1) < 2) return err.textContent = 'Diese Passphrase ist zu schwach.';
+    if (p1 !== $('#pw2').value) return err.textContent = 'Die Passphrasen stimmen nicht überein.';
+  }
+  btn.disabled = true; btn.textContent = 'Einen Moment …';
+  try {
+    if (lockMode === 'create') { KEY = await createVault(p1); await save(Object.assign({}, DEFAULT_SETTINGS)); }
+    else KEY = await openVault(p1);
+    fails = 0; sessionStorageSafe('set', 'fails', 0);
+    $('#pw1').value = ''; $('#pw2').value = '';
+    await loadAll();
+    startApp();
+  } catch (ex) {
+    console.warn(ex);
+    fails++; sessionStorageSafe('set', 'fails', fails);
+    const wait = Math.min(60, 2 ** Math.max(0, fails - 2));
+    err.textContent = 'Passphrase falsch.' + (fails > 2 ? ` Bitte ${wait} s warten.` : '');
+    if (fails > 2) { await new Promise(r => setTimeout(r, wait * 1000)); err.textContent = 'Passphrase falsch.'; }
+  } finally { btn.disabled = false; btn.textContent = lockMode === 'create' ? 'CRM anlegen' : 'Entsperren'; }
+});
+$('#restoreLink').addEventListener('click', e => { e.preventDefault(); restoreBackup(); });
+
+function lock() {
+  KEY = null; R.clear();
+  for (const u of URLS.values()) URL.revokeObjectURL(u);
+  URLS.clear();
+  location.reload();
+}
+
+/* ---------------- Auto-Sperre ---------------- */
+let lastAct = Date.now();
+['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(ev => addEventListener(ev, () => lastAct = Date.now(), { passive: true }));
+setInterval(() => { if (KEY && SET && SET.autolock > 0 && Date.now() - lastAct > SET.autolock * 60000) lock(); }, 15000);
+document.addEventListener('visibilitychange', () => { if (document.hidden) hiddenAt = Date.now(); else if (KEY && SET?.autolock > 0 && Date.now() - hiddenAt > SET.autolock * 60000) lock(); });
+let hiddenAt = Date.now();
+
+/* =====================================================================
+   APP
+   ===================================================================== */
+const VIEWS = [
+  { id: 'dash', label: 'Übersicht', icon: 'i-home' },
+  { id: 'contacts', label: 'Kontakte', icon: 'i-users' },
+  { id: 'pipeline', label: 'Pipeline', icon: 'i-kanban' },
+  { id: 'tasks', label: 'Aufgaben', icon: 'i-tasks' },
+  { id: 'media', label: 'Medien', icon: 'i-image' },
+  { id: 'settings', label: 'Einstellungen', icon: 'i-gear' },
+];
+let current = 'dash';
+const UI = { q: '', status: '', tag: '', sort: 'name', ctype: '', mediaType: '' };
+
+function applyTheme() {
+  const t = SET?.theme || 'auto';
+  if (t === 'auto') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', t);
+}
+function startApp() {
+  $('#lock').classList.add('hidden'); $('#app').classList.remove('hidden');
+  applyTheme();
+  try { navigator.storage?.persist?.(); } catch { }
+  go(location.hash.slice(1) || 'dash');
+  loadDevice().then(() => { setSyncState(); autoSync(); });
+}
+function renderNav() {
+  const counts = { contacts: contacts().length, tasks: all('task').filter(t => !t.done).length, pipeline: all('deal').filter(d => !['Gewonnen', 'Verloren'].includes(d.stage)).length, media: all('file').length };
+  $('#nav').replaceChildren(...VIEWS.map(v => h('button', { class: v.id === current ? 'on' : '', onclick: () => go(v.id) }, icon(v.icon), v.label, counts[v.id] ? h('span', { class: 'count' }, counts[v.id]) : null)));
+  $('#bnav').replaceChildren(...VIEWS.map(v => h('button', { class: v.id === current ? 'on' : '', onclick: () => go(v.id), 'aria-label': v.label }, icon(v.icon), v.label.replace('Einstellungen', 'Mehr'))));
+}
+function go(id) {
+  if (!VIEWS.find(v => v.id === id)) id = 'dash';
+  current = id; history.replaceState(null, '', '#' + id);
+  $('#viewTitle').textContent = VIEWS.find(v => v.id === id).label;
+  render();
+  $('#main').scrollTop = 0;
+}
+function render() {
+  renderNav();
+  const v = $('#view');
+  const fn = { dash: viewDash, contacts: viewContacts, pipeline: viewPipeline, tasks: viewTasks, media: viewMedia, settings: viewSettings }[current];
+  v.replaceChildren(fn());
+}
+function refresh() { render(); if (openId) renderDetail(); }
+
+$('#themeBtn').onclick = async () => {
+  const dark = getComputedStyle(document.documentElement).colorScheme.includes('dark');
+  SET.theme = dark ? 'light' : 'dark'; applyTheme(); await save(SET);
+};
+$('#lockBtn2').onclick = lock;
+$('#newBtn').onclick = () => {
+  if (current === 'pipeline') editDeal();
+  else if (current === 'tasks') editTask();
+  else if (current === 'media') pickFiles({});
+  else editContact();
+};
+$('#searchBtn').onclick = openPalette;
+addEventListener('keydown', e => {
+  if (!KEY) return;
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openPalette(); }
+  else if (e.key === 'Escape' && openId && !document.querySelector('dialog[open]')) closeDetail();
+  else if (e.key === 'n' && !e.metaKey && !e.ctrlKey && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && !document.querySelector('dialog[open]')) { e.preventDefault(); $('#newBtn').click(); }
+});
+
+/* ---------------- Übersicht ---------------- */
+function viewDash() {
+  const cs = contacts(), acts = all('activity'), tasks = all('task'), deals = all('deal');
+  const open = deals.filter(d => !['Gewonnen', 'Verloren'].includes(d.stage));
+  const weighted = open.reduce((s, d) => s + (+d.value || 0) * ((+d.prob || 0) / 100), 0);
+  const won = deals.filter(d => d.stage === 'Gewonnen' && new Date(d.closeDate || d.updatedAt).getFullYear() === new Date().getFullYear());
+  const today = startOfDay();
+  const due = tasks.filter(t => !t.done && t.due && startOfDay(new Date(t.due).getTime()) <= today);
+  const a30 = acts.filter(a => a.date > Date.now() - 30 * DAY).length;
+
+  const kpi = (lbl, val, sub) => h('div', { class: 'card kpi' }, h('div', { class: 'lbl' }, lbl), h('div', { class: 'val' }, val), h('div', { class: 'sub' }, sub));
+  const k = h('div', { class: 'grid kpis' },
+    kpi('Kontakte', cs.length, `${cs.filter(c => c.status === 'Kunde').length} Kunden · ${cs.filter(isCompany).length} Firmen`),
+    kpi('Aktivitäten · 30 Tage', a30, `${acts.length} insgesamt`),
+    kpi('Offene Pipeline', fmtEUR(open.reduce((s, d) => s + (+d.value || 0), 0)), `gewichtet ${fmtEUR(weighted)}`),
+    kpi('Gewonnen ' + new Date().getFullYear(), fmtEUR(won.reduce((s, d) => s + (+d.value || 0), 0)), `${won.length} Abschlüsse`),
+  );
+
+  // Fällig
+  const touch = cs.map(c => ({ c, d: dueKeepInTouch(c) })).filter(x => x.d && x.d <= today + 7 * DAY).sort((a, b) => a.d - b.d).slice(0, 8);
+  const bdays = cs.map(c => ({ c, d: nextBirthday(c) })).filter(x => x.d && x.d <= today + 30 * DAY).sort((a, b) => a.d - b.d).slice(0, 6);
+  const recent = acts.sort((a, b) => b.date - a.date).slice(0, 7);
+
+  const listCard = (title, ic, items, empty, act) => h('div', { class: 'card' }, h('h3', null, icon(ic), title, act || null), items.length ? items : h('div', { class: 'empty' }, empty));
+  const crow = (c, sub, right) => h('div', { class: 'row', onclick: () => openDetail(c.id) }, avatar(c), h('div', { class: 'main' }, h('div', { class: 't' }, cname(c)), h('div', { class: 's' }, sub)), right || null);
+
+  const g2 = h('div', { class: 'grid two', style: 'margin-top:16px' },
+    listCard('Heute zu tun', 'i-tasks', due.sort((a, b) => (a.due > b.due ? 1 : -1)).slice(0, 8).map(taskRow), 'Alles erledigt. Schön!', h('button', { class: 'btn sm ghost', onclick: () => editTask() }, icon('i-plus'), 'Aufgabe')),
+    listCard('Melde dich mal bei …', 'i-clock', touch.map(x => crow(x.c, 'Kontaktrhythmus ' + x.c.cadence + ' Tage · zuletzt ' + (rel(lastContact(x.c)) || 'nie'), h('span', { class: 'chip ' + (x.d < today ? 'bad' : 'warn') }, x.d < today ? 'überfällig' : rel(x.d)))), 'Lege bei Kontakten einen Kontaktrhythmus fest, dann erinnert dich das CRM hier.'),
+    h('div', { class: 'card' }, h('h3', null, icon('i-cal'), 'Aktivität · letzte 12 Wochen'), weekChart(acts)),
+    h('div', { class: 'card' }, h('h3', null, icon('i-kanban'), 'Pipeline nach Phase'), stageBars(deals)),
+    listCard('Geburtstage · 30 Tage', 'i-gift', bdays.map(x => crow(x.c, fmtDate(x.d, { day: '2-digit', month: 'long' }) + (x.c.birthday.slice(0, 4) > '1900' ? ` · wird ${new Date(x.d).getFullYear() - +x.c.birthday.slice(0, 4)}` : ''), h('span', { class: 'chip gold' }, rel(x.d)))), 'Keine Geburtstage in den nächsten 30 Tagen.'),
+    listCard('Zuletzt', 'i-note', recent.map(a => { const c = get(a.contactId); return c ? crow(c, [a.type, a.type === 'Medien' && !a.text ? `${(a.fileIds || []).length} Datei(en)` : (a.text || '').slice(0, 70)].filter(Boolean).join(' · '), h('span', { class: 'muted', style: 'font-size:12px' }, rel(a.date))) : null; }).filter(Boolean), 'Noch keine Aktivitäten. Öffne einen Kontakt und halte fest, was passiert ist.'),
+  );
+  const wrap = h('div', null, k, g2);
+  if (!cs.length) wrap.prepend(h('div', { class: 'card', style: 'margin-bottom:16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap' },
+    h('div', { style: 'flex:1;min-width:240px' }, h('h3', { style: 'margin:0' }, 'Willkommen in deinem CRM'), h('p', { class: 'muted' }, 'Lege deinen ersten Kontakt an oder importiere deine Kontakte als vCard (.vcf) oder CSV.')),
+    h('button', { class: 'btn primary', onclick: () => editContact() }, icon('i-plus'), 'Erster Kontakt'),
+    h('button', { class: 'btn', onclick: () => importContacts() }, icon('i-upload'), 'Importieren')));
+  return wrap;
+}
+function weekChart(acts) {
+  const weeks = 12, now = startOfDay(); const dow = (new Date(now).getDay() + 6) % 7; const w0 = now - dow * DAY - (weeks - 1) * 7 * DAY;
+  const counts = Array(weeks).fill(0);
+  for (const a of acts) { const i = Math.floor((a.date - w0) / (7 * DAY)); if (i >= 0 && i < weeks) counts[i]++; }
+  const max = Math.max(4, ...counts), W = 480, H = 160, pad = 28, bw = (W - pad) / weeks;
+  const ns = 'http://www.w3.org/2000/svg'; const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H + 20}`); svg.setAttribute('class', 'chart'); svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', 'Aktivitäten pro Woche: ' + counts.join(', '));
+  const mk = (t, a) => { const e = document.createElementNS(ns, t); for (const k in a) e.setAttribute(k, a[k]); return e; };
+  [0, .5, 1].forEach(f => { const y = H - f * (H - 10); svg.append(mk('line', { x1: pad, x2: W, y1: y, y2: y, class: 'grid' })); const tx = mk('text', { x: 0, y: y + 3, class: 'axis' }); tx.textContent = Math.round(max * f); svg.append(tx); });
+  counts.forEach((n, i) => {
+    const x = pad + i * bw + 3, bh = n / max * (H - 10), w = bw - 6;
+    const label = `KW ab ${fmtDate(w0 + i * 7 * DAY, { day: '2-digit', month: '2-digit' })}: ${n} Aktivität${n === 1 ? '' : 'en'}`;
+    const hit = mk('rect', { x: x - 3, y: 0, width: bw, height: H, fill: 'transparent', class: 'hit' });
+    const r = n ? mk('path', { class: 'bar', d: `M${x},${H} V${H - bh + 4} q0,-4 4,-4 h${w - 8} q4,0 4,4 V${H} Z` }) : mk('rect', { x, y: H - 1, width: w, height: 1, class: 'bar', opacity: .3 });
+    [hit, r].forEach(el => { el.addEventListener('mousemove', ev => tip(ev, label)); el.addEventListener('mouseleave', untip); });
+    svg.append(hit, r);
+    if (i % 3 === 0 || i === weeks - 1) { const t = mk('text', { x: x + w / 2, y: H + 14, class: 'axis', 'text-anchor': 'middle' }); t.textContent = fmtDate(w0 + i * 7 * DAY, { day: '2-digit', month: '2-digit' }); svg.append(t); }
+  });
+  return svg;
+}
+function stageBars(deals) {
+  const st = SET.stages; const sums = st.map(s => deals.filter(d => d.stage === s).reduce((a, d) => a + (+d.value || 0), 0));
+  const max = Math.max(1, ...sums);
+  if (!deals.length) return h('div', { class: 'empty' }, 'Noch keine Verkaufschancen. Lege in der Pipeline welche an.');
+  return h('div', null, st.map((s, i) => {
+    const n = deals.filter(d => d.stage === s).length;
+    const row = h('div', { class: 'hbar' }, h('span', null, s), h('div', { class: 'trk' }, h('i', { style: `width:${sums[i] / max * 100}%` })), h('span', { class: 'muted' }, fmtEUR(sums[i])));
+    row.addEventListener('mousemove', ev => tip(ev, `${s}: ${n} Chance${n === 1 ? '' : 'n'} · ${fmtEUR(sums[i])}`)); row.addEventListener('mouseleave', untip);
+    return row;
+  }));
+}
+function tip(ev, text) { const t = $('#tip'); t.textContent = text; t.style.opacity = 1; t.style.left = Math.min(innerWidth - t.offsetWidth - 8, ev.clientX + 12) + 'px'; t.style.top = (ev.clientY - 36) + 'px'; }
+function untip() { $('#tip').style.opacity = 0; }
+
+/* ---------------- Kontakte ---------------- */
+function allTags() { const s = new Set(); contacts().forEach(c => (c.tags || []).forEach(t => s.add(t))); return [...s].sort((a, b) => a.localeCompare(b, 'de')); }
+function searchText(c) { return norm([cname(c), c.company, c.role, (c.emails || []).join(' '), (c.phones || []).join(' '), c.city, c.address, (c.tags || []).join(' '), c.notes, c.status, (c.custom || []).map(x => x.k + ' ' + x.v).join(' ')].join(' ')); }
+function viewContacts() {
+  const statuses = SET.statuses, tags = allTags();
+  const sel = (val, opts, ph, on) => h('select', { class: 'input', onchange: e => { on(e.target.value); refreshContacts(); }, 'aria-label': ph }, h('option', { value: '' }, ph), opts.map(o => h('option', { value: o, selected: o === val }, o)));
+  const q = h('input', { class: 'input grow', type: 'search', placeholder: 'Filtern nach Name, Firma, Tag, Notiz …', value: UI.q, oninput: e => { UI.q = e.target.value; refreshContacts(); } });
+  const tb = h('div', { class: 'toolbar' }, q,
+    sel(UI.ctype, ['Personen', 'Firmen'], 'Alle Arten', v => UI.ctype = v),
+    sel(UI.status, statuses, 'Alle Status', v => UI.status = v),
+    tags.length ? sel(UI.tag, tags, 'Alle Tags', v => UI.tag = v) : null,
+    h('select', { class: 'input', 'aria-label': 'Sortierung', onchange: e => { UI.sort = e.target.value; refreshContacts(); } },
+      [['name', 'Name A–Z'], ['recent', 'Zuletzt kontaktiert'], ['stale', 'Am längsten her'], ['stars', 'Wichtigkeit'], ['new', 'Neu angelegt']].map(([v, l]) => h('option', { value: v, selected: UI.sort === v }, l))),
+    h('div', { class: 'seg' }, h('button', { class: SET.view === 'cards' ? 'on' : '', onclick: () => setView('cards'), title: 'Karten' }, '▦'), h('button', { class: SET.view === 'table' ? 'on' : '', onclick: () => setView('table'), title: 'Tabelle' }, '☰')));
+  return h('div', null, tb, h('div', { id: 'clist' }, contactList()));
+}
+async function setView(v) { SET.view = v; await save(SET); render(); }
+function refreshContacts() { const l = $('#clist'); if (l) l.replaceChildren(contactList()); }
+function filteredContacts() {
+  let cs = contacts(); const q = norm(UI.q).split(/\s+/).filter(Boolean);
+  if (q.length) cs = cs.filter(c => { const t = searchText(c); return q.every(w => t.includes(w)); });
+  if (UI.status) cs = cs.filter(c => c.status === UI.status);
+  if (UI.tag) cs = cs.filter(c => (c.tags || []).includes(UI.tag));
+  if (UI.ctype) cs = cs.filter(c => UI.ctype === 'Firmen' ? isCompany(c) : !isCompany(c));
+  const lc = new Map(cs.map(c => [c.id, lastContact(c) || 0]));
+  const by = { name: (a, b) => cname(a).localeCompare(cname(b), 'de'), recent: (a, b) => lc.get(b.id) - lc.get(a.id), stale: (a, b) => lc.get(a.id) - lc.get(b.id), stars: (a, b) => (b.stars || 0) - (a.stars || 0), new: (a, b) => b.createdAt - a.createdAt };
+  return cs.sort(by[UI.sort] || by.name);
+}
+function contactList() {
+  const cs = filteredContacts();
+  if (!cs.length) return h('div', { class: 'card empty' }, contacts().length ? 'Nichts gefunden.' : 'Noch keine Kontakte. Drücke „Neu“ oder importiere eine vCard/CSV in den Einstellungen.');
+  if (SET.view === 'table') return h('div', { class: 'card', style: 'padding:6px;overflow-x:auto' }, h('table', { class: 'list' },
+    h('thead', null, h('tr', null, ['', 'Name', 'Firma / Position', 'Status', 'Kontakt', 'Zuletzt'].map(t => h('th', null, t)))),
+    h('tbody', null, cs.map(c => h('tr', { class: 'click', onclick: () => openDetail(c.id) },
+      h('td', { style: 'width:52px' }, avatar(c)), h('td', null, cname(c), c.stars ? h('div', { class: 'stars' }, '★'.repeat(c.stars)) : null),
+      h('td', { class: 'muted' }, isCompany(c) ? `${members(c).length} Personen` : [companyName(c), c.role].filter(Boolean).join(' · ')),
+      h('td', null, c.status ? h('span', { class: 'chip gold' }, c.status) : ''),
+      h('td', { class: 'muted' }, (c.emails || [])[0] || (c.phones || [])[0] || ''),
+      h('td', { class: 'muted' }, rel(lastContact(c)) || '—'))))));
+  return h('div', { class: 'cgrid' }, cs.map(c => h('div', { class: 'ccard', tabindex: 0, onclick: () => openDetail(c.id), onkeydown: e => e.key === 'Enter' && openDetail(c.id) },
+    h('div', { class: 'hd' }, avatar(c), h('div', { style: 'min-width:0' }, h('div', { class: 'nm' }, cname(c)), h('div', { class: 'muted', style: 'font-size:13px' }, isCompany(c) ? `Firma · ${members(c).length} Personen` : [c.role, companyName(c)].filter(Boolean).join(' · ') || '—'))),
+    h('div', { class: 'chips' }, c.status ? h('span', { class: 'chip gold' }, c.status) : null, (c.tags || []).slice(0, 3).map(t => h('span', { class: 'chip' }, '#' + t)), c.stars ? h('span', { class: 'stars' }, '★'.repeat(c.stars)) : null),
+    h('div', { class: 'muted', style: 'font-size:12.5px;display:flex;justify-content:space-between' }, h('span', null, 'zuletzt: ' + (rel(lastContact(c)) || '—')), h('span', null, (n => n + (n === 1 ? ' Eintrag' : ' Einträge'))(actsOf(c.id).length) + ' · ' + filesOf(c.id).length + ' Medien')))));
+}
+function companyName(c) { return c.companyId && get(c.companyId) ? cname(get(c.companyId)) : c.company || ''; }
+
+/* ---------------- Kontakt-Detail (Drawer) ---------------- */
+let openId = null, dtab = 'timeline';
+function openDetail(id) {
+  openId = id; dtab = 'timeline';
+  renderDetail();
+  const d = $('#drawer'); d.classList.add('open'); d.setAttribute('aria-hidden', 'false');
+  $('#pane').scrollTop = 0;
+}
+function closeDetail() { openId = null; const d = $('#drawer'); d.classList.remove('open'); d.setAttribute('aria-hidden', 'true'); render(); }
+$('#drawer').addEventListener('click', e => { if (e.target.id === 'drawer') closeDetail(); });
+function renderDetail() {
+  const c = get(openId); if (!c) return closeDetail();
+  const pane = $('#pane');
+  const lc = lastContact(c), tel = (c.phones || [])[0], mail = (c.emails || [])[0];
+  const head = h('div', { class: 'dhead' }, avatar(c, 'lg'),
+    h('div', { style: 'min-width:0;flex:1' },
+      h('h2', null, cname(c)),
+      h('div', { class: 'muted' }, isCompany(c) ? 'Firma' : [c.role, companyName(c)].filter(Boolean).join(' · ')),
+      h('div', { class: 'chips', style: 'margin-top:8px' }, c.status ? h('span', { class: 'chip gold' }, c.status) : null, c.stars ? h('span', { class: 'stars' }, '★'.repeat(c.stars) + '☆'.repeat(5 - c.stars)) : null, (c.tags || []).map(t => h('span', { class: 'chip' }, '#' + t)))));
+  const quick = h('div', { class: 'quick' },
+    h('button', { class: 'btn primary sm', onclick: () => editActivity({ contactId: c.id }) }, icon('i-plus'), 'Eintrag'),
+    h('button', { class: 'btn sm', onclick: () => recordVoice(c.id) }, icon('i-mic'), 'Sprachnotiz'),
+    h('button', { class: 'btn sm', onclick: () => pickFiles({ contactId: c.id }) }, icon('i-clip'), 'Medien'),
+    h('button', { class: 'btn sm', onclick: () => pickFiles({ contactId: c.id }, 'image/*', true) }, icon('i-cam'), 'Foto'),
+    h('button', { class: 'btn sm', onclick: () => editTask({ contactId: c.id }) }, icon('i-tasks'), 'Aufgabe'),
+    h('button', { class: 'btn sm', onclick: () => editDeal({ contactId: c.id }) }, icon('i-euro'), 'Chance'),
+    tel ? h('a', { class: 'btn sm ghost', href: 'tel:' + tel.replace(/[^\d+]/g, '') }, icon('i-phone'), 'Anrufen') : null,
+    mail ? h('a', { class: 'btn sm ghost', href: 'mailto:' + mail }, icon('i-mail'), 'E-Mail') : null);
+  const facts = h('dl', { class: 'facts' });
+  const fact = (k, v) => v && (Array.isArray(v) ? v.length : true) && facts.append(h('dt', null, k), h('dd', null, v));
+  fact('E-Mail', (c.emails || []).length ? h('div', null, c.emails.map(e => h('div', null, h('a', { href: 'mailto:' + e }, e)))) : null);
+  fact('Telefon', (c.phones || []).length ? h('div', null, c.phones.map(p => h('div', null, h('a', { href: 'tel:' + p.replace(/[^\d+]/g, '') }, p)))) : null);
+  fact('Website', c.website ? h('a', { href: /^https?:/i.test(c.website) ? c.website : 'https://' + c.website, target: '_blank', rel: 'noopener noreferrer' }, c.website) : null);
+  fact('Adresse', [c.address, c.city].filter(Boolean).join(', '));
+  if (!isCompany(c) && c.companyId && get(c.companyId)) fact('Firma', h('a', { href: '#', onclick: e => { e.preventDefault(); openDetail(c.companyId); } }, cname(get(c.companyId))));
+  if (isCompany(c)) { const m = members(c); if (m.length) fact('Personen', h('div', { class: 'chips' }, m.map(p => h('a', { href: '#', class: 'chip', onclick: e => { e.preventDefault(); openDetail(p.id); } }, cname(p))))); }
+  fact('Geburtstag', c.birthday ? fmtDate(c.birthday + 'T12:00') + (nextBirthday(c) ? ` (${rel(nextBirthday(c))})` : '') : null);
+  fact('Kennengelernt', c.met);
+  fact('Kontaktrhythmus', c.cadence ? `alle ${c.cadence} Tage · nächster: ${rel(dueKeepInTouch(c))}` : null);
+  fact('Zuletzt Kontakt', lc ? `${fmtDate(lc)} (${rel(lc)})` : null);
+  (c.custom || []).forEach(x => fact(x.k, x.v));
+  fact('Angelegt', fmtDate(c.createdAt) + (c.updatedAt ? ' · geändert ' + fmtDate(c.updatedAt) : ''));
+
+  const tabs = [['timeline', 'Verlauf', actsOf(c.id).length], ['media', 'Medien', filesOf(c.id).length], ['tasks', 'Aufgaben', tasksOf(c.id).filter(t => !t.done).length], ['deals', 'Chancen', dealsOf(c.id).length], ['notes', 'Notizen', 0]];
+  const tabBar = h('div', { class: 'tabs', role: 'tablist' }, tabs.map(([id, l, n]) => h('button', { class: dtab === id ? 'on' : '', role: 'tab', onclick: () => { dtab = id; renderDetail(); } }, l + (n ? ` · ${n}` : ''))));
+  let body;
+  if (dtab === 'timeline') body = timeline(c);
+  else if (dtab === 'media') body = h('div', null, dropzone({ contactId: c.id }), mediaGrid(filesOf(c.id)));
+  else if (dtab === 'tasks') { const ts = tasksOf(c.id).sort(taskSort); body = ts.length ? h('div', null, ts.map(taskRow)) : h('div', { class: 'empty' }, 'Keine Aufgaben.'); }
+  else if (dtab === 'deals') { const ds = dealsOf(c.id); body = ds.length ? h('div', null, ds.map(d => h('div', { class: 'row', onclick: () => editDeal(d) }, icon('i-euro'), h('div', { class: 'main' }, h('div', { class: 't' }, d.title), h('div', { class: 's' }, `${d.stage} · ${d.prob || 0} %` + (d.closeDate ? ' · bis ' + fmtDate(d.closeDate) : ''))), h('span', { class: 'serif', style: 'font-size:18px' }, fmtEUR(d.value))))) : h('div', { class: 'empty' }, 'Keine Verkaufschancen.'); }
+  else body = notesEditor(c);
+
+  pane.replaceChildren(
+    h('div', { class: 'dclose' },
+      h('button', { class: 'btn sm', onclick: () => editContact(c) }, icon('i-edit'), 'Bearbeiten'),
+      h('button', { class: 'btn sm', onclick: () => exportVCard([c], cname(c)) , title: 'Als vCard exportieren' }, icon('i-download'), 'vCard'),
+      h('button', { class: 'btn icon ghost', onclick: closeDetail, 'aria-label': 'Schließen' }, icon('i-x'))),
+    head,
+    h('div', { class: 'dbody' }, quick, facts.children.length ? h('div', { class: 'card' }, facts) : null, h('div', null, tabBar, h('div', { style: 'padding-top:14px' }, body))));
+}
+function notesEditor(c) {
+  const ta = h('textarea', { class: 'input', style: 'min-height:260px', placeholder: 'Freie Notizen zu ' + cname(c) + ' … (wird automatisch gespeichert)' });
+  ta.value = c.notes || '';
+  let t; ta.addEventListener('input', () => { clearTimeout(t); t = setTimeout(async () => { c.notes = ta.value; await save(c); toast('Notiz gespeichert'); }, 700); });
+  return ta;
+}
+function timeline(c) {
+  const acts = actsOf(c.id);
+  if (!acts.length) return h('div', { class: 'empty' }, 'Noch keine Einträge. Halte Anrufe, Treffen, Gedanken und Sprachnotizen fest.');
+  return h('div', { class: 'timeline' }, acts.map(a => {
+    const fs = (a.fileIds || []).map(get).filter(Boolean);
+    return h('div', { class: 'tl' },
+      h('div', { class: 'dot' }, icon(KINDS[a.type] || 'i-note')),
+      h('div', { class: 'meta' }, h('strong', { style: 'color:var(--ink)' }, a.type), fmtDT(a.date), h('span', null, '· ' + rel(a.date)),
+        h('span', { class: 'acts' }, h('button', { class: 'btn icon ghost sm', onclick: () => editActivity(a), 'aria-label': 'Bearbeiten' }, icon('i-edit')))),
+      a.text ? h('div', { class: 'txt' }, a.text) : null,
+      fs.length ? mediaGrid(fs, true) : null);
+  }));
+}
+
+/* ---------------- Medien ---------------- */
+function mediaTile(f) {
+  const t = ftype(f.type);
+  const tile = h('button', { class: 'tile', title: f.name, onclick: () => viewFile(f.id) }, icon(FICON[t]), h('div', { class: 'nm' }, f.name));
+  if (f.thumb) fileURL(f.id, true).then(u => { if (u) { tile.replaceChildren(Object.assign(h('img', { alt: f.name, loading: 'lazy' }), { src: u })); if (t === 'video') tile.append(h('span', { class: 'badge' }, '▶ Video')); } });
+  else if (t !== 'file') tile.append(h('span', { class: 'badge' }, fmtSize(f.size)));
+  return tile;
+}
+function mediaGrid(fs, small) { return fs.length ? h('div', { class: 'media' + (small ? ' sm' : '') }, fs.map(mediaTile)) : h('div', { class: 'empty' }, 'Noch keine Medien.'); }
+function dropzone(link) {
+  const z = h('div', { class: 'dropzone' }, 'Dateien hierher ziehen, einfügen (⌘V) oder ', h('a', { href: '#', onclick: e => { e.preventDefault(); pickFiles(link); } }, 'auswählen'), ' · Fotos, Videos, Audio, PDF, alles.');
+  z.addEventListener('dragover', e => { e.preventDefault(); z.classList.add('over'); });
+  z.addEventListener('dragleave', () => z.classList.remove('over'));
+  z.addEventListener('drop', e => { e.preventDefault(); z.classList.remove('over'); addFiles([...e.dataTransfer.files], link); });
+  return z;
+}
+function pickFiles(link, accept, capture) {
+  const inp = $('#fileIn'); inp.value = ''; inp.multiple = true; inp.accept = accept || ''; if (capture) inp.setAttribute('capture', 'environment'); else inp.removeAttribute('capture');
+  inp.onchange = () => addFiles([...inp.files], link); inp.click();
+}
+async function addFiles(files, link = {}) {
+  if (!files.length) return;
+  let n = 0;
+  toast(`${files.length} Datei${files.length > 1 ? 'en werden' : ' wird'} verschlüsselt gespeichert …`);
+  const ids = [];
+  for (const f of files) { try { ids.push((await storeFile(f, link)).id); n++; } catch (e) { console.warn(e); toast('Fehler bei ' + f.name, true); } }
+  if (link.contactId && !link.activityId && ids.length) {
+    const act = await save({ kind: 'activity', contactId: link.contactId, type: 'Medien', date: Date.now(), text: '', fileIds: ids });
+    for (const id of ids) { const f = get(id); if (f) await save(Object.assign(f, { activityId: act.id })); }
+  }
+  toast(`${n} Datei${n === 1 ? '' : 'en'} gespeichert`);
+  refresh();
+  return ids;
+}
+document.addEventListener('paste', e => {
+  if (!KEY || !openId || document.querySelector('dialog[open]')) return;
+  const files = [...(e.clipboardData?.files || [])]; if (files.length) { e.preventDefault(); addFiles(files, { contactId: openId }); }
+});
+document.addEventListener('dragover', e => { if (KEY && openId && e.dataTransfer?.types?.includes('Files')) { e.preventDefault(); $('#pane').classList.add('drag-file'); } });
+document.addEventListener('dragleave', e => { if (!e.relatedTarget) $('#pane').classList.remove('drag-file'); });
+document.addEventListener('drop', e => { $('#pane').classList.remove('drag-file'); if (KEY && openId && e.dataTransfer?.files?.length && !e.defaultPrevented) { e.preventDefault(); addFiles([...e.dataTransfer.files], { contactId: openId }); } });
+
+async function viewFile(id) {
+  const f = get(id); if (!f) return;
+  const v = $('#viewer'), t = ftype(f.type);
+  v.replaceChildren(h('div', { class: 'dh', style: 'display:flex;align-items:center;gap:10px;font-size:18px' }, h('span', { style: 'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' }, f.name), h('button', { class: 'btn icon ghost', onclick: () => v.close(), 'aria-label': 'Schließen' }, icon('i-x'))), h('div', { class: 'vb' }, 'Entschlüssele …'));
+  v.showModal();
+  const url = await fileURL(id);
+  const c = get(f.contactId);
+  let el;
+  if (t === 'image') el = Object.assign(h('img', { alt: f.name }), { src: url });
+  else if (t === 'video') el = Object.assign(h('video', { controls: true, playsinline: true }), { src: url });
+  else if (t === 'audio') el = Object.assign(h('audio', { controls: true }), { src: url });
+  else if (t === 'pdf') el = Object.assign(h('iframe', { title: f.name }), { src: url });
+  else el = h('div', { class: 'empty' }, icon('i-file'), h('p', null, 'Keine Vorschau für diesen Dateityp. Du kannst die Datei herunterladen.'));
+  v.replaceChildren(v.firstChild, h('div', { class: 'vb' }, el), h('div', { class: 'df' },
+    h('span', { class: 'left muted', style: 'font-size:13px;align-self:center' }, `${fmtSize(f.size)} · ${fmtDT(f.createdAt)}` + (c ? ' · ' + cname(c) : '')),
+    c && t === 'image' ? h('button', { class: 'btn sm', onclick: async () => { c.avatarId = f.id; await save(c); v.close(); refresh(); toast('Als Profilbild gesetzt'); } }, icon('i-user'), 'Als Profilbild') : null,
+    h('button', { class: 'btn sm', onclick: async () => { const nm = prompt('Neuer Name', f.name); if (nm) { f.name = nm; await save(f); v.close(); refresh(); } } }, icon('i-edit'), 'Umbenennen'),
+    h('button', { class: 'btn sm', onclick: async () => download(f.name, await fileBlob(f.id)) }, icon('i-download'), 'Herunterladen'),
+    h('button', { class: 'btn sm danger', onclick: async () => {
+      if (!await confirmBox('Datei löschen?', `„${f.name}“ wird endgültig gelöscht.`)) return;
+      for (const a of all('activity')) if ((a.fileIds || []).includes(f.id)) { a.fileIds = a.fileIds.filter(x => x !== f.id); if (a.type === 'Medien' && !a.fileIds.length && !a.text) await del(a.id); else await save(a); }
+      for (const cc of contacts()) if (cc.avatarId === f.id) { cc.avatarId = null; await save(cc); }
+      await delFile(f.id); v.close(); refresh(); toast('Gelöscht');
+    } }, icon('i-trash'), 'Löschen')));
+}
+$('#viewer').addEventListener('close', () => { const m = $('#viewer video, #viewer audio'); if (m) m.pause(); });
+
+function viewMedia() {
+  const types = [['', 'Alle'], ['image', 'Bilder'], ['video', 'Videos'], ['audio', 'Audio'], ['pdf', 'PDF'], ['file', 'Sonstige']];
+  let fs = all('file').sort((a, b) => b.createdAt - a.createdAt);
+  if (UI.mediaType) fs = fs.filter(f => ftype(f.type) === UI.mediaType);
+  const total = all('file').reduce((s, f) => s + (f.size || 0), 0);
+  return h('div', null,
+    h('div', { class: 'toolbar' }, h('div', { class: 'seg' }, types.map(([v, l]) => h('button', { class: UI.mediaType === v ? 'on' : '', onclick: () => { UI.mediaType = v; render(); } }, l))),
+      h('span', { class: 'muted', style: 'margin-left:auto;font-size:13px' }, `${all('file').length} Datei${all('file').length === 1 ? '' : 'en'} · ${fmtSize(total)} · alle verschlüsselt`)),
+    dropzone({}),
+    h('div', { style: 'margin-top:14px' }, fs.length ? h('div', { class: 'media' }, fs.map(f => { const t = mediaTile(f); const c = get(f.contactId); if (c) t.title = f.name + ' · ' + cname(c); return t; })) : h('div', { class: 'empty' }, 'Noch keine Medien.')));
+}
+
+/* ---------------- Sprachnotiz ---------------- */
+async function recordVoice(contactId) {
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) return toast('Aufnahme wird von diesem Browser nicht unterstützt.', true);
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch { return toast('Kein Zugriff aufs Mikrofon.', true); }
+  const mime = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/ogg'].find(m => MediaRecorder.isTypeSupported?.(m)) || '';
+  const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : {}); const chunks = [];
+  rec.ondataavailable = e => e.data.size && chunks.push(e.data);
+  const t0 = Date.now(); const clock = h('span', null, '0:00');
+  const iv = setInterval(() => { const s = Math.floor((Date.now() - t0) / 1000); clock.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }, 250);
+  const note = h('textarea', { class: 'input', placeholder: 'Optional: Stichworte zur Sprachnotiz', style: 'min-height:70px' });
+  const stopped = new Promise(r => rec.onstop = r);
+  rec.start();
+  const ok = await dialog('Sprachnotiz', h('div', null, h('p', { class: 'rec', style: 'font-size:20px;margin:6px 0 16px' }, h('span', { class: 'dotr' }), 'Aufnahme läuft · ', clock), note), 'Speichern');
+  clearInterval(iv); rec.stop(); await stopped; stream.getTracks().forEach(t => t.stop());
+  if (!ok) return;
+  const type = (rec.mimeType || 'audio/webm').split(';')[0];
+  const ext = type.includes('mp4') ? 'm4a' : type.includes('ogg') ? 'ogg' : 'webm';
+  const file = new File(chunks, `Sprachnotiz ${new Date().toLocaleString('de-DE').replace(/[/:]/g, '-')}.${ext}`, { type });
+  const act = await save({ kind: 'activity', contactId, type: 'Sprachnotiz', date: Date.now(), text: note.value.trim(), fileIds: [] });
+  const f = await storeFile(file, { contactId, activityId: act.id });
+  act.fileIds = [f.id]; await save(act);
+  toast('Sprachnotiz gespeichert'); refresh();
+}
+
+/* ---------------- Dialoge ---------------- */
+let dlgGen = 0;
+function dialog(title, content, okLabel = 'Speichern', extra) {
+  return new Promise(res => {
+    const d = $('#dlg'); const my = ++dlgGen;
+    if (d.open) d.close('cancel');
+    const form = h('form', { method: 'dialog' },
+      h('div', { class: 'dh' }, title), h('div', { class: 'db' }, content),
+      h('div', { class: 'df' }, extra ? h('span', { class: 'left' }, extra) : null,
+        h('button', { class: 'btn', value: 'cancel', type: 'button', onclick: () => { d.close('cancel'); } }, okLabel ? 'Abbrechen' : 'Schließen'),
+        okLabel ? h('button', { class: 'btn primary', value: 'ok', type: 'submit' }, okLabel) : null));
+    form.addEventListener('submit', e => { if (!form.checkValidity()) { e.preventDefault(); form.reportValidity(); } });
+    d.replaceChildren(form);
+    const onClose = () => {
+      if (my !== dlgGen) { d.removeEventListener('close', onClose); return res(null); }
+      if (d.open) return; // verspätetes close-Event eines vorherigen Dialogs
+      d.removeEventListener('close', onClose);
+      res(d.returnValue === 'ok' ? form : null);
+    };
+    d.addEventListener('close', onClose);
+    d.returnValue = ''; d.showModal();
+    const first = form.querySelector('input:not([type=hidden]),textarea,select'); if (first) setTimeout(() => first.focus(), 30);
+  });
+}
+async function confirmBox(title, text, label = 'Löschen') {
+  return !!await dialog(title, h('p', null, text), label);
+}
+const fld = (label, input, full) => h('label', { class: 'field' + (full ? ' full' : '') }, h('span', null, label), input);
+const inp = (name, value, attrs = {}) => h('input', { class: 'input', name, value: value ?? '', ...attrs });
+const txa = (name, value, attrs = {}) => { const t = h('textarea', { class: 'input', name, ...attrs }); t.value = value || ''; return t; };
+const sel = (name, value, opts, attrs = {}) => h('select', { class: 'input', name, ...attrs }, opts.map(o => { const [v, l] = Array.isArray(o) ? o : [o, o]; return h('option', { value: v, selected: v === value }, l); }));
+const dtLocal = t => { const d = new Date(t - new Date(t).getTimezoneOffset() * 60000); return d.toISOString().slice(0, 16); };
+const splitList = s => (s || '').split(/[\n,;]+/).map(x => x.trim()).filter(Boolean);
+
+async function editContact(c = {}) {
+  const isNew = !c.id; const companies = contacts().filter(isCompany).filter(x => x.id !== c.id);
+  const type = sel('type', c.type || 'person', [['person', 'Person'], ['company', 'Firma']]);
+  const custom = (c.custom || []).map(x => `${x.k}: ${x.v}`).join('\n');
+  const content = h('div', { class: 'fgrid' },
+    fld('Art', type),
+    fld('Status', sel('status', c.status || '', [['', '—'], ...SET.statuses])),
+    h('div', { class: 'full p-only fgrid', style: 'padding:0' }, fld('Vorname', inp('firstName', c.firstName, { autocomplete: 'off' })), fld('Nachname', inp('lastName', c.lastName, { autocomplete: 'off' }))),
+    fld('Firma', inp('company', isCompany(c) ? c.company : companyName(c), { list: 'companyList', autocomplete: 'off' })),
+    h('datalist', { id: 'companyList' }, companies.map(x => h('option', { value: cname(x) }))),
+    fld('Position', inp('role', c.role)),
+    fld('E-Mail(s)', txa('emails', (c.emails || []).join('\n'), { rows: 2, style: 'min-height:0' })),
+    fld('Telefon(e)', txa('phones', (c.phones || []).join('\n'), { rows: 2, style: 'min-height:0' })),
+    fld('Adresse', inp('address', c.address)),
+    fld('Ort', inp('city', c.city)),
+    fld('Website', inp('website', c.website)),
+    fld('Geburtstag', inp('birthday', c.birthday, { type: 'date' })),
+    fld('Tags (Komma)', inp('tags', (c.tags || []).join(', '), { list: 'tagList' })),
+    h('datalist', { id: 'tagList' }, allTags().map(t => h('option', { value: t }))),
+    fld('Wichtigkeit', sel('stars', String(c.stars || 0), [['0', '—'], ['1', '★'], ['2', '★★'], ['3', '★★★'], ['4', '★★★★'], ['5', '★★★★★']])),
+    fld('Kontaktrhythmus', sel('cadence', String(c.cadence || ''), [['', 'keiner'], ['7', 'wöchentlich'], ['14', 'alle 2 Wochen'], ['30', 'monatlich'], ['90', 'vierteljährlich'], ['180', 'halbjährlich'], ['365', 'jährlich']])),
+    fld('Kennengelernt (wo/wie)', inp('met', c.met)),
+    fld('Eigene Felder (je Zeile „Name: Wert“)', txa('custom', custom, { rows: 3, style: 'min-height:0', placeholder: 'LinkedIn: …\nHobby: Segeln' }), true),
+    fld('Notizen', txa('notes', c.notes), true));
+  const sync = () => { content.querySelector('.p-only').style.display = type.value === 'company' ? 'none' : ''; content.querySelector('[name=company]').previousSibling.textContent = type.value === 'company' ? 'Firmenname' : 'Firma'; };
+  type.addEventListener('change', sync); sync();
+  const delBtn = isNew ? null : h('button', { class: 'btn danger', type: 'button', onclick: async () => { $('#dlg').close(); await deleteContact(c); } }, icon('i-trash'), 'Löschen');
+  const f = await dialog(isNew ? 'Neuer Kontakt' : 'Kontakt bearbeiten', content, 'Speichern', delBtn);
+  if (!f) return;
+  const v = Object.fromEntries(new FormData(f));
+  const o = Object.assign(c, {
+    kind: 'contact', type: v.type, status: v.status, role: v.role.trim(), address: v.address.trim(), city: v.city.trim(), website: v.website.trim(), birthday: v.birthday, met: v.met.trim(),
+    emails: splitList(v.emails), phones: splitList(v.phones), tags: [...new Set(splitList(v.tags))], stars: +v.stars, cadence: +v.cadence || null, notes: v.notes,
+    custom: v.custom.split('\n').map(l => { const i = l.indexOf(':'); return i > 0 ? { k: l.slice(0, i).trim(), v: l.slice(i + 1).trim() } : l.trim() ? { k: 'Info', v: l.trim() } : null; }).filter(Boolean),
+  });
+  if (v.type === 'company') { o.company = v.company.trim(); o.firstName = ''; o.lastName = ''; o.companyId = null; }
+  else {
+    o.firstName = v.firstName.trim(); o.lastName = v.lastName.trim(); o.company = v.company.trim();
+    const match = contacts().find(x => isCompany(x) && norm(x.company) === norm(o.company));
+    o.companyId = match ? match.id : null;
+  }
+  if (!cname(o) || cname(o) === 'Ohne Namen') { toast('Bitte einen Namen angeben.', true); return editContact(c); }
+  await save(o); toast(isNew ? 'Kontakt angelegt' : 'Gespeichert');
+  if (isNew) openDetail(o.id); else refresh();
+}
+async function deleteContact(c) {
+  const a = actsOf(c.id), f = filesOf(c.id), t = tasksOf(c.id), d = dealsOf(c.id);
+  if (!await confirmBox('Kontakt löschen?', `„${cname(c)}“ wird mit ${a.length} Einträgen, ${f.length} Medien, ${t.length} Aufgaben und ${d.length} Chancen endgültig gelöscht. Tipp: Vorher ein Backup machen.`)) return;
+  for (const x of f) await delFile(x.id);
+  for (const x of [...a, ...t, ...d]) await del(x.id);
+  for (const m of contacts()) if (m.companyId === c.id) { m.companyId = null; await save(m); }
+  await del(c.id); closeDetail(); toast('Kontakt gelöscht');
+}
+
+async function editActivity(a = {}) {
+  const isNew = !a.id;
+  const cs = contacts().sort((x, y) => cname(x).localeCompare(cname(y), 'de'));
+  const files = h('input', { type: 'file', multiple: true, class: 'input' });
+  const existing = (a.fileIds || []).map(get).filter(Boolean);
+  const content = h('div', { class: 'fgrid' },
+    fld('Art', sel('type', a.type || 'Notiz', Object.keys(KINDS))),
+    fld('Wann', inp('date', dtLocal(a.date || Date.now()), { type: 'datetime-local', required: true })),
+    fld('Kontakt', sel('contactId', a.contactId, cs.map(c => [c.id, cname(c)]), { required: true }), true),
+    fld('Was ist passiert?', txa('text', a.text, { placeholder: 'Worum ging es, was wurde vereinbart, wie war die Stimmung …', style: 'min-height:140px' }), true),
+    fld('Anhänge hinzufügen', files, true),
+    existing.length ? h('div', { class: 'full' }, h('span', { class: 'muted', style: 'font-size:12px' }, 'Vorhandene Anhänge'), mediaGrid(existing, true)) : null,
+    h('label', { class: 'full', style: 'display:flex;gap:8px;align-items:center;font-size:14px;margin-bottom:8px' }, h('input', { type: 'checkbox', name: 'followup' }), 'Danach Folgeaufgabe anlegen'));
+  const delBtn = isNew ? null : h('button', { class: 'btn danger', type: 'button', onclick: async () => {
+    $('#dlg').close();
+    if (!await confirmBox('Eintrag löschen?', 'Der Eintrag und seine Anhänge werden endgültig gelöscht.')) return;
+    for (const id of a.fileIds || []) if (get(id)) await delFile(id);
+    await del(a.id); refresh(); toast('Gelöscht');
+  } }, icon('i-trash'), 'Löschen');
+  const f = await dialog(isNew ? 'Neuer Eintrag' : 'Eintrag bearbeiten', content, 'Speichern', delBtn);
+  if (!f) return;
+  const v = Object.fromEntries(new FormData(f));
+  Object.assign(a, { kind: 'activity', type: v.type, date: new Date(v.date).getTime() || Date.now(), contactId: v.contactId, text: v.text.trim() });
+  a.fileIds = a.fileIds || [];
+  await save(a);
+  if (files.files.length) {
+    for (const file of files.files) a.fileIds.push((await storeFile(file, { contactId: a.contactId, activityId: a.id })).id);
+    await save(a);
+  }
+  refresh(); toast('Gespeichert');
+  if (v.followup) editTask({ contactId: a.contactId, title: 'Nachfassen: ' + (a.text || a.type).slice(0, 50) });
+}
+
+/* ---------------- Aufgaben ---------------- */
+const taskSort = (a, b) => (a.done - b.done) || ((a.due || '9999') > (b.due || '9999') ? 1 : -1);
+function taskRow(t) {
+  const c = get(t.contactId); const today = new Date().toISOString().slice(0, 10);
+  const cls = !t.done && t.due ? (t.due < today ? 'bad' : t.due === today ? 'warn' : '') : '';
+  return h('div', { class: 'task' + (t.done ? ' done' : '') },
+    h('input', { type: 'checkbox', checked: !!t.done, 'aria-label': 'Erledigt', onchange: async e => { t.done = e.target.checked; t.doneAt = t.done ? Date.now() : null; await save(t); if (t.done) toast('Erledigt ✓'); refresh(); } }),
+    h('div', { class: 'main', onclick: () => editTask(t) }, h('div', { class: 't' }, t.title), h('div', { class: 's muted', style: 'font-size:13px' }, [c ? cname(c) : null, t.note ? t.note.slice(0, 60) : null].filter(Boolean).join(' · '))),
+    t.due ? h('span', { class: 'chip ' + cls }, rel(new Date(t.due + 'T12:00').getTime())) : null);
+}
+async function editTask(t = {}) {
+  const isNew = !t.id; const cs = contacts().sort((x, y) => cname(x).localeCompare(cname(y), 'de'));
+  const content = h('div', { class: 'fgrid' },
+    fld('Was ist zu tun?', inp('title', t.title, { required: true }), true),
+    fld('Fällig', inp('due', t.due || new Date(Date.now() + DAY).toISOString().slice(0, 10), { type: 'date' })),
+    fld('Kontakt', sel('contactId', t.contactId || '', [['', '—'], ...cs.map(c => [c.id, cname(c)])])),
+    fld('Notiz', txa('note', t.note, { style: 'min-height:70px' }), true));
+  const delBtn = isNew ? null : h('button', { class: 'btn danger', type: 'button', onclick: async () => { $('#dlg').close(); await del(t.id); refresh(); toast('Gelöscht'); } }, icon('i-trash'), 'Löschen');
+  const f = await dialog(isNew ? 'Neue Aufgabe' : 'Aufgabe bearbeiten', content, 'Speichern', delBtn);
+  if (!f) return;
+  const v = Object.fromEntries(new FormData(f));
+  await save(Object.assign(t, { kind: 'task', title: v.title.trim(), due: v.due, contactId: v.contactId || null, note: v.note.trim(), done: !!t.done }));
+  refresh(); toast('Gespeichert');
+}
+function viewTasks() {
+  const ts = all('task'); const today = new Date().toISOString().slice(0, 10); const wk = new Date(Date.now() + 7 * DAY).toISOString().slice(0, 10);
+  const groups = [
+    ['Überfällig', ts.filter(t => !t.done && t.due && t.due < today)],
+    ['Heute', ts.filter(t => !t.done && t.due === today)],
+    ['Nächste 7 Tage', ts.filter(t => !t.done && t.due > today && t.due <= wk)],
+    ['Später / ohne Datum', ts.filter(t => !t.done && (!t.due || t.due > wk))],
+    ['Erledigt', ts.filter(t => t.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0)).slice(0, 30)],
+  ];
+  if (!ts.length) return h('div', { class: 'card empty' }, 'Keine Aufgaben. Drücke „Neu“, um eine anzulegen.');
+  return h('div', { class: 'grid' }, groups.filter(g => g[1].length).map(([l, xs]) => h('div', { class: 'card' }, h('h3', null, l, h('span', { class: 'muted', style: 'font-size:14px;font-family:var(--sans)' }, xs.length)), xs.sort(taskSort).map(taskRow))));
+}
+
+/* ---------------- Pipeline ---------------- */
+async function editDeal(d = {}) {
+  const isNew = !d.id; const cs = contacts().sort((x, y) => cname(x).localeCompare(cname(y), 'de'));
+  const PROB = { 'Idee': 10, 'Erstkontakt': 20, 'Angebot': 40, 'Verhandlung': 70, 'Gewonnen': 100, 'Verloren': 0 };
+  const stage = sel('stage', d.stage || SET.stages[0], SET.stages);
+  const prob = inp('prob', d.prob ?? PROB[stage.value] ?? 20, { type: 'number', min: 0, max: 100, step: 5 });
+  stage.addEventListener('change', () => { if (PROB[stage.value] != null) prob.value = PROB[stage.value]; });
+  const content = h('div', { class: 'fgrid' },
+    fld('Titel', inp('title', d.title, { required: true, placeholder: 'z. B. Altersvorsorge Familie Muster' }), true),
+    fld('Kontakt', sel('contactId', d.contactId || '', [['', '—'], ...cs.map(c => [c.id, cname(c)])])),
+    fld('Wert (€)', inp('value', d.value, { type: 'number', min: 0, step: 'any', inputmode: 'decimal' })),
+    fld('Phase', stage), fld('Wahrscheinlichkeit (%)', prob),
+    fld('Abschluss bis', inp('closeDate', d.closeDate, { type: 'date' })),
+    fld('Produkt / Kategorie', inp('product', d.product)),
+    fld('Notiz', txa('note', d.note, { style: 'min-height:70px' }), true));
+  const delBtn = isNew ? null : h('button', { class: 'btn danger', type: 'button', onclick: async () => { $('#dlg').close(); if (await confirmBox('Chance löschen?', `„${d.title}“ wird gelöscht.`)) { await del(d.id); refresh(); } } }, icon('i-trash'), 'Löschen');
+  const f = await dialog(isNew ? 'Neue Verkaufschance' : 'Chance bearbeiten', content, 'Speichern', delBtn);
+  if (!f) return;
+  const v = Object.fromEntries(new FormData(f));
+  await save(Object.assign(d, { kind: 'deal', title: v.title.trim(), contactId: v.contactId || null, value: Math.max(0, +v.value || 0), stage: v.stage, prob: Math.min(100, Math.max(0, +v.prob || 0)), closeDate: v.closeDate, product: v.product.trim(), note: v.note.trim() }));
+  refresh(); toast('Gespeichert');
+}
+async function moveDeal(d, s) {
+  if (d.stage === s) return;
+  d.stage = s;
+  if (s === 'Gewonnen') { d.prob = 100; d.closeDate = d.closeDate || new Date().toISOString().slice(0, 10); }
+  if (s === 'Verloren') d.prob = 0;
+  await save(d); render(); toast(`→ ${s}`);
+}
+function viewPipeline() {
+  const deals = all('deal');
+  const board = h('div', { class: 'kanban' }, SET.stages.map(s => {
+    const ds = deals.filter(d => d.stage === s).sort((a, b) => (+b.value || 0) - (+a.value || 0));
+    const col = h('div', { class: 'col', 'data-stage': s },
+      h('h4', null, s, h('small', null, `${ds.length} · ${fmtEUR(ds.reduce((a, d) => a + (+d.value || 0), 0))}`)),
+      ds.map(d => { const c = get(d.contactId); const card = h('div', { class: 'deal', draggable: 'true', tabindex: 0, onclick: () => editDeal(d), onkeydown: e => e.key === 'Enter' && editDeal(d) },
+        h('div', null, d.title), h('div', { class: 'v' }, fmtEUR(d.value)),
+        h('div', { class: 'muted', style: 'font-size:12.5px' }, [c ? cname(c) : null, d.prob != null ? d.prob + ' %' : null, d.closeDate ? 'bis ' + fmtDate(d.closeDate) : null].filter(Boolean).join(' · ')),
+        h('select', { 'aria-label': 'Phase ändern', onclick: e => e.stopPropagation(), onkeydown: e => e.stopPropagation(), onchange: e => moveDeal(d, e.target.value) }, SET.stages.map(st => h('option', { value: st, selected: st === d.stage }, '→ ' + st))));
+        card.addEventListener('dragstart', e => { e.dataTransfer.setData('text/deal', d.id); e.dataTransfer.effectAllowed = 'move'; });
+        return card; }));
+    col.addEventListener('dragover', e => { if (e.dataTransfer.types.includes('text/deal')) { e.preventDefault(); col.classList.add('over'); } });
+    col.addEventListener('dragleave', () => col.classList.remove('over'));
+    col.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); col.classList.remove('over'); const d = get(e.dataTransfer.getData('text/deal')); if (d) moveDeal(d, s); });
+    return col;
+  }));
+  return h('div', null, deals.length ? null : h('div', { class: 'card empty', style: 'margin-bottom:14px' }, 'Noch keine Verkaufschancen. Drücke „Neu“. Karten lassen sich zwischen den Phasen verschieben.'), board,
+    h('p', { class: 'muted', style: 'font-size:12.5px;margin-top:8px' }, 'Tipp: Karten per Drag & Drop verschieben oder unten auf der Karte die Phase wählen.'));
+}
+
+/* ---------------- Suche (⌘K) ---------------- */
+function openPalette() {
+  const p = $('#palette'); let sel = 0, items = [];
+  const input = h('input', { class: 'input pin', placeholder: 'Suche nach Kontakten, Notizen, Aufgaben, Dateien … oder Befehl', 'aria-label': 'Suche' });
+  const res = h('div', { class: 'res' });
+  const cmds = [
+    ['Neuer Kontakt', 'i-user', () => editContact()], ['Neue Aufgabe', 'i-tasks', () => editTask()], ['Neue Verkaufschance', 'i-euro', () => editDeal()],
+    ['Backup erstellen', 'i-shield', () => exportBackup()], ['Sperren', 'i-lock', lock], ...VIEWS.map(v => ['Gehe zu ' + v.label, v.icon, () => go(v.id)])];
+  const run = () => {
+    const q = norm(input.value).split(/\s+/).filter(Boolean); items = [];
+    const m = t => q.every(w => t.includes(w));
+    if (!q.length) items = cmds.map(([l, i, f]) => ({ l, i, s: 'Befehl', f }));
+    else {
+      contacts().forEach(c => m(searchText(c)) && items.push({ l: cname(c), s: [c.role, companyName(c), c.status].filter(Boolean).join(' · ') || 'Kontakt', c, f: () => openDetail(c.id) }));
+      all('activity').forEach(a => { const c = get(a.contactId); c && m(norm(a.text + ' ' + a.type)) && items.push({ l: (a.text || a.type).slice(0, 80), s: `${a.type} · ${cname(c)} · ${fmtDate(a.date)}`, i: KINDS[a.type], f: () => openDetail(c.id) }); });
+      all('task').forEach(t => m(norm(t.title + ' ' + t.note)) && items.push({ l: t.title, s: 'Aufgabe' + (t.done ? ' · erledigt' : ''), i: 'i-tasks', f: () => editTask(t) }));
+      all('deal').forEach(d => m(norm(d.title + ' ' + d.product + ' ' + d.note)) && items.push({ l: d.title, s: `Chance · ${d.stage} · ${fmtEUR(d.value)}`, i: 'i-euro', f: () => editDeal(d) }));
+      all('file').forEach(f => m(norm(f.name)) && items.push({ l: f.name, s: 'Datei · ' + fmtSize(f.size), i: FICON[ftype(f.type)], f: () => viewFile(f.id) }));
+      cmds.forEach(([l, i, f]) => m(norm(l)) && items.push({ l, i, s: 'Befehl', f }));
+      items = items.slice(0, 40);
+    }
+    sel = Math.min(sel, Math.max(0, items.length - 1));
+    res.replaceChildren(...(items.length ? items.map((it, k) => h('div', { class: 'row' + (k === sel ? ' sel' : ''), onclick: () => pick(k), onmousemove: () => { if (sel !== k) { sel = k; run(); } } }, it.c ? avatar(it.c) : h('div', { class: 'av', style: 'background:var(--goldsoft);color:var(--gold)' }, icon(it.i || 'i-note')), h('div', { class: 'main' }, h('div', { class: 't' }, it.l), h('div', { class: 's' }, it.s)))) : [h('div', { class: 'empty' }, 'Nichts gefunden.')]));
+    res.querySelector('.sel')?.scrollIntoView({ block: 'nearest' });
+  };
+  const pick = k => { const it = items[k]; if (!it) return; p.close(); it.f(); };
+  input.addEventListener('input', () => { sel = 0; run(); });
+  input.addEventListener('keydown', e => { if (e.key === 'ArrowDown') { e.preventDefault(); sel = Math.min(items.length - 1, sel + 1); run(); } else if (e.key === 'ArrowUp') { e.preventDefault(); sel = Math.max(0, sel - 1); run(); } else if (e.key === 'Enter') { e.preventDefault(); pick(sel); } });
+  p.replaceChildren(input, res); p.showModal(); input.focus(); run();
+  p.onclick = e => { if (e.target === p) p.close(); };
+}
+
+/* ---------------- Einstellungen ---------------- */
+function viewSettings() {
+  const usage = h('span', { class: 'muted' }, '…');
+  navigator.storage?.estimate?.().then(e => usage.textContent = `${fmtSize(e.usage || 0)} belegt von ca. ${fmtSize(e.quota || 0)}`).catch(() => usage.textContent = 'unbekannt');
+  const persisted = h('span', { class: 'muted' }, '…');
+  navigator.storage?.persisted?.().then(p => persisted.textContent = p ? 'dauerhaft (Browser löscht nicht automatisch)' : 'nicht garantiert. Regelmäßig Backup machen!').catch(() => persisted.textContent = 'unbekannt');
+  const lastB = SET.lastBackup ? `${fmtDT(SET.lastBackup)} (${rel(SET.lastBackup)})` : 'noch nie';
+  const card = (title, ic, ...kids) => h('div', { class: 'card' }, h('h3', null, icon(ic), title), ...kids);
+  const btns = (...b) => h('div', { class: 'quick', style: 'margin-top:10px' }, b);
+  const al = sel('autolock', String(SET.autolock), [['2', '2 Minuten'], ['5', '5 Minuten'], ['10', '10 Minuten'], ['30', '30 Minuten'], ['60', '1 Stunde'], ['0', 'nie (nicht empfohlen)']]);
+  al.addEventListener('change', async () => { SET.autolock = +al.value; await save(SET); toast('Gespeichert'); });
+  const th = sel('theme', SET.theme, [['auto', 'Wie System'], ['dark', 'Dunkel'], ['light', 'Hell']]);
+  th.addEventListener('change', async () => { SET.theme = th.value; applyTheme(); await save(SET); });
+  const listEditor = (key, label) => {
+    const t = txa(key, SET[key].join('\n'), { rows: 6, style: 'min-height:0' });
+    t.addEventListener('change', async () => { const v = splitList(t.value); if (v.length) { SET[key] = v; await save(SET); toast(label + ' gespeichert'); } });
+    return fld(label + ' (je Zeile)', t);
+  };
+  return h('div', { class: 'grid two' },
+    card('Sicherheit', 'i-shield',
+      h('p', { class: 'muted', style: 'font-size:14px' }, 'Alle Kontakte, Notizen und Dateien sind mit AES-256-GCM verschlüsselt. Der Schlüssel entsteht aus deiner Passphrase und liegt nur im Arbeitsspeicher, solange das CRM entsperrt ist. Nichts verlässt dieses Gerät.'),
+      fld('Automatisch sperren nach', al),
+      btns(h('button', { class: 'btn', onclick: changePass }, icon('i-lock'), 'Passphrase ändern'), h('button', { class: 'btn', onclick: lock }, icon('i-lock'), 'Jetzt sperren'))),
+    card('Backup', 'i-download',
+      h('p', { style: 'font-size:14px' }, 'Letztes Backup: ', h('strong', null, lastB)),
+      h('p', { class: 'muted', style: 'font-size:14px' }, 'Das Backup enthält alles inkl. Medien, bleibt verschlüsselt und lässt sich nur mit der Passphrase öffnen, die beim Erstellen galt. Lege es z. B. auf einen USB-Stick oder in deinen Cloud-Ordner.'),
+      btns(h('button', { class: 'btn primary', onclick: exportBackup }, icon('i-download'), 'Backup erstellen'), h('button', { class: 'btn', onclick: restoreBackup }, icon('i-upload'), 'Backup einspielen'))),
+    card('Import & Export', 'i-upload',
+      h('p', { class: 'muted', style: 'font-size:14px' }, 'Kontakte aus Handy, Outlook oder Google übernehmen (vCard .vcf oder CSV). Exporte als CSV/vCard sind ', h('strong', null, 'unverschlüsselt'), '. Bitte sorgsam damit umgehen.'),
+      btns(h('button', { class: 'btn', onclick: importContacts }, icon('i-upload'), 'vCard / CSV importieren'),
+        h('button', { class: 'btn', onclick: () => exportCSV() }, icon('i-download'), 'Kontakte als CSV'),
+        h('button', { class: 'btn', onclick: () => exportVCard(contacts(), 'Kontakte') }, icon('i-download'), 'Kontakte als vCard'),
+        h('button', { class: 'btn', onclick: exportJSON }, icon('i-download'), 'Alles als JSON (ohne Medien)'))),
+    syncCard(card, btns),
+    appCard(card, btns),
+    card('Darstellung & Felder', 'i-gear',
+      fld('Farbschema', th), h('div', { class: 'fgrid' }, listEditor('statuses', 'Status'), listEditor('stages', 'Pipeline-Phasen'))),
+    card('Speicher', 'i-image',
+      h('dl', { class: 'facts' }, h('dt', null, 'Belegung'), h('dd', null, usage), h('dt', null, 'Speicherung'), h('dd', null, persisted),
+        h('dt', null, 'Datensätze'), h('dd', null, `${contacts().length} Kontakte · ${all('activity').length} Einträge · ${all('task').length} Aufgaben · ${all('deal').length} Chancen · ${all('file').length} Dateien`),
+        h('dt', null, 'Version'), h('dd', null, 'Och · CRM ' + VERSION))),
+    card('Gefahrenzone', 'i-trash',
+      h('p', { class: 'muted', style: 'font-size:14px' }, 'Löscht das komplette CRM auf diesem Gerät unwiderruflich. Backups bleiben unberührt.'),
+      btns(h('button', { class: 'btn danger', onclick: wipeAll }, icon('i-trash'), 'Alles löschen'))));
+}
+async function changePass() {
+  const content = h('div', null, fld('Aktuelle Passphrase', inp('old', '', { type: 'password', required: true, autocomplete: 'current-password' })),
+    fld('Neue Passphrase (mind. 12 Zeichen)', inp('n1', '', { type: 'password', required: true, minlength: 12, autocomplete: 'new-password' })),
+    fld('Neue Passphrase wiederholen', inp('n2', '', { type: 'password', required: true, minlength: 12, autocomplete: 'new-password' })),
+    h('p', { class: 'note' }, 'Ältere Backups lassen sich weiterhin nur mit der alten Passphrase öffnen.'));
+  const f = await dialog('Passphrase ändern', content, 'Ändern'); if (!f) return;
+  const v = Object.fromEntries(new FormData(f));
+  if (v.n1 !== v.n2) return toast('Neue Passphrasen stimmen nicht überein.', true);
+  if (strength(v.n1) < 2) return toast('Neue Passphrase ist zu schwach.', true);
+  try {
+    const dek = await openVault(v.old, true);
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const k = await kek(v.n1, salt, PBKDF2_ITER);
+    const wrapped = await crypto.subtle.wrapKey('raw', dek, k, 'AES-KW');
+    const old = await metaGet('vault');
+    await metaPut('vault', { ...old, salt, iter: PBKDF2_ITER, wrapped, changed: Date.now() });
+    toast('Passphrase geändert');
+  } catch { toast('Aktuelle Passphrase ist falsch.', true); }
+}
+async function wipeAll() {
+  const content = h('div', null, h('p', null, 'Gib zur Bestätigung LÖSCHEN ein.'), inp('c', '', { required: true, pattern: 'LÖSCHEN', autocomplete: 'off' }));
+  const f = await dialog('Wirklich alles löschen?', content, 'Endgültig löschen'); if (!f) return;
+  db.close(); await new Promise(r => { const q = indexedDB.deleteDatabase(DB_NAME); q.onsuccess = q.onerror = q.onblocked = r; });
+  location.reload();
+}
+
+/* ---------------- Backup ---------------- */
+async function exportBackup() {
+  toast('Backup wird erstellt …');
+  const vault = await metaGet('vault');
+  const blobs = await tx('blob', 'readonly', s => s.getAll());
+  const ser = r => ({ id: r.id, iv: b64(r.iv), ct: b64(r.ct) });
+  const SET2 = Object.assign({}, SET, { lastBackup: Date.now() });
+  // Einstellungen mit neuem Backup-Zeitpunkt vorab speichern, damit das Backup ihn enthält
+  await save(SET2, true); SET = SET2;
+  const recs2 = await tx('rec', 'readonly', s => s.getAll());
+  const parts = ['{"format":"och-crm-backup","version":1,"created":' + Date.now() + ',"vault":', JSON.stringify({ v: vault.v, iter: vault.iter, salt: b64(vault.salt), wrapped: b64(vault.wrapped) }), ',"rec":', JSON.stringify(recs2.map(ser)), ',"blob":['];
+  blobs.forEach((b, i) => parts.push((i ? ',' : '') + JSON.stringify(ser(b))));
+  parts.push(']}');
+  download(`och-crm-backup-${stamp()}.ochcrm`, new Blob(parts, { type: 'application/json' }));
+  if (current === 'settings') render();
+  toast('Backup gespeichert (verschlüsselt)');
+}
+async function restoreBackup() {
+  // accept bewusst leer: iOS graut unbekannte Endungen sonst aus
+  const inpEl = $('#fileIn'); inpEl.value = ''; inpEl.multiple = false; inpEl.accept = ''; inpEl.removeAttribute('capture');
+  inpEl.onchange = async () => {
+    const file = inpEl.files[0]; if (!file) return;
+    let data, sf = null;
+    try {
+      if (td.decode(await file.slice(0, 8).arrayBuffer()) === 'OCHSYNC1') {
+        sf = await readSyncHeader(file);
+        data = { created: sf.header.created, vault: sf.header.vault, rec: sf.header.rec, blob: sf.header.blob.filter(b => !b.id.endsWith(':t')), from: sf.header.device?.name };
+      } else data = JSON.parse(await file.text());
+    } catch { return toast('Keine gültige Backup- oder Sync-Datei.', true); }
+    if (!sf && data.format !== 'och-crm-backup') return toast('Keine gültige Backup- oder Sync-Datei.', true);
+    const pw = inp('pw', '', { type: 'password', required: true, autocomplete: 'off' });
+    const content = h('div', null, h('p', { style: 'margin-bottom:12px' }, `${sf ? `Sync-Datei von „${data.from || 'Gerät'}“` : 'Backup'} vom ${fmtDT(data.created)} mit ${data.rec.length} Datensätzen und ${data.blob.length} Dateien.`),
+      h('p', { class: 'chip bad', style: 'margin-bottom:12px;white-space:normal' }, 'Achtung: Der aktuelle Inhalt dieses CRM wird vollständig ersetzt.'),
+      fld('Passphrase des Backups', pw));
+    const f = await dialog('Backup einspielen', content, 'Einspielen'); if (!f) return;
+    try {
+      const salt = unb64(data.vault.salt), wrapped = unb64(data.vault.wrapped);
+      const k = await kek(pw.value, salt, data.vault.iter);
+      const testKey = await crypto.subtle.unwrapKey('raw', wrapped, k, 'AES-KW', 'AES-GCM', false, ['decrypt']);
+      if (data.rec[0]) await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(data.rec[0].iv) }, testKey, unb64(data.rec[0].ct));
+      if (!db) db = await idbOpen();
+      await tx('rec', 'readwrite', s => s.clear()); await tx('blob', 'readwrite', s => s.clear());
+      await metaPut('vault', { v: data.vault.v, iter: data.vault.iter, salt, wrapped, restored: Date.now() });
+      const de = r => ({ id: r.id, iv: unb64(r.iv), ct: unb64(r.ct).buffer });
+      await tx('rec', 'readwrite', s => { data.rec.forEach(r => s.put(de(r))); });
+      if (sf) for (const ix of sf.header.blob) { const ct = await sf.blob(ix); await tx('blob', 'readwrite', s => s.put({ id: ix.id, iv: unb64(ix.iv), ct })); }
+      else for (let i = 0; i < data.blob.length; i += 20) await tx('blob', 'readwrite', s => { data.blob.slice(i, i + 20).forEach(r => s.put(de(r))); });
+      const dv = await metaGet('device'); if (dv) { dv.seen = {}; await metaPut('device', dv); }
+      toast('Eingespielt. Bitte mit der Passphrase entsperren.');
+      setTimeout(() => location.reload(), 1200);
+    } catch (e) { console.warn(e); toast('Passphrase falsch oder Backup beschädigt.', true); }
+  };
+  inpEl.click();
+}
+
+/* ---------------- Import / Export Kontakte ---------------- */
+const csvCell = v => { let s = (v ?? '').toString(); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+function exportCSV() {
+  const cols = [['Vorname', c => c.firstName], ['Nachname', c => c.lastName], ['Firma', c => isCompany(c) ? c.company : companyName(c)], ['Art', c => isCompany(c) ? 'Firma' : 'Person'], ['Position', c => c.role], ['Status', c => c.status],
+    ['E-Mail', c => (c.emails || []).join(', ')], ['Telefon', c => (c.phones || []).join(', ')], ['Adresse', c => c.address], ['Ort', c => c.city], ['Website', c => c.website],
+    ['Geburtstag', c => c.birthday], ['Tags', c => (c.tags || []).join(', ')], ['Wichtigkeit', c => c.stars || ''], ['Kontaktrhythmus (Tage)', c => c.cadence || ''], ['Zuletzt Kontakt', c => fmtDate(lastContact(c))], ['Notizen', c => c.notes]];
+  const rows = [cols.map(c => c[0]).join(';'), ...contacts().sort((a, b) => cname(a).localeCompare(cname(b), 'de')).map(c => cols.map(([, f]) => csvCell(f(c))).join(';'))];
+  download(`och-crm-kontakte-${stamp()}.csv`, '\ufeff' + rows.join('\r\n'), 'text/csv;charset=utf-8');
+  toast(`${contacts().length} Kontakte exportiert (unverschlüsselt)`);
+}
+function exportJSON() {
+  const out = { exported: new Date().toISOString(), contacts: contacts(), activities: all('activity'), tasks: all('task'), deals: all('deal'), files: all('file').map(({ id, name, type, size, contactId, createdAt }) => ({ id, name, type, size, contactId, createdAt })) };
+  download(`och-crm-daten-${stamp()}.json`, JSON.stringify(out, null, 2), 'application/json');
+  toast('JSON exportiert (unverschlüsselt)');
+}
+const vEsc = s => (s || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/[,;]/g, m => '\\' + m);
+function exportVCard(list, name) {
+  const out = list.map(c => ['BEGIN:VCARD', 'VERSION:3.0',
+    isCompany(c) ? `FN:${vEsc(c.company)}` : `FN:${vEsc(cname(c))}`, isCompany(c) ? 'N:;;;;' : `N:${vEsc(c.lastName)};${vEsc(c.firstName)};;;`,
+    isCompany(c) ? 'X-ABShowAs:COMPANY' : null,
+    (isCompany(c) ? c.company : companyName(c)) ? `ORG:${vEsc(isCompany(c) ? c.company : companyName(c))}` : null, c.role ? `TITLE:${vEsc(c.role)}` : null,
+    ...(c.emails || []).map(e => `EMAIL;TYPE=INTERNET:${e}`), ...(c.phones || []).map(p => `TEL:${p}`),
+    c.address || c.city ? `ADR:;;${vEsc(c.address)};${vEsc(c.city)};;;` : null, c.website ? `URL:${c.website}` : null,
+    c.birthday ? `BDAY:${c.birthday}` : null, (c.tags || []).length ? `CATEGORIES:${c.tags.map(vEsc).join(',')}` : null,
+    c.notes ? `NOTE:${vEsc(c.notes)}` : null, 'END:VCARD'].filter(Boolean).join('\r\n')).join('\r\n');
+  download(`${name.replace(/[^\wäöüÄÖÜß -]/g, '')}.vcf`, out, 'text/vcard');
+}
+function parseVCF(text) {
+  const lines = text.replace(/\r\n[ \t]/g, '').replace(/\n[ \t]/g, '').split(/\r?\n/);
+  const out = []; let c = null;
+  const un = s => (s || '').replace(/\\n/gi, '\n').replace(/\\([,;\\])/g, '$1');
+  for (const line of lines) {
+    const i = line.indexOf(':'); if (i < 0) continue;
+    const head = line.slice(0, i), val = line.slice(i + 1); const key = head.split(';')[0].replace(/^item\d+\./i, '').toUpperCase();
+    if (key === 'BEGIN') c = { kind: 'contact', type: 'person', emails: [], phones: [], tags: [] };
+    else if (!c) continue;
+    else if (key === 'END') { if (c.firstName || c.lastName || c.company) out.push(c); c = null; }
+    else if (key === 'N') { const [ln, fn] = val.split(';'); c.lastName = un(ln); c.firstName = un(fn); }
+    else if (key === 'FN' && !c.firstName && !c.lastName) { const p = un(val).split(' '); c.lastName = p.pop(); c.firstName = p.join(' '); }
+    else if (key === 'ORG') c.company = un(val.split(';')[0]);
+    else if (key === 'TITLE') c.role = un(val);
+    else if (key === 'EMAIL') c.emails.push(val.trim());
+    else if (key === 'TEL') c.phones.push(val.trim());
+    else if (key === 'URL') c.website = un(val);
+    else if (key === 'BDAY') { const m = val.replace(/-/g, '').match(/^(\d{4})(\d{2})(\d{2})/); if (m) c.birthday = `${m[1]}-${m[2]}-${m[3]}`; }
+    else if (key === 'ADR') { const p = val.split(';').map(un); c.address = p[2]; c.city = [p[5], p[3]].filter(Boolean).join(' '); }
+    else if (key === 'NOTE') c.notes = un(val);
+    else if (key === 'CATEGORIES') c.tags = un(val).split(',').map(s => s.trim()).filter(Boolean);
+  }
+  out.forEach(c => { if (!c.firstName && !c.lastName && c.company) c.type = 'company'; });
+  return out;
+}
+function parseCSV(text) {
+  text = text.replace(/^\ufeff/, '');
+  const first = text.split(/\r?\n/)[0]; const d = (first.match(/;/g) || []).length >= (first.match(/,/g) || []).length ? ';' : ',';
+  const rows = []; let row = [], cell = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += ch; }
+    else if (ch === '"') q = true; else if (ch === d) { row.push(cell); cell = ''; }
+    else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+    else cell += ch;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  const hd = rows.shift().map(x => norm(x).trim());
+  const find = (...ks) => hd.findIndex(x => ks.some(k => x === k || x.includes(k)));
+  const ix = { fn: find('vorname', 'first name', 'given name'), ln: find('nachname', 'last name', 'family name', 'surname'), name: find('name', 'anzeigename', 'display name'),
+    co: find('firma', 'company', 'organization', 'unternehmen'), role: find('position', 'title', 'job', 'funktion'), mail: find('e-mail', 'email', 'mail'), tel: find('telefon', 'phone', 'mobil', 'handy'),
+    adr: find('adresse', 'strasse', 'street', 'address'), city: find('ort', 'stadt', 'city'), web: find('website', 'web', 'url'), bday: find('geburtstag', 'birthday'), tags: find('tags', 'kategorie', 'categories', 'gruppe'), notes: find('notiz', 'notes', 'bemerkung'), status: find('status') };
+  return rows.filter(r => r.some(x => x.trim())).map(r => {
+    const g = k => ix[k] >= 0 ? (r[ix[k]] || '').trim() : '';
+    let fn = g('fn'), ln = g('ln'); if (!fn && !ln && g('name')) { const p = g('name').split(' '); ln = p.pop(); fn = p.join(' '); }
+    let bd = g('bday'); const m = bd.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/); if (m) bd = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`; if (!/^\d{4}-\d{2}-\d{2}$/.test(bd)) bd = '';
+    const c = { kind: 'contact', type: !fn && !ln && g('co') ? 'company' : 'person', firstName: fn, lastName: ln, company: g('co'), role: g('role'), emails: splitList(g('mail')), phones: splitList(g('tel')), address: g('adr'), city: g('city'), website: g('web'), birthday: bd, tags: splitList(g('tags')), notes: g('notes'), status: SET.statuses.includes(g('status')) ? g('status') : '' };
+    return c;
+  }).filter(c => c.firstName || c.lastName || c.company);
+}
+function importContacts() {
+  const inpEl = $('#fileIn'); inpEl.value = ''; inpEl.multiple = false; inpEl.accept = '.vcf,.vcard,.csv,text/vcard,text/csv'; inpEl.removeAttribute('capture');
+  inpEl.onchange = async () => {
+    const file = inpEl.files[0]; if (!file) return;
+    const text = await file.text();
+    let list; try { list = /\.csv$/i.test(file.name) || !/BEGIN:VCARD/i.test(text) ? parseCSV(text) : parseVCF(text); } catch (e) { console.warn(e); return toast('Datei konnte nicht gelesen werden.', true); }
+    if (!list.length) return toast('Keine Kontakte gefunden.', true);
+    const existing = new Set(contacts().map(c => norm(cname(c)) + '|' + norm((c.emails || [])[0])));
+    const fresh = list.filter(c => !existing.has(norm(cname(c)) + '|' + norm((c.emails || [])[0])));
+    const tag = inp('tag', 'import-' + stamp());
+    const content = h('div', null, h('p', null, `${list.length} Kontakte gefunden, davon ${list.length - fresh.length} bereits vorhanden (gleicher Name + E-Mail) und ${fresh.length} neu.`),
+      h('p', { class: 'muted', style: 'margin:8px 0 12px;font-size:14px' }, 'Vorschau: ' + fresh.slice(0, 6).map(cname).join(', ') + (fresh.length > 6 ? ' …' : '')),
+      fld('Tag für importierte Kontakte (optional)', tag));
+    const f = await dialog('Kontakte importieren', content, fresh.length ? `${fresh.length} importieren` : null); if (!f) return;
+    const t = tag.value.trim();
+    for (const c of fresh) {
+      if (t) c.tags = [...new Set([...(c.tags || []), t])];
+      if (c.type === 'person' && c.company) { const m = contacts().find(x => isCompany(x) && norm(x.company) === norm(c.company)); if (m) c.companyId = m.id; }
+      await save(c);
+    }
+    toast(`${fresh.length} Kontakte importiert`); go('contacts');
+  };
+  inpEl.click();
+}
+
+/* =====================================================================
+   SYNCHRONISATION (Laptop <-> Handy) über einen Cloud-Ordner
+   Jedes Gerät schreibt eine eigene Datei „och-crm-<gerät>.ochsync“
+   und liest die Dateien der anderen. Inhalt bleibt Ende-zu-Ende
+   verschlüsselt (gleicher Datenschlüssel auf allen Geräten).
+   Zusammenführung je Datensatz: neuere Änderung gewinnt,
+   Löschungen werden als Grabsteine übertragen.
+   ===================================================================== */
+const FS_OK = 'showDirectoryPicker' in window;
+let DEV = null, dirty = false, syncing = false, syncTimer = null;
+function markDirty() { dirty = true; if (DEV) { setSyncState(); clearTimeout(syncTimer); syncTimer = setTimeout(autoSync, 20000); } }
+function guessDevice() { const u = navigator.userAgent; return /iPhone/.test(u) ? 'iPhone' : /iPad/.test(u) ? 'iPad' : /Android/.test(u) ? 'Android' : /Mac/.test(u) ? 'Mac' : /Windows/.test(u) ? 'Windows-PC' : /Linux/.test(u) ? 'Linux-PC' : 'Geraet'; }
+const slug = s => norm(s).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'geraet';
+async function loadDevice() {
+  DEV = await metaGet('device');
+  if (!DEV) { const id = uid(), name = guessDevice(); DEV = { id, name, file: `och-crm-${slug(name)}-${id.slice(-6)}.ochsync`, seen: {} }; await saveDevice(); }
+  DEV.seen = DEV.seen || {};
+}
+const saveDevice = () => metaPut('device', DEV);
+function setSyncState(err) {
+  const b = $('#syncBtn'); if (!b || !DEV) return;
+  b.classList.remove('dirty', 'ok', 'err', 'busy');
+  if (syncing) b.classList.add('busy'); else if (err) b.classList.add('err'); else if (dirty) b.classList.add('dirty'); else if (DEV.lastSync) b.classList.add('ok');
+  b.title = err ? 'Sync: ' + err : syncing ? 'Synchronisiere …' : (dirty ? 'Ungesicherte Änderungen · ' : '') + (DEV.lastSync ? 'Zuletzt synchronisiert ' + fmtDT(DEV.lastSync) : 'Noch nie synchronisiert');
+}
+async function buildSyncFile() {
+  const vault = await metaGet('vault');
+  const recs = await tx('rec', 'readonly', s => s.getAll());
+  const blobs = await tx('blob', 'readonly', s => s.getAll());
+  const chk = await encrypt(te.encode('och-crm-sync'));
+  let off = 0; const index = [], parts = [];
+  for (const b of blobs) { const len = b.ct.byteLength; index.push({ id: b.id, iv: b64(b.iv), off, len }); parts.push(b.ct); off += len; }
+  const header = te.encode(JSON.stringify({ format: 'och-crm-sync', v: 1, created: Date.now(), device: { id: DEV.id, name: DEV.name },
+    vault: { v: vault.v, iter: vault.iter, salt: b64(vault.salt), wrapped: b64(vault.wrapped) }, check: { iv: b64(chk.iv), ct: b64(chk.ct) },
+    rec: recs.map(r => ({ id: r.id, iv: b64(r.iv), ct: b64(r.ct) })), blob: index }));
+  const len = new Uint8Array(4); new DataView(len.buffer).setUint32(0, header.length, true);
+  return new File([te.encode('OCHSYNC1'), len, header, ...parts], DEV.file, { type: 'application/octet-stream' });
+}
+async function readSyncHeader(file) {
+  const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  if (td.decode(head.slice(0, 8)) !== 'OCHSYNC1') throw new Error('format');
+  const hl = new DataView(head.buffer).getUint32(8, true), base = 12 + hl;
+  const header = JSON.parse(td.decode(await file.slice(12, base).arrayBuffer()));
+  if (header.format !== 'och-crm-sync') throw new Error('format');
+  return { header, blob: ix => file.slice(base + ix.off, base + ix.off + ix.len).arrayBuffer() };
+}
+const tstamp = o => o.updatedAt || o.createdAt || o.deletedAt || 0;
+const LOCAL_SETTINGS = ['theme', 'autolock', 'view', 'lastBackup'];
+async function putRaw(r, o) { await tx('rec', 'readwrite', s => s.put({ id: r.id, iv: unb64(r.iv), ct: unb64(r.ct).buffer })); R.set(o.id, o); SNAP.set(o.id, JSON.stringify(o)); }
+// Feldgenau zusammenführen: pro Feld gewinnt die jüngere Änderung
+function fieldMerge(l, o) {
+  const m = Object.assign({}, l, { _ft: Object.assign({}, l._ft) });
+  for (const k of new Set([...Object.keys(l), ...Object.keys(o)])) {
+    if (['_ft', 'updatedAt', 'createdAt', 'id'].includes(k)) continue;
+    const to = o._ft?.[k] ?? o.updatedAt ?? 0, tl = l._ft?.[k] ?? l.updatedAt ?? 0;
+    if (to > tl) { if (k in o) m[k] = o[k]; else delete m[k]; m._ft[k] = to; }
+  }
+  m.updatedAt = Math.max(l.updatedAt || 0, o.updatedAt || 0);
+  return m;
+}
+async function mergeSync(sf) {
+  const H = sf.header;
+  if (H.device?.id === DEV.id) return { n: 0, nb: 0 };
+  try { await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(H.check.iv) }, KEY, unb64(H.check.ct)); } catch { throw new Error('foreign'); }
+  const objs = [];
+  for (const r of H.rec) objs.push([r, JSON.parse(td.decode(await decrypt(unb64(r.iv), unb64(r.ct))))]);
+  let n = 0, nb = 0;
+  for (const [r, o] of objs.filter(x => x[1].kind === 'tomb')) {
+    const t = R.get(o.target);
+    if (t && tstamp(t) <= o.deletedAt) { if (t.kind === 'file') await delBlob(t.id); await tx('rec', 'readwrite', s => s.delete(t.id)); R.delete(t.id); n++; }
+    if (!R.has(o.id)) await putRaw(r, o);
+  }
+  for (const [r, o] of objs.filter(x => x[1].kind !== 'tomb')) {
+    const tomb = R.get('t~' + o.id); if (tomb && tomb.deletedAt >= tstamp(o)) continue;
+    const l = R.get(o.id);
+    if (!l) { await putRaw(r, o); n++; continue; }
+    const m = fieldMerge(l, o);
+    if (o.id === 'settings') for (const k of LOCAL_SETTINGS) if (k in l) m[k] = l[k];
+    if (JSON.stringify(m) === JSON.stringify(l)) continue;
+    await save(m, true); n++;
+    if (o.id === 'settings') SET = Object.assign({}, DEFAULT_SETTINGS, m);
+  }
+  const have = new Set(await tx('blob', 'readonly', s => s.getAllKeys()));
+  for (const ix of H.blob) {
+    if (have.has(ix.id) || !R.has(ix.id.replace(/:t$/, ''))) continue;
+    const ct = await sf.blob(ix); await tx('blob', 'readwrite', s => s.put({ id: ix.id, iv: unb64(ix.iv), ct })); nb++;
+  }
+  if (n || nb) dirty = true;
+  return { n, nb };
+}
+const dirHandle = () => metaGet('syncDir');
+async function folderOK(hd, ask) { const o = { mode: 'readwrite' }; if (await hd.queryPermission(o) === 'granted') return true; return ask ? (await hd.requestPermission(o)) === 'granted' : false; }
+async function chooseFolder() {
+  try { const hd = await showDirectoryPicker({ id: 'och-crm-sync', mode: 'readwrite' }); await metaPut('syncDir', hd); toast('Sync-Ordner: ' + (hd.name || 'gewählt')); await syncNow(true); if (current === 'settings') render(); }
+  catch (e) { if (e.name !== 'AbortError') toast('Ordner konnte nicht gewählt werden.', true); }
+}
+async function syncNow(ask, quiet) {
+  if (syncing || !KEY || !DEV) return;
+  const hd = FS_OK ? await dirHandle() : null;
+  if (!hd) { if (!quiet) manualSync(); return; }
+  if (!await folderOK(hd, ask)) { setSyncState('Ordner-Freigabe nötig. Auf das Sync-Symbol tippen.'); return; }
+  syncing = true; setSyncState();
+  try {
+    let n = 0, nb = 0;
+    for await (const [name, entry] of hd.entries()) {
+      if (entry.kind !== 'file' || !name.endsWith('.ochsync') || name === DEV.file) continue;
+      const f = await entry.getFile(); const seen = DEV.seen[name];
+      if (seen && seen.lastModified === f.lastModified && seen.size === f.size) continue;
+      try { const sf = await readSyncHeader(f); const r = await mergeSync(sf); n += r.n; nb += r.nb; DEV.seen[name] = { name: sf.header.device?.name, created: sf.header.created, lastModified: f.lastModified, size: f.size }; }
+      catch (e) { console.warn(name, e); if (e.message === 'foreign' && !quiet) toast(`„${name}“ gehört zu einem anderen CRM und wird ignoriert.`, true); }
+    }
+    let exists = true; try { await hd.getFileHandle(DEV.file); } catch { exists = false; }
+    if (dirty || !exists) {
+      dirty = false;
+      try { const file = await buildSyncFile(); const fh = await hd.getFileHandle(DEV.file, { create: true }); const w = await fh.createWritable(); await w.write(file); await w.close(); }
+      catch (e) { dirty = true; throw e; }
+    }
+    DEV.lastSync = Date.now(); await saveDevice();
+    syncing = false; setSyncState();
+    if (n || nb) { refresh(); toast(`Sync: ${n} Änderung${n === 1 ? '' : 'en'}, ${nb} Datei${nb === 1 ? '' : 'en'} übernommen`); } else if (!quiet) toast('Alles synchron ✓');
+  } catch (e) { console.warn(e); syncing = false; setSyncState('Fehler: ' + e.message); if (!quiet) toast('Sync fehlgeschlagen: ' + e.message, true); }
+  finally { syncing = false; }
+}
+async function autoSync() { if (!KEY || !DEV || !FS_OK) return; const hd = await dirHandle(); if (hd && await folderOK(hd, false)) syncNow(false, true); else setSyncState(); }
+setInterval(autoSync, 90000);
+document.addEventListener('visibilitychange', () => { if (KEY && DEV && (document.hidden ? dirty : true)) autoSync(); });
+$('#syncBtn').onclick = () => syncNow(true);
+
+async function manualSync() {
+  const status = h('p', { class: 'muted', style: 'font-size:14px;min-height:22px;margin-top:12px' });
+  let own = null;
+  const shareLbl = h('span', null, 'Wird vorbereitet …');
+  const shareBtn = h('button', { class: 'btn primary', type: 'button', disabled: true, onclick: async () => {
+    let done = false;
+    if (navigator.canShare?.({ files: [own] })) { try { await navigator.share({ files: [own], title: 'Och · CRM Sync' }); done = true; } catch (e) { if (e.name !== 'AbortError') { download(own.name, own); done = true; } } }
+    else { download(own.name, own); done = true; }
+    if (done) { dirty = false; DEV.lastSync = Date.now(); await saveDevice(); setSyncState(); status.textContent = 'Lege die Datei im Sync-Ordner ab und ersetze die alte Version.'; }
+  } }, icon('i-upload'), shareLbl);
+  const prep = async () => { shareBtn.disabled = true; own = await buildSyncFile(); shareBtn.disabled = false; shareLbl.textContent = `2 · Meinen Stand sichern (${fmtSize(own.size)})`; };
+  const loadBtn = h('button', { class: 'btn', type: 'button', onclick: () => {
+    const i = $('#fileIn'); i.value = ''; i.accept = ''; i.multiple = true; i.removeAttribute('capture');
+    i.onchange = async () => {
+      let n = 0, nb = 0, k = 0; status.textContent = 'Wird zusammengeführt …';
+      for (const f of i.files) {
+        if (f.name === DEV.file) continue;
+        try { const sf = await readSyncHeader(f); const r = await mergeSync(sf); n += r.n; nb += r.nb; k++; DEV.seen[f.name] = { name: sf.header.device?.name, created: sf.header.created }; }
+        catch (e) { status.textContent = e.message === 'foreign' ? `„${f.name}“ gehört zu einem anderen CRM.` : `„${f.name}“ ist keine Sync-Datei.`; return; }
+      }
+      DEV.lastSync = Date.now(); await saveDevice(); setSyncState(); refresh();
+      status.textContent = `✓ ${k} Gerät${k === 1 ? '' : 'e'} gelesen: ${n} Änderung${n === 1 ? '' : 'en'}, ${nb} Datei${nb === 1 ? '' : 'en'} übernommen.`;
+      prep();
+    };
+    i.click();
+  } }, icon('i-download'), '1 · Stand der anderen Geräte laden');
+  prep();
+  await dialog('Synchronisieren', h('div', null,
+    h('p', { style: 'font-size:14px' }, 'Öffne deinen Sync-Ordner (z. B. OneDrive › OCH-CRM) und wähle die Dateien der anderen Geräte. Danach sicherst du den Stand dieses Geräts dort als ', h('strong', null, DEV.file), '.'),
+    h('div', { class: 'quick', style: 'margin-top:14px' }, loadBtn, shareBtn), status), null);
+}
+function syncCard(card, btns) {
+  const name = inp('dev', DEV?.name || '', { autocomplete: 'off' });
+  name.addEventListener('change', async () => { if (name.value.trim()) { DEV.name = name.value.trim(); await saveDevice(); toast('Gerätename gespeichert'); } });
+  const folder = h('span', { class: 'muted' }, FS_OK ? 'nicht gewählt' : 'manuell (Browser erlaubt keinen Ordnerzugriff)');
+  const actions = btns();
+  const seen = Object.values(DEV?.seen || {});
+  if (FS_OK) dirHandle().then(hd => {
+    if (hd) { folder.textContent = (hd.name || 'gewählt') + ' · automatisch alle 1–2 Min.'; actions.append(h('button', { class: 'btn primary', onclick: () => syncNow(true) }, icon('i-sync'), 'Jetzt synchronisieren'), h('button', { class: 'btn', onclick: chooseFolder }, 'Ordner ändern')); }
+    else actions.append(h('button', { class: 'btn primary', onclick: chooseFolder }, icon('i-sync'), 'Sync-Ordner wählen'));
+    actions.append(h('button', { class: 'btn', onclick: manualSync }, 'Manuell'));
+  });
+  else actions.append(h('button', { class: 'btn primary', onclick: manualSync }, icon('i-sync'), 'Synchronisieren'));
+  return card('Synchronisation', 'i-sync',
+    h('p', { class: 'muted', style: 'font-size:14px' }, 'Halte Laptop und Handy über einen Cloud-Ordner gleich (empfohlen: OneDrive deines OCH-Kontos, Ordner „OCH-CRM“). Jedes Gerät legt dort eine eigene, verschlüsselte Datei ab. Die Cloud sieht nur Datensalat.'),
+    h('div', { style: 'height:12px' }),
+    fld('Name dieses Geräts', name),
+    h('dl', { class: 'facts' }, h('dt', null, 'Sync-Ordner'), h('dd', null, folder), h('dt', null, 'Eigene Datei'), h('dd', null, DEV?.file || '—'),
+      h('dt', null, 'Zuletzt'), h('dd', null, DEV?.lastSync ? `${fmtDT(DEV.lastSync)} (${rel(DEV.lastSync)})` : 'noch nie'),
+      h('dt', null, 'Andere Geräte'), h('dd', null, seen.length ? seen.map(x => `${x.name || 'Gerät'} (Stand ${fmtDT(x.created)})`).join(', ') : '—')),
+    actions,
+    h('p', { class: 'note' }, 'Neues Gerät einrichten: Dort auf dem Startbildschirm „Backup oder Sync-Datei einspielen“ tippen, die Sync-Datei dieses Geräts wählen und deine Passphrase eingeben.'));
+}
+
+/* ---------------- App-Installation (PWA) ---------------- */
+let installEvt = null;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (KEY && current === 'settings') render(); });
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname)))
+  navigator.serviceWorker.register('sw.js').catch(e => console.warn('Service Worker', e));
+function appCard(card, btns) {
+  const ios = /iPhone|iPad/.test(navigator.userAgent);
+  let body;
+  if (isStandalone()) body = h('p', { style: 'font-size:14px' }, '✓ Läuft als installierte App.');
+  else if (installEvt) body = btns(h('button', { class: 'btn primary', onclick: async () => { installEvt.prompt(); await installEvt.userChoice; installEvt = null; render(); } }, icon('i-app'), 'Als App installieren'));
+  else if (location.protocol === 'file:') body = h('p', { class: 'muted', style: 'font-size:14px' }, 'Als App installieren geht nur, wenn das CRM über HTTPS geöffnet wird (z. B. GitHub Pages), nicht als lokale Datei.');
+  else if (ios) body = h('p', { style: 'font-size:14px' }, 'In Safari unten auf ', h('strong', null, 'Teilen'), ' tippen und dann ', h('strong', null, '„Zum Home-Bildschirm“'), ' wählen.');
+  else body = h('p', { class: 'muted', style: 'font-size:14px' }, 'Im Browser-Menü „App installieren“ bzw. „Zum Startbildschirm hinzufügen“ wählen.');
+  return card('App', 'i-app', h('p', { class: 'muted', style: 'font-size:14px;margin-bottom:10px' }, 'Installiert startet das CRM wie eine eigene App, ohne Browserleiste und auch offline.'), body,
+    ios && !isStandalone() ? h('p', { class: 'note' }, 'Hinweis iPhone: Die installierte App hat einen eigenen Speicher, getrennt von Safari. Richte das CRM nach der Installation in der App ein, z. B. über eine Sync-Datei.') : null);
+}
+
+/* ---------------- Start ---------------- */
+if (!window.crypto?.subtle || !window.indexedDB) {
+  $('#lockLead').textContent = 'Dieser Browser unterstützt keine sichere Verschlüsselung (Web Crypto) oder keinen lokalen Speicher. Bitte die Seite über HTTPS oder als lokale Datei in einem aktuellen Browser öffnen.';
+  $('#lockForm').querySelectorAll('input,button').forEach(e => e.disabled = true);
+} else initLock().catch(e => { console.error(e); $('#lockErr').textContent = 'Speicher nicht verfügbar (privates Fenster?).'; });
+</script>
+</body>
+</html>
