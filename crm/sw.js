@@ -1,6 +1,6 @@
 // Och · CRM – Service Worker: macht die App installierbar und offline nutzbar.
 // Er speichert nur die App-Dateien, niemals deine Daten (die liegen verschlüsselt in IndexedDB).
-const CACHE = 'och-crm-v2';
+const CACHE = 'och-crm-v3';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
