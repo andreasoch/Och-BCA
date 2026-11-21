@@ -5,9 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' blob: data:; media-src blob:; frame-src blob:; object-src 'none'; base-uri 'none'; form-action 'none'; connect-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' blob: data:; media-src blob:; frame-src blob:; object-src 'none'; base-uri 'none'; form-action 'none'; connect-src 'none'; manifest-src 'self'; worker-src 'self'">
 <meta name="theme-color" content="#0B1426">
 <title>Och · CRM</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Och CRM">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230B1426'/%3E%3Ctext x='32' y='43' font-family='Georgia,serif' font-size='30' text-anchor='middle' fill='%23C9A84C'%3EO%3C/text%3E%3C/svg%3E">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -84,6 +90,15 @@ main{overflow:auto;position:relative}
 .searchbtn kbd{margin-left:auto;font-size:11px;border:1px solid var(--line2);border-radius:6px;padding:1px 6px}
 .view{padding:26px 28px 120px;max-width:1280px}
 .bottomnav{display:none}
+#syncBtn{position:relative}
+#syncBtn .sdot{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:transparent}
+#syncBtn.dirty .sdot{background:var(--warn)}
+#syncBtn.ok .sdot{background:var(--ok)}
+#syncBtn.err .sdot{background:var(--bad)}
+#syncBtn.busy svg{animation:spin 1.2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.top{padding-top:calc(18px + env(safe-area-inset-top))}
+#drawer .pane{padding-top:env(safe-area-inset-top)}
 
 /* ---------- Cards & lists ---------- */
 .grid{display:grid;gap:16px}
@@ -114,7 +129,8 @@ main{overflow:auto;position:relative}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
 .toolbar .input{width:auto;min-width:150px}
 .toolbar .grow{flex:1;min-width:200px}
-.seg{display:inline-flex;border:1px solid var(--line2);border-radius:11px;overflow:hidden}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:11px;overflow-x:auto;max-width:100%;scrollbar-width:none}
+.seg button{flex:none}
 .seg button{border:0;background:none;padding:8px 12px;cursor:pointer;color:var(--muted)}
 .seg button.on{background:var(--goldsoft);color:var(--gold2)}
 .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
@@ -226,7 +242,7 @@ dialog .df .left{margin-right:auto}
 @media (max-width:860px){
   #app{grid-template-columns:1fr}
   aside.side{display:none}
-  .top{padding:14px 16px}
+  .top{padding:calc(14px + env(safe-area-inset-top)) 16px 14px}
   .top h2{font-size:24px}
   .searchbtn{min-width:0}
   .searchbtn span,.searchbtn kbd{display:none}
@@ -267,7 +283,7 @@ dialog .df .left{margin-right:auto}
       <div class="err" id="lockErr"></div>
       <button class="btn primary" style="width:100%;padding:12px" id="lockBtn" type="submit">Entsperren</button>
       <p class="note" id="lockNote"></p>
-      <p class="note"><a href="#" id="restoreLink">Backup wiederherstellen …</a></p>
+      <p class="note"><a href="#" id="restoreLink">Backup oder Sync-Datei einspielen (z. B. neues Gerät) …</a></p>
     </form>
   </div>
 </section>
@@ -286,6 +302,7 @@ dialog .df .left{margin-right:auto}
   <main id="main">
     <header class="top">
       <h2 id="viewTitle">Übersicht</h2>
+      <button class="btn icon" id="syncBtn" title="Synchronisieren" aria-label="Synchronisieren"><svg class="i"><use href="#i-sync"/></svg><i class="sdot"></i></button>
       <button class="btn searchbtn" id="searchBtn" aria-label="Suchen"><svg class="i"><use href="#i-search"/></svg><span>Suchen …</span><kbd>⌘K</kbd></button>
       <button class="btn primary" id="newBtn"><svg class="i"><use href="#i-plus"/></svg><span class="hide-m">Neu</span></button>
     </header>
@@ -342,6 +359,8 @@ dialog .df .left{margin-right:auto}
   <symbol id="i-euro" viewBox="0 0 24 24"><path d="M18 6.5A7 7 0 1 0 18 17.5M4 10h10M4 14h10"/></symbol>
   <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
   <symbol id="i-pin" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></symbol>
+  <symbol id="i-sync" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M3 21v-5h5"/></symbol>
+  <symbol id="i-app" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></symbol>
 </svg>
 
@@ -360,6 +379,7 @@ const te = new TextEncoder(), td = new TextDecoder();
 
 let db = null, KEY = null;
 const R = new Map();           // entschlüsselter Arbeitsspeicher: id -> Objekt
+const SNAP = new Map();        // letzter gespeicherter Stand je id (für Feld-Zeitstempel)
 const URLS = new Map();        // Datei-id -> objectURL
 let SET = null;                // Einstellungen
 
@@ -484,22 +504,34 @@ async function save(obj, silent) {
   const now = Date.now();
   if (!obj.id) obj.id = uid();
   if (!obj.createdAt) obj.createdAt = now;
-  if (!silent) obj.updatedAt = now;
+  if (!silent) {
+    obj.updatedAt = now;
+    // Je Feld merken, wann es zuletzt geändert wurde -> feldgenaues Zusammenführen beim Sync
+    const prev = SNAP.has(obj.id) ? JSON.parse(SNAP.get(obj.id)) : {};
+    obj._ft = obj._ft || {};
+    for (const k of new Set([...Object.keys(obj), ...Object.keys(prev)]))
+      if (!['_ft', 'updatedAt', 'createdAt'].includes(k) && JSON.stringify(obj[k]) !== JSON.stringify(prev[k])) obj._ft[k] = now;
+  }
   const { iv, ct } = await encrypt(te.encode(JSON.stringify(obj)));
   await tx('rec', 'readwrite', s => s.put({ id: obj.id, iv, ct }));
-  R.set(obj.id, obj);
+  R.set(obj.id, obj); SNAP.set(obj.id, JSON.stringify(obj));
+  markDirty();
   return obj;
 }
 async function del(id) {
   await tx('rec', 'readwrite', s => s.delete(id));
-  R.delete(id);
+  R.delete(id); SNAP.delete(id);
+  // Grabstein, damit die Löschung auf andere Geräte übertragen wird
+  if (!id.startsWith('t~') && id !== 'settings') await save({ id: 't~' + id, kind: 'tomb', target: id, deletedAt: Date.now() });
+  markDirty();
 }
 const all = kind => [...R.values()].filter(o => o.kind === kind);
 const get = id => R.get(id);
 async function loadAll() {
   const rows = await tx('rec', 'readonly', s => s.getAll());
   R.clear();
-  for (const r of rows) R.set(r.id, JSON.parse(td.decode(await decrypt(r.iv, r.ct))));
+  SNAP.clear();
+  for (const r of rows) { const j = td.decode(await decrypt(r.iv, r.ct)); R.set(r.id, JSON.parse(j)); SNAP.set(r.id, j); }
   SET = Object.assign({}, DEFAULT_SETTINGS, R.get('settings') || {});
 }
 
@@ -531,11 +563,11 @@ async function fileBlob(id) {
   const row = await tx('blob', 'readonly', s => s.get(id));
   return new Blob([await decrypt(row.iv, row.ct)], { type: get(id)?.type || '' });
 }
-async function delFile(id) {
+async function delBlob(id) {
   await tx('blob', 'readwrite', s => { s.delete(id + ':t'); return s.delete(id); });
   for (const k of [id, id + ':t']) if (URLS.has(k)) { URL.revokeObjectURL(URLS.get(k)); URLS.delete(k); }
-  await del(id);
 }
+async function delFile(id) { await delBlob(id); await del(id); }
 function makeThumb(file) {
   return new Promise((res, rej) => {
     const img = new Image(); const u = URL.createObjectURL(file);
@@ -697,6 +729,7 @@ function startApp() {
   applyTheme();
   try { navigator.storage?.persist?.(); } catch { }
   go(location.hash.slice(1) || 'dash');
+  loadDevice().then(() => { setSyncState(); autoSync(); });
 }
 function renderNav() {
   const counts = { contacts: contacts().length, tasks: all('task').filter(t => !t.done).length, pipeline: all('deal').filter(d => !['Gewonnen', 'Verloren'].includes(d.stage)).length, media: all('file').length };
@@ -956,7 +989,7 @@ function dropzone(link) {
   return z;
 }
 function pickFiles(link, accept, capture) {
-  const inp = $('#fileIn'); inp.value = ''; inp.accept = accept || ''; if (capture) inp.setAttribute('capture', 'environment'); else inp.removeAttribute('capture');
+  const inp = $('#fileIn'); inp.value = ''; inp.multiple = true; inp.accept = accept || ''; if (capture) inp.setAttribute('capture', 'environment'); else inp.removeAttribute('capture');
   inp.onchange = () => addFiles([...inp.files], link); inp.click();
 }
 async function addFiles(files, link = {}) {
@@ -967,7 +1000,7 @@ async function addFiles(files, link = {}) {
   for (const f of files) { try { ids.push((await storeFile(f, link)).id); n++; } catch (e) { console.warn(e); toast('Fehler bei ' + f.name, true); } }
   if (link.contactId && !link.activityId && ids.length) {
     const act = await save({ kind: 'activity', contactId: link.contactId, type: 'Medien', date: Date.now(), text: '', fileIds: ids });
-    for (const id of ids) { const f = get(id); if (f) await save(Object.assign(f, { activityId: act.id }), true); }
+    for (const id of ids) { const f = get(id); if (f) await save(Object.assign(f, { activityId: act.id })); }
   }
   toast(`${n} Datei${n === 1 ? '' : 'en'} gespeichert`);
   refresh();
@@ -1015,7 +1048,7 @@ function viewMedia() {
   const total = all('file').reduce((s, f) => s + (f.size || 0), 0);
   return h('div', null,
     h('div', { class: 'toolbar' }, h('div', { class: 'seg' }, types.map(([v, l]) => h('button', { class: UI.mediaType === v ? 'on' : '', onclick: () => { UI.mediaType = v; render(); } }, l))),
-      h('span', { class: 'muted', style: 'margin-left:auto;font-size:13px' }, `${all('file').length} Dateien · ${fmtSize(total)} · alle verschlüsselt`)),
+      h('span', { class: 'muted', style: 'margin-left:auto;font-size:13px' }, `${all('file').length} Datei${all('file').length === 1 ? '' : 'en'} · ${fmtSize(total)} · alle verschlüsselt`)),
     dropzone({}),
     h('div', { style: 'margin-top:14px' }, fs.length ? h('div', { class: 'media' }, fs.map(f => { const t = mediaTile(f); const c = get(f.contactId); if (c) t.title = f.name + ' · ' + cname(c); return t; })) : h('div', { class: 'empty' }, 'Noch keine Medien.')));
 }
@@ -1054,7 +1087,7 @@ function dialog(title, content, okLabel = 'Speichern', extra) {
     const form = h('form', { method: 'dialog' },
       h('div', { class: 'dh' }, title), h('div', { class: 'db' }, content),
       h('div', { class: 'df' }, extra ? h('span', { class: 'left' }, extra) : null,
-        h('button', { class: 'btn', value: 'cancel', type: 'button', onclick: () => { d.close('cancel'); } }, 'Abbrechen'),
+        h('button', { class: 'btn', value: 'cancel', type: 'button', onclick: () => { d.close('cancel'); } }, okLabel ? 'Abbrechen' : 'Schließen'),
         okLabel ? h('button', { class: 'btn primary', value: 'ok', type: 'submit' }, okLabel) : null));
     form.addEventListener('submit', e => { if (!form.checkValidity()) { e.preventDefault(); form.reportValidity(); } });
     d.replaceChildren(form);
@@ -1318,6 +1351,8 @@ function viewSettings() {
         h('button', { class: 'btn', onclick: () => exportCSV() }, icon('i-download'), 'Kontakte als CSV'),
         h('button', { class: 'btn', onclick: () => exportVCard(contacts(), 'Kontakte') }, icon('i-download'), 'Kontakte als vCard'),
         h('button', { class: 'btn', onclick: exportJSON }, icon('i-download'), 'Alles als JSON (ohne Medien)'))),
+    syncCard(card, btns),
+    appCard(card, btns),
     card('Darstellung & Felder', 'i-gear',
       fld('Farbschema', th), h('div', { class: 'fgrid' }, listEditor('statuses', 'Status'), listEditor('stages', 'Pipeline-Phasen'))),
     card('Speicher', 'i-image',
@@ -1372,13 +1407,20 @@ async function exportBackup() {
   toast('Backup gespeichert (verschlüsselt)');
 }
 async function restoreBackup() {
-  const inpEl = $('#fileIn'); inpEl.value = ''; inpEl.accept = '.ochcrm,.json'; inpEl.removeAttribute('capture');
+  // accept bewusst leer: iOS graut unbekannte Endungen sonst aus
+  const inpEl = $('#fileIn'); inpEl.value = ''; inpEl.multiple = false; inpEl.accept = ''; inpEl.removeAttribute('capture');
   inpEl.onchange = async () => {
     const file = inpEl.files[0]; if (!file) return;
-    let data; try { data = JSON.parse(await file.text()); } catch { return toast('Keine gültige Backup-Datei.', true); }
-    if (data.format !== 'och-crm-backup') return toast('Keine gültige Backup-Datei.', true);
+    let data, sf = null;
+    try {
+      if (td.decode(await file.slice(0, 8).arrayBuffer()) === 'OCHSYNC1') {
+        sf = await readSyncHeader(file);
+        data = { created: sf.header.created, vault: sf.header.vault, rec: sf.header.rec, blob: sf.header.blob.filter(b => !b.id.endsWith(':t')), from: sf.header.device?.name };
+      } else data = JSON.parse(await file.text());
+    } catch { return toast('Keine gültige Backup- oder Sync-Datei.', true); }
+    if (!sf && data.format !== 'och-crm-backup') return toast('Keine gültige Backup- oder Sync-Datei.', true);
     const pw = inp('pw', '', { type: 'password', required: true, autocomplete: 'off' });
-    const content = h('div', null, h('p', { style: 'margin-bottom:12px' }, `Backup vom ${fmtDT(data.created)} mit ${data.rec.length} Datensätzen und ${data.blob.length} Dateien.`),
+    const content = h('div', null, h('p', { style: 'margin-bottom:12px' }, `${sf ? `Sync-Datei von „${data.from || 'Gerät'}“` : 'Backup'} vom ${fmtDT(data.created)} mit ${data.rec.length} Datensätzen und ${data.blob.length} Dateien.`),
       h('p', { class: 'chip bad', style: 'margin-bottom:12px;white-space:normal' }, 'Achtung: Der aktuelle Inhalt dieses CRM wird vollständig ersetzt.'),
       fld('Passphrase des Backups', pw));
     const f = await dialog('Backup einspielen', content, 'Einspielen'); if (!f) return;
@@ -1392,8 +1434,10 @@ async function restoreBackup() {
       await metaPut('vault', { v: data.vault.v, iter: data.vault.iter, salt, wrapped, restored: Date.now() });
       const de = r => ({ id: r.id, iv: unb64(r.iv), ct: unb64(r.ct).buffer });
       await tx('rec', 'readwrite', s => { data.rec.forEach(r => s.put(de(r))); });
-      for (let i = 0; i < data.blob.length; i += 20) await tx('blob', 'readwrite', s => { data.blob.slice(i, i + 20).forEach(r => s.put(de(r))); });
-      toast('Backup eingespielt. Bitte mit der Backup-Passphrase entsperren.');
+      if (sf) for (const ix of sf.header.blob) { const ct = await sf.blob(ix); await tx('blob', 'readwrite', s => s.put({ id: ix.id, iv: unb64(ix.iv), ct })); }
+      else for (let i = 0; i < data.blob.length; i += 20) await tx('blob', 'readwrite', s => { data.blob.slice(i, i + 20).forEach(r => s.put(de(r))); });
+      const dv = await metaGet('device'); if (dv) { dv.seen = {}; await metaPut('device', dv); }
+      toast('Eingespielt. Bitte mit der Passphrase entsperren.');
       setTimeout(() => location.reload(), 1200);
     } catch (e) { console.warn(e); toast('Passphrase falsch oder Backup beschädigt.', true); }
   };
@@ -1478,7 +1522,7 @@ function parseCSV(text) {
   }).filter(c => c.firstName || c.lastName || c.company);
 }
 function importContacts() {
-  const inpEl = $('#fileIn'); inpEl.value = ''; inpEl.accept = '.vcf,.vcard,.csv,text/vcard,text/csv'; inpEl.removeAttribute('capture');
+  const inpEl = $('#fileIn'); inpEl.value = ''; inpEl.multiple = false; inpEl.accept = '.vcf,.vcard,.csv,text/vcard,text/csv'; inpEl.removeAttribute('capture');
   inpEl.onchange = async () => {
     const file = inpEl.files[0]; if (!file) return;
     const text = await file.text();
@@ -1500,6 +1544,206 @@ function importContacts() {
     toast(`${fresh.length} Kontakte importiert`); go('contacts');
   };
   inpEl.click();
+}
+
+/* =====================================================================
+   SYNCHRONISATION (Laptop <-> Handy) über einen Cloud-Ordner
+   Jedes Gerät schreibt eine eigene Datei „och-crm-<gerät>.ochsync“
+   und liest die Dateien der anderen. Inhalt bleibt Ende-zu-Ende
+   verschlüsselt (gleicher Datenschlüssel auf allen Geräten).
+   Zusammenführung je Datensatz: neuere Änderung gewinnt,
+   Löschungen werden als Grabsteine übertragen.
+   ===================================================================== */
+const FS_OK = 'showDirectoryPicker' in window;
+let DEV = null, dirty = false, syncing = false, syncTimer = null;
+function markDirty() { dirty = true; if (DEV) { setSyncState(); clearTimeout(syncTimer); syncTimer = setTimeout(autoSync, 20000); } }
+function guessDevice() { const u = navigator.userAgent; return /iPhone/.test(u) ? 'iPhone' : /iPad/.test(u) ? 'iPad' : /Android/.test(u) ? 'Android' : /Mac/.test(u) ? 'Mac' : /Windows/.test(u) ? 'Windows-PC' : /Linux/.test(u) ? 'Linux-PC' : 'Geraet'; }
+const slug = s => norm(s).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'geraet';
+async function loadDevice() {
+  DEV = await metaGet('device');
+  if (!DEV) { const id = uid(), name = guessDevice(); DEV = { id, name, file: `och-crm-${slug(name)}-${id.slice(-6)}.ochsync`, seen: {} }; await saveDevice(); }
+  DEV.seen = DEV.seen || {};
+}
+const saveDevice = () => metaPut('device', DEV);
+function setSyncState(err) {
+  const b = $('#syncBtn'); if (!b || !DEV) return;
+  b.classList.remove('dirty', 'ok', 'err', 'busy');
+  if (syncing) b.classList.add('busy'); else if (err) b.classList.add('err'); else if (dirty) b.classList.add('dirty'); else if (DEV.lastSync) b.classList.add('ok');
+  b.title = err ? 'Sync: ' + err : syncing ? 'Synchronisiere …' : (dirty ? 'Ungesicherte Änderungen · ' : '') + (DEV.lastSync ? 'Zuletzt synchronisiert ' + fmtDT(DEV.lastSync) : 'Noch nie synchronisiert');
+}
+async function buildSyncFile() {
+  const vault = await metaGet('vault');
+  const recs = await tx('rec', 'readonly', s => s.getAll());
+  const blobs = await tx('blob', 'readonly', s => s.getAll());
+  const chk = await encrypt(te.encode('och-crm-sync'));
+  let off = 0; const index = [], parts = [];
+  for (const b of blobs) { const len = b.ct.byteLength; index.push({ id: b.id, iv: b64(b.iv), off, len }); parts.push(b.ct); off += len; }
+  const header = te.encode(JSON.stringify({ format: 'och-crm-sync', v: 1, created: Date.now(), device: { id: DEV.id, name: DEV.name },
+    vault: { v: vault.v, iter: vault.iter, salt: b64(vault.salt), wrapped: b64(vault.wrapped) }, check: { iv: b64(chk.iv), ct: b64(chk.ct) },
+    rec: recs.map(r => ({ id: r.id, iv: b64(r.iv), ct: b64(r.ct) })), blob: index }));
+  const len = new Uint8Array(4); new DataView(len.buffer).setUint32(0, header.length, true);
+  return new File([te.encode('OCHSYNC1'), len, header, ...parts], DEV.file, { type: 'application/octet-stream' });
+}
+async function readSyncHeader(file) {
+  const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  if (td.decode(head.slice(0, 8)) !== 'OCHSYNC1') throw new Error('format');
+  const hl = new DataView(head.buffer).getUint32(8, true), base = 12 + hl;
+  const header = JSON.parse(td.decode(await file.slice(12, base).arrayBuffer()));
+  if (header.format !== 'och-crm-sync') throw new Error('format');
+  return { header, blob: ix => file.slice(base + ix.off, base + ix.off + ix.len).arrayBuffer() };
+}
+const tstamp = o => o.updatedAt || o.createdAt || o.deletedAt || 0;
+const LOCAL_SETTINGS = ['theme', 'autolock', 'view', 'lastBackup'];
+async function putRaw(r, o) { await tx('rec', 'readwrite', s => s.put({ id: r.id, iv: unb64(r.iv), ct: unb64(r.ct).buffer })); R.set(o.id, o); SNAP.set(o.id, JSON.stringify(o)); }
+// Feldgenau zusammenführen: pro Feld gewinnt die jüngere Änderung
+function fieldMerge(l, o) {
+  const m = Object.assign({}, l, { _ft: Object.assign({}, l._ft) });
+  for (const k of new Set([...Object.keys(l), ...Object.keys(o)])) {
+    if (['_ft', 'updatedAt', 'createdAt', 'id'].includes(k)) continue;
+    const to = o._ft?.[k] ?? o.updatedAt ?? 0, tl = l._ft?.[k] ?? l.updatedAt ?? 0;
+    if (to > tl) { if (k in o) m[k] = o[k]; else delete m[k]; m._ft[k] = to; }
+  }
+  m.updatedAt = Math.max(l.updatedAt || 0, o.updatedAt || 0);
+  return m;
+}
+async function mergeSync(sf) {
+  const H = sf.header;
+  if (H.device?.id === DEV.id) return { n: 0, nb: 0 };
+  try { await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(H.check.iv) }, KEY, unb64(H.check.ct)); } catch { throw new Error('foreign'); }
+  const objs = [];
+  for (const r of H.rec) objs.push([r, JSON.parse(td.decode(await decrypt(unb64(r.iv), unb64(r.ct))))]);
+  let n = 0, nb = 0;
+  for (const [r, o] of objs.filter(x => x[1].kind === 'tomb')) {
+    const t = R.get(o.target);
+    if (t && tstamp(t) <= o.deletedAt) { if (t.kind === 'file') await delBlob(t.id); await tx('rec', 'readwrite', s => s.delete(t.id)); R.delete(t.id); n++; }
+    if (!R.has(o.id)) await putRaw(r, o);
+  }
+  for (const [r, o] of objs.filter(x => x[1].kind !== 'tomb')) {
+    const tomb = R.get('t~' + o.id); if (tomb && tomb.deletedAt >= tstamp(o)) continue;
+    const l = R.get(o.id);
+    if (!l) { await putRaw(r, o); n++; continue; }
+    const m = fieldMerge(l, o);
+    if (o.id === 'settings') for (const k of LOCAL_SETTINGS) if (k in l) m[k] = l[k];
+    if (JSON.stringify(m) === JSON.stringify(l)) continue;
+    await save(m, true); n++;
+    if (o.id === 'settings') SET = Object.assign({}, DEFAULT_SETTINGS, m);
+  }
+  const have = new Set(await tx('blob', 'readonly', s => s.getAllKeys()));
+  for (const ix of H.blob) {
+    if (have.has(ix.id) || !R.has(ix.id.replace(/:t$/, ''))) continue;
+    const ct = await sf.blob(ix); await tx('blob', 'readwrite', s => s.put({ id: ix.id, iv: unb64(ix.iv), ct })); nb++;
+  }
+  if (n || nb) dirty = true;
+  return { n, nb };
+}
+const dirHandle = () => metaGet('syncDir');
+async function folderOK(hd, ask) { const o = { mode: 'readwrite' }; if (await hd.queryPermission(o) === 'granted') return true; return ask ? (await hd.requestPermission(o)) === 'granted' : false; }
+async function chooseFolder() {
+  try { const hd = await showDirectoryPicker({ id: 'och-crm-sync', mode: 'readwrite' }); await metaPut('syncDir', hd); toast('Sync-Ordner: ' + (hd.name || 'gewählt')); await syncNow(true); if (current === 'settings') render(); }
+  catch (e) { if (e.name !== 'AbortError') toast('Ordner konnte nicht gewählt werden.', true); }
+}
+async function syncNow(ask, quiet) {
+  if (syncing || !KEY || !DEV) return;
+  const hd = FS_OK ? await dirHandle() : null;
+  if (!hd) { if (!quiet) manualSync(); return; }
+  if (!await folderOK(hd, ask)) { setSyncState('Ordner-Freigabe nötig. Auf das Sync-Symbol tippen.'); return; }
+  syncing = true; setSyncState();
+  try {
+    let n = 0, nb = 0;
+    for await (const [name, entry] of hd.entries()) {
+      if (entry.kind !== 'file' || !name.endsWith('.ochsync') || name === DEV.file) continue;
+      const f = await entry.getFile(); const seen = DEV.seen[name];
+      if (seen && seen.lastModified === f.lastModified && seen.size === f.size) continue;
+      try { const sf = await readSyncHeader(f); const r = await mergeSync(sf); n += r.n; nb += r.nb; DEV.seen[name] = { name: sf.header.device?.name, created: sf.header.created, lastModified: f.lastModified, size: f.size }; }
+      catch (e) { console.warn(name, e); if (e.message === 'foreign' && !quiet) toast(`„${name}“ gehört zu einem anderen CRM und wird ignoriert.`, true); }
+    }
+    let exists = true; try { await hd.getFileHandle(DEV.file); } catch { exists = false; }
+    if (dirty || !exists) {
+      dirty = false;
+      try { const file = await buildSyncFile(); const fh = await hd.getFileHandle(DEV.file, { create: true }); const w = await fh.createWritable(); await w.write(file); await w.close(); }
+      catch (e) { dirty = true; throw e; }
+    }
+    DEV.lastSync = Date.now(); await saveDevice();
+    syncing = false; setSyncState();
+    if (n || nb) { refresh(); toast(`Sync: ${n} Änderung${n === 1 ? '' : 'en'}, ${nb} Datei${nb === 1 ? '' : 'en'} übernommen`); } else if (!quiet) toast('Alles synchron ✓');
+  } catch (e) { console.warn(e); syncing = false; setSyncState('Fehler: ' + e.message); if (!quiet) toast('Sync fehlgeschlagen: ' + e.message, true); }
+  finally { syncing = false; }
+}
+async function autoSync() { if (!KEY || !DEV || !FS_OK) return; const hd = await dirHandle(); if (hd && await folderOK(hd, false)) syncNow(false, true); else setSyncState(); }
+setInterval(autoSync, 90000);
+document.addEventListener('visibilitychange', () => { if (KEY && DEV && (document.hidden ? dirty : true)) autoSync(); });
+$('#syncBtn').onclick = () => syncNow(true);
+
+async function manualSync() {
+  const status = h('p', { class: 'muted', style: 'font-size:14px;min-height:22px;margin-top:12px' });
+  let own = null;
+  const shareLbl = h('span', null, 'Wird vorbereitet …');
+  const shareBtn = h('button', { class: 'btn primary', type: 'button', disabled: true, onclick: async () => {
+    let done = false;
+    if (navigator.canShare?.({ files: [own] })) { try { await navigator.share({ files: [own], title: 'Och · CRM Sync' }); done = true; } catch (e) { if (e.name !== 'AbortError') { download(own.name, own); done = true; } } }
+    else { download(own.name, own); done = true; }
+    if (done) { dirty = false; DEV.lastSync = Date.now(); await saveDevice(); setSyncState(); status.textContent = 'Lege die Datei im Sync-Ordner ab und ersetze die alte Version.'; }
+  } }, icon('i-upload'), shareLbl);
+  const prep = async () => { shareBtn.disabled = true; own = await buildSyncFile(); shareBtn.disabled = false; shareLbl.textContent = `2 · Meinen Stand sichern (${fmtSize(own.size)})`; };
+  const loadBtn = h('button', { class: 'btn', type: 'button', onclick: () => {
+    const i = $('#fileIn'); i.value = ''; i.accept = ''; i.multiple = true; i.removeAttribute('capture');
+    i.onchange = async () => {
+      let n = 0, nb = 0, k = 0; status.textContent = 'Wird zusammengeführt …';
+      for (const f of i.files) {
+        if (f.name === DEV.file) continue;
+        try { const sf = await readSyncHeader(f); const r = await mergeSync(sf); n += r.n; nb += r.nb; k++; DEV.seen[f.name] = { name: sf.header.device?.name, created: sf.header.created }; }
+        catch (e) { status.textContent = e.message === 'foreign' ? `„${f.name}“ gehört zu einem anderen CRM.` : `„${f.name}“ ist keine Sync-Datei.`; return; }
+      }
+      DEV.lastSync = Date.now(); await saveDevice(); setSyncState(); refresh();
+      status.textContent = `✓ ${k} Gerät${k === 1 ? '' : 'e'} gelesen: ${n} Änderung${n === 1 ? '' : 'en'}, ${nb} Datei${nb === 1 ? '' : 'en'} übernommen.`;
+      prep();
+    };
+    i.click();
+  } }, icon('i-download'), '1 · Stand der anderen Geräte laden');
+  prep();
+  await dialog('Synchronisieren', h('div', null,
+    h('p', { style: 'font-size:14px' }, 'Öffne deinen Sync-Ordner (z. B. OneDrive › OCH-CRM) und wähle die Dateien der anderen Geräte. Danach sicherst du den Stand dieses Geräts dort als ', h('strong', null, DEV.file), '.'),
+    h('div', { class: 'quick', style: 'margin-top:14px' }, loadBtn, shareBtn), status), null);
+}
+function syncCard(card, btns) {
+  const name = inp('dev', DEV?.name || '', { autocomplete: 'off' });
+  name.addEventListener('change', async () => { if (name.value.trim()) { DEV.name = name.value.trim(); await saveDevice(); toast('Gerätename gespeichert'); } });
+  const folder = h('span', { class: 'muted' }, FS_OK ? 'nicht gewählt' : 'manuell (Browser erlaubt keinen Ordnerzugriff)');
+  const actions = btns();
+  const seen = Object.values(DEV?.seen || {});
+  if (FS_OK) dirHandle().then(hd => {
+    if (hd) { folder.textContent = (hd.name || 'gewählt') + ' · automatisch alle 1–2 Min.'; actions.append(h('button', { class: 'btn primary', onclick: () => syncNow(true) }, icon('i-sync'), 'Jetzt synchronisieren'), h('button', { class: 'btn', onclick: chooseFolder }, 'Ordner ändern')); }
+    else actions.append(h('button', { class: 'btn primary', onclick: chooseFolder }, icon('i-sync'), 'Sync-Ordner wählen'));
+    actions.append(h('button', { class: 'btn', onclick: manualSync }, 'Manuell'));
+  });
+  else actions.append(h('button', { class: 'btn primary', onclick: manualSync }, icon('i-sync'), 'Synchronisieren'));
+  return card('Synchronisation', 'i-sync',
+    h('p', { class: 'muted', style: 'font-size:14px' }, 'Halte Laptop und Handy über einen Cloud-Ordner gleich (empfohlen: OneDrive deines OCH-Kontos, Ordner „OCH-CRM“). Jedes Gerät legt dort eine eigene, verschlüsselte Datei ab. Die Cloud sieht nur Datensalat.'),
+    h('div', { style: 'height:12px' }),
+    fld('Name dieses Geräts', name),
+    h('dl', { class: 'facts' }, h('dt', null, 'Sync-Ordner'), h('dd', null, folder), h('dt', null, 'Eigene Datei'), h('dd', null, DEV?.file || '—'),
+      h('dt', null, 'Zuletzt'), h('dd', null, DEV?.lastSync ? `${fmtDT(DEV.lastSync)} (${rel(DEV.lastSync)})` : 'noch nie'),
+      h('dt', null, 'Andere Geräte'), h('dd', null, seen.length ? seen.map(x => `${x.name || 'Gerät'} (Stand ${fmtDT(x.created)})`).join(', ') : '—')),
+    actions,
+    h('p', { class: 'note' }, 'Neues Gerät einrichten: Dort auf dem Startbildschirm „Backup oder Sync-Datei einspielen“ tippen, die Sync-Datei dieses Geräts wählen und deine Passphrase eingeben.'));
+}
+
+/* ---------------- App-Installation (PWA) ---------------- */
+let installEvt = null;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (KEY && current === 'settings') render(); });
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname)))
+  navigator.serviceWorker.register('sw.js').catch(e => console.warn('Service Worker', e));
+function appCard(card, btns) {
+  const ios = /iPhone|iPad/.test(navigator.userAgent);
+  let body;
+  if (isStandalone()) body = h('p', { style: 'font-size:14px' }, '✓ Läuft als installierte App.');
+  else if (installEvt) body = btns(h('button', { class: 'btn primary', onclick: async () => { installEvt.prompt(); await installEvt.userChoice; installEvt = null; render(); } }, icon('i-app'), 'Als App installieren'));
+  else if (location.protocol === 'file:') body = h('p', { class: 'muted', style: 'font-size:14px' }, 'Als App installieren geht nur, wenn das CRM über HTTPS geöffnet wird (z. B. GitHub Pages), nicht als lokale Datei.');
+  else if (ios) body = h('p', { style: 'font-size:14px' }, 'In Safari unten auf ', h('strong', null, 'Teilen'), ' tippen und dann ', h('strong', null, '„Zum Home-Bildschirm“'), ' wählen.');
+  else body = h('p', { class: 'muted', style: 'font-size:14px' }, 'Im Browser-Menü „App installieren“ bzw. „Zum Startbildschirm hinzufügen“ wählen.');
+  return card('App', 'i-app', h('p', { class: 'muted', style: 'font-size:14px;margin-bottom:10px' }, 'Installiert startet das CRM wie eine eigene App, ohne Browserleiste und auch offline.'), body,
+    ios && !isStandalone() ? h('p', { class: 'note' }, 'Hinweis iPhone: Die installierte App hat einen eigenen Speicher, getrennt von Safari. Richte das CRM nach der Installation in der App ein, z. B. über eine Sync-Datei.') : null);
 }
 
 /* ---------------- Start ---------------- */
