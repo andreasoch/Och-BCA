@@ -1,6 +1,6 @@
 # Och · CRM
 
-Ein privates, verschlüsseltes und multimediales CRM für OCH, genutzt von genau einer Person. Kein Server, kein Konto, keine Datenübertragung an Dritte. Laptop und Handy lassen sich über einen eigenen Cloud-Ordner synchronisieren, und das CRM lässt sich als App installieren.
+Ein privates, verschlüsseltes und multimediales **Contact Relationship Management** für Andreas Och, also Beziehungspflege statt Kundenverwaltung: Geschäftspartner, Dienstleister, Netzwerk, Familie und Freunde. Es ergänzt DIVA der BCA (Finanzberatungskunden) und Outlook (reine Kontaktdaten). Kein Server, kein Konto, keine Datenübertragung an Dritte. Laptop und Handy lassen sich über einen eigenen Cloud-Ordner synchronisieren, und das CRM lässt sich als App installieren.
 
 ## Dateien
 
@@ -26,6 +26,19 @@ Installieren:
 Lokal geht es auch ohne Hosting: `index.html` im Browser öffnen. Dann allerdings ohne App-Installation und ohne Offline-Betrieb.
 
 Wichtig: Die Daten gehören zu *Browser bzw. App + Adresse*. Für einen Wechsel nutzt du das Backup oder die Sync-Datei.
+
+## Beziehungen pflegen
+
+- **Kategorien:** Familie, Freunde, Geschäftspartner, Dienstleister, Netzwerk und Bekannte. Die Liste ist unter *Einstellungen → Darstellung & Felder* änderbar.
+- **Beziehungen:** Im Kontakt über **„Beziehung“** Kontakte verknüpfen, z. B. Ehepartner/in, Kind, Elternteil, Geschwister, Freund/in, Kollege/Kollegin, Empfohlen von.
+  - Die Gegenrichtung erscheint automatisch: Ist Lisa „Kind“ von Anna, steht bei Lisa „Elternteil: Anna“.
+  - Entfernen geht mit × von beiden Seiten.
+- **Wichtige Daten:** Im Kontakt je Zeile „Bezeichnung: TT.MM.JJJJ“ (oder ohne Jahr „TT.MM.“), z. B. Hochzeitstag oder Namenstag. Sie erscheinen mit Geburtstagen unter „Geburtstage und Jahrestage“ in der Übersicht, mit Angabe des Jahrestags.
+- **Geschenkideen:** freies Feld im Kontakt, durchsuchbar.
+- **Kontaktrhythmus:** Wöchentlich bis jährlich. Das CRM erinnert unter „Melde dich mal bei …“.
+- **Pipeline:** Pipeline und Chancen (Vertrieb) sind ausgeblendet. Einschalten über *Einstellungen → Darstellung & Felder → „Pipeline und Chancen anzeigen“*, vorhandene Daten bleiben erhalten.
+
+Beim ersten Start von Version 1.4 wurden die alten Vertriebsstatus umgestellt: „Partner“ wurde zu „Geschäftspartner“, „Privat“ zu „Freunde“. Andere bereits verwendete Werte (z. B. „Kunde“) bleiben in der Liste, bis du sie umstellst.
 
 ## Synchronisation Laptop ↔ Handy
 
@@ -60,7 +73,10 @@ Hinweise:
 
 ## Kampagnen (Rundmail)
 
-Unter **Kampagnen** (am Handy: „Mails“) verschickst du Rundmails an eine Auswahl deiner Kontakte. Absender ist **Andreas@och-Finanzberatung.de**.
+Unter **Kampagnen** (am Handy: „Mails“) verschickst du Rundmails an eine Auswahl deiner Kontakte. Absender ist **Andreas@och-Finanzberatung.de**. Es gibt zwei Arten:
+
+- **Geschäftlich (Werbung):** nur an Kontakte mit Einwilligung oder als Bestandskunde, mit Pflichtangaben-Fuß und Abmeldehinweis.
+- **Persönlich (Einladung, Gruß, keine Werbung):** an Familie und Freunde auch ohne Werbe-Einwilligung, ohne Geschäftsfuß. Ein Widerspruch sperrt trotzdem. Nur für echte private Anlässe: Grüße mit geschäftlichem Bezug an Geschäftskontakte gelten oft als Werbung.
 
 ### So geht's
 
@@ -118,12 +134,12 @@ Hinweise:
 
 | Bereich | Funktionen |
 |---|---|
-| Kontakte | Personen und Firmen, Status, Tags, Wichtigkeit (★), Geburtstag, eigene Felder, Kontaktrhythmus, Karten- oder Tabellenansicht, Filter und Sortierung |
+| Kontakte | Personen und Firmen, Kategorien, Beziehungen, wichtige Daten, Geschenkideen, Tags, Wichtigkeit (★), Geburtstag, eigene Felder, Kontaktrhythmus, Karten- oder Tabellenansicht, Filter und Sortierung |
 | Verlauf | Notiz, Anruf, Treffen, E-Mail, Nachricht, Termin, Sprachnotiz, Medien; mit Anhängen und optionaler Folgeaufgabe |
 | Multimedia | Fotos, Videos, Audio, PDFs und beliebige Dateien per Auswahl, Drag & Drop, Einfügen (⌘V) oder Kamera; Sprachnotizen aufnehmen; Vorschau, Profilbild, Mediathek |
 | Aufgaben | fällig, überfällig, heute, nächste 7 Tage, erledigt |
-| Pipeline | Kanban mit Wert, Wahrscheinlichkeit und gewichteter Summe; Drag & Drop oder Phasenauswahl auf der Karte |
-| Übersicht | Kennzahlen, „Melde dich mal bei …“, Geburtstage, Aktivität der letzten 12 Wochen, Pipeline nach Phase |
+| Pipeline (optional) | Kanban mit Wert, Wahrscheinlichkeit und gewichteter Summe; Drag & Drop oder Phasenauswahl auf der Karte |
+| Übersicht | Kennzahlen nach Kategorien, „Melde dich mal bei …“, Geburtstage und Jahrestage, Aktivität der letzten 12 Wochen, Pipeline nach Phase (wenn eingeschaltet) |
 | Suche | ⌘K / Strg+K durchsucht alles inkl. Befehle; `N` legt etwas Neues an |
 | Daten | verschlüsseltes Backup, Sync-Dateien, Import aus vCard/CSV, Export als CSV/vCard/JSON |
 | Kampagnen | Rundmails an Auswahl nach Status, Tags, Ort, Wichtigkeit; Platzhalter, Vorschau, Testmail, Einzelversand über Microsoft 365, Einwilligungsprüfung, Verlaufseintrag |
@@ -147,7 +163,11 @@ CSV-, vCard- und JSON-Exporte sind **unverschlüsselt**.
 
 ## Datenschutz für OCH (Ersteinschätzung, keine Rechtsberatung)
 
-Da das CRM geschäftlich für OCH genutzt wird, gilt die DSGVO. Die Haushaltsausnahme greift nicht. Verantwortlich ist OCH.
+Das CRM ist gemischt genutzt:
+- **Privatkontakte** (Familie, Freunde) fallen weitgehend unter die Haushaltsausnahme der DSGVO (Art. 2 Abs. 2 lit. c).
+- Für **Geschäftskontakte** von OCH gilt die DSGVO, verantwortlich ist OCH.
+
+**Wichtig: Keine Kundendaten aus DIVA übernehmen**, auch nicht auszugsweise per Export. Diese Daten gehören der BCA und bleiben dort.
 
 - **Technik (Art. 25, 32):** lokale Verarbeitung, Verschlüsselung, Auto-Sperre, keine Übermittlung an Dritte. Die Cloud speichert nur verschlüsselte Dateien. Empfohlen ist der OneDrive-Ordner des OCH-Tenants, der durch den Microsoft-Vertrag zur Auftragsverarbeitung (Data Protection Addendum) abgedeckt ist.
 - **Verzeichnis von Verarbeitungstätigkeiten (Art. 30):** das CRM als Verarbeitung „Kontakt- und Kundenpflege“ eintragen (Zweck, Datenkategorien, Löschfristen, Technik).
