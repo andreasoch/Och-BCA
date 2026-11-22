@@ -167,10 +167,11 @@ Das CRM ist gemischt genutzt:
 - **Privatkontakte** (Familie, Freunde) fallen weitgehend unter die Haushaltsausnahme der DSGVO (Art. 2 Abs. 2 lit. c).
 - Für **Geschäftskontakte** von OCH gilt die DSGVO, verantwortlich ist OCH.
 
-**Kunden aus DIVA:** Der Kundenbestand gehört Andreas Och als Vermittler. Die Finanzberatung wird weiter in DIVA geführt.
-- Ob und wie Daten aus DIVA exportiert werden dürfen, regelt *vermutlich* der Vertrag mit der BCA (z. B. Bestandsschutz, Systemnutzung). Vor einer Übernahme prüfen.
-- Für übernommene Kundendaten ist Andreas Och als Vermittler verantwortlich (DSGVO). Die Nutzung für dieselbe Kundenbeziehung ist gut vereinbar.
-- Für Rundmails an Kunden gilt die Einwilligungs- bzw. Bestandskundenregel (siehe Kampagnen).
+**Kunden aus DIVA:** Der Kundenbestand gehört Andreas Och als Vermittler. Kundendaten aus DIVA **dürfen ins CRM übernommen werden**, z. B. per CSV-Export und Import.
+- **Keine KI-Verarbeitung:** Das CRM hat keine KI-Funktion und läuft verschlüsselt nur auf den eigenen Geräten.
+- **KI-Ampel:** Kundendaten sind Stufe **Gelb**. In Claude und andere Cloud-KIs nur pseudonymisiert. Also keine CSV-, JSON- oder Backup-Dateien und keine Screenshots mit Kundendaten in KI-Chats geben.
+- **Verantwortung:** Für die Kundendaten ist Andreas Och als Vermittler verantwortlich (DSGVO). Für Rundmails an Kunden gilt die Einwilligungs- bzw. Bestandskundenregel (siehe Kampagnen).
+- **Künftige DIVA-Anbindung:** MCP ist eine Schnittstelle für KI-Assistenten. Eine Verbindung über MCP bringt die Daten daher *vermutlich* in KI-Berührung, zulässig nur mit Copilot im OCH-Tenant oder pseudonymisiert. Ohne KI geht es per CSV oder über eine direkte DIVA-Schnittstelle (API), falls angeboten.
 
 - **Technik (Art. 25, 32):** lokale Verarbeitung, Verschlüsselung, Auto-Sperre, keine Übermittlung an Dritte. Die Cloud speichert nur verschlüsselte Dateien. Empfohlen ist der OneDrive-Ordner des OCH-Tenants, der durch den Microsoft-Vertrag zur Auftragsverarbeitung (Data Protection Addendum) abgedeckt ist.
 - **Verzeichnis von Verarbeitungstätigkeiten (Art. 30):** das CRM als Verarbeitung „Kontakt- und Kundenpflege“ eintragen (Zweck, Datenkategorien, Löschfristen, Technik).
