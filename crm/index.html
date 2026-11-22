@@ -394,7 +394,8 @@ const DEFAULT_SETTINGS = {
   id:'settings', kind:'settings', autolock:10, theme:'auto',
   stages:['Idee','Erstkontakt','Angebot','Verhandlung','Gewonnen','Verloren'],
   statuses:['Lead','Interessent','Kunde','Partner','Netzwerk','Privat'],
-  view:'cards'
+  view:'cards',
+  pipelineKpis:false   // Kacheln „Offene Pipeline“ und „Gewonnen“ in der Übersicht
 };
 const KINDS = {
   'Notiz':'i-note','Anruf':'i-phone','Treffen':'i-users','E-Mail':'i-mail',
@@ -823,8 +824,8 @@ function viewDash() {
   const k = h('div', { class: 'grid kpis' },
     kpi('Kontakte', cs.length, `${cs.filter(c => c.status === 'Kunde').length} Kunden · ${cs.filter(isCompany).length} Firmen`),
     kpi('Aktivitäten · 30 Tage', a30, `${acts.length} insgesamt`),
-    kpi('Offene Pipeline', fmtEUR(open.reduce((s, d) => s + (+d.value || 0), 0)), `gewichtet ${fmtEUR(weighted)}`),
-    kpi('Gewonnen ' + new Date().getFullYear(), fmtEUR(won.reduce((s, d) => s + (+d.value || 0), 0)), `${won.length} Abschlüsse`),
+    SET.pipelineKpis ? kpi('Offene Pipeline', fmtEUR(open.reduce((s, d) => s + (+d.value || 0), 0)), `gewichtet ${fmtEUR(weighted)}`) : null,
+    SET.pipelineKpis ? kpi('Gewonnen ' + new Date().getFullYear(), fmtEUR(won.reduce((s, d) => s + (+d.value || 0), 0)), `${won.length} Abschlüsse`) : null,
   );
 
   // Fällig
@@ -1370,6 +1371,9 @@ function viewSettings() {
   al.addEventListener('change', async () => { SET.autolock = +al.value; await save(SET); toast('Gespeichert'); });
   const th = sel('theme', SET.theme, [['auto', 'Wie System'], ['dark', 'Dunkel'], ['light', 'Hell']]);
   th.addEventListener('change', async () => { SET.theme = th.value; applyTheme(); await save(SET); });
+  const pk = h('input', { type: 'checkbox', id: 'pipelineKpis', checked: !!SET.pipelineKpis, style: 'width:18px;height:18px;accent-color:var(--gold)' });
+  pk.addEventListener('change', async () => { SET.pipelineKpis = pk.checked; await save(SET); toast(pk.checked ? 'Pipeline-Kennzahlen eingeblendet' : 'Pipeline-Kennzahlen ausgeblendet'); });
+  const pkRow = h('label', { style: 'display:flex;gap:10px;align-items:center;font-size:14px;margin:4px 0 14px;cursor:pointer' }, pk, 'Pipeline-Kennzahlen in der Übersicht anzeigen („Offene Pipeline“, „Gewonnen“)');
   const listEditor = (key, label) => {
     const t = txa(key, SET[key].join('\n'), { rows: 6, style: 'min-height:0' });
     t.addEventListener('change', async () => { const v = splitList(t.value); if (v.length) { SET[key] = v; await save(SET); toast(label + ' gespeichert'); } });
@@ -1393,7 +1397,7 @@ function viewSettings() {
     syncCard(card, btns),
     appCard(card, btns),
     card('Darstellung & Felder', 'i-gear',
-      fld('Farbschema', th), h('div', { class: 'fgrid' }, listEditor('statuses', 'Status'), listEditor('stages', 'Pipeline-Phasen'))),
+      fld('Farbschema', th), pkRow, h('div', { class: 'fgrid' }, listEditor('statuses', 'Status'), listEditor('stages', 'Pipeline-Phasen'))),
     card('Speicher', 'i-image',
       h('dl', { class: 'facts' }, h('dt', null, 'Belegung'), h('dd', null, usage), h('dt', null, 'Speicherung'), h('dd', null, persisted),
         h('dt', null, 'Datensätze'), h('dd', null, `${contacts().length} Kontakte · ${all('activity').length} Einträge · ${all('task').length} Aufgaben · ${all('deal').length} Chancen · ${all('file').length} Dateien`),
