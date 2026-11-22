@@ -412,7 +412,7 @@ details summary{color:var(--ink2)}
    AES-256-GCM verschlüsselt. Datenschlüssel (DEK) wird mit einem
    aus der Passphrase per PBKDF2-SHA256 abgeleiteten Schlüssel verpackt.
    ===================================================================== */
-const VERSION = '1.3';
+const VERSION = '1.4';
 const DB_NAME = 'och-crm', DB_VER = 1;
 const PBKDF2_ITER = 600000;
 const te = new TextEncoder(), td = new TextDecoder();
@@ -426,7 +426,8 @@ let SET = null;                // Einstellungen
 const DEFAULT_SETTINGS = {
   id:'settings', kind:'settings', autolock:10, theme:'auto',
   stages:['Idee','Erstkontakt','Angebot','Verhandlung','Gewonnen','Verloren'],
-  statuses:['Lead','Interessent','Kunde','Partner','Netzwerk','Privat'],
+  statuses:['Familie','Freunde','Geschäftspartner','Dienstleister','Netzwerk','Bekannte'],
+  pipeline:false,     // Pipeline und Chancen anzeigen
   view:'cards',
   pipelineKpis:false   // Kacheln „Offene Pipeline“ und „Gewonnen“ in der Übersicht
 };
@@ -574,6 +575,76 @@ async function loadAll() {
   SNAP.clear();
   for (const r of rows) { const j = td.decode(await decrypt(r.iv, r.ct)); R.set(r.id, JSON.parse(j)); SNAP.set(r.id, j); }
   SET = Object.assign({}, DEFAULT_SETTINGS, R.get('settings') || {});
+}
+
+/* Umstellung auf Contact-Relationship-Management (einmalig, Version 1.4):
+   Vertriebsstatus -> Beziehungskategorien; Pipeline nur sichtbar, wenn schon Chancen existieren */
+async function migrateCRM() {
+  if (SET.crmV2) return;
+  const OLD = ['Lead', 'Interessent', 'Kunde', 'Partner', 'Netzwerk', 'Privat'];
+  const stored = R.get('settings') || {};
+  if (!stored.statuses || JSON.stringify(stored.statuses) === JSON.stringify(OLD)) {
+    const MAP = { Partner: 'Geschäftspartner', Privat: 'Freunde' };
+    for (const c of contacts()) if (MAP[c.status]) { c.status = MAP[c.status]; await save(c); }
+    const NEW = DEFAULT_SETTINGS.statuses;
+    const extra = [...new Set(contacts().map(c => c.status).filter(x => x && !NEW.includes(x)))];
+    SET.statuses = [...NEW, ...extra];
+  }
+  if (stored.pipeline === undefined) SET.pipeline = all('deal').length > 0;
+  SET.crmV2 = true;
+  await save(SET);
+}
+const visibleViews = () => VIEWS.filter(v => v.id !== 'pipeline' || SET.pipeline);
+
+/* ---------------- Beziehungen und wichtige Daten ---------------- */
+const RELS = ['Ehepartner/in', 'Partner/in', 'Kind', 'Elternteil', 'Geschwister', 'Großelternteil', 'Enkel/in', 'Verwandte/r', 'Freund/in', 'Kollege/Kollegin', 'Geschäftspartner/in', 'Empfohlen von'];
+const REL_INV = { 'Kind': 'Elternteil', 'Elternteil': 'Kind', 'Großelternteil': 'Enkel/in', 'Enkel/in': 'Großelternteil', 'Empfohlen von': 'Hat empfohlen', 'Hat empfohlen': 'Empfohlen von' };
+// Ein Link {id, rel} an Kontakt A heißt: „B ist As <rel>“. Bei B erscheint die Umkehrung.
+function relationsOf(c) {
+  const out = (c.links || []).filter(l => get(l.id)).map(l => ({ other: get(l.id), rel: l.rel, owner: c.id }));
+  for (const o of contacts()) if (o.id !== c.id) for (const l of o.links || []) if (l.id === c.id) out.push({ other: o, rel: REL_INV[l.rel] || l.rel, owner: o.id });
+  return out.sort((a, b) => a.rel.localeCompare(b.rel, 'de') || cname(a.other).localeCompare(cname(b.other), 'de'));
+}
+async function addRelation(c) {
+  const others = contacts().filter(x => x.id !== c.id).sort((a, b) => cname(a).localeCompare(cname(b), 'de'));
+  const who = inp('relWho', '', { list: 'relList', required: true, autocomplete: 'off', placeholder: 'Name eingeben …' });
+  const content = h('div', { class: 'fgrid' },
+    fld('… ist ' + cname(c) + 's', sel('rel', RELS[0], RELS)),
+    fld('Kontakt', who), h('datalist', { id: 'relList' }, others.map(o => h('option', { value: cname(o) }))),
+    h('p', { class: 'note full' }, 'Beispiel: „Kind“ und „Lisa Müller“ heißt: Lisa ist das Kind von ' + cname(c) + '. Bei Lisa erscheint dann automatisch „Elternteil“.'));
+  const f = await dialog('Beziehung hinzufügen', content, 'Hinzufügen');
+  if (!f) return;
+  const o = others.find(x => norm(cname(x)) === norm(who.value.trim()));
+  if (!o) return toast('Kontakt „' + who.value + '“ nicht gefunden. Bitte aus der Liste wählen.', true);
+  if (relationsOf(c).some(r => r.other.id === o.id)) return toast('Zwischen beiden gibt es schon eine Beziehung.', true);
+  c.links = [...(c.links || []), { id: o.id, rel: f.elements.rel.value }];
+  await save(c); refresh(); toast('Beziehung gespeichert');
+}
+// Wichtige Daten: „Bezeichnung: TT.MM.JJJJ“ oder „Bezeichnung: TT.MM.“
+function parseDates(text) {
+  const ok = [], bad = [];
+  for (const line of String(text || '').split('\n').map(x => x.trim()).filter(Boolean)) {
+    const m = line.match(/^(.+?):\s*(\d{1,2})\.(\d{1,2})\.(\d{4})?$/);
+    const d = m && +m[2], mo = m && +m[3];
+    if (!m || d < 1 || d > 31 || mo < 1 || mo > 12) { bad.push(line); continue; }
+    ok.push({ label: m[1].trim(), date: (m[4] || '----') + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0') });
+  }
+  return { ok, bad };
+}
+const fmtImpDate = x => x.date.slice(8, 10) + '.' + x.date.slice(5, 7) + '.' + (x.date.startsWith('----') ? '' : x.date.slice(0, 4));
+function nextOccurrence(iso) {
+  const mo = +iso.slice(5, 7), d = +iso.slice(8, 10); if (!mo || !d) return null;
+  const today = startOfDay(); const y = new Date().getFullYear();
+  let t = new Date(y, mo - 1, d).getTime(); if (t < today) t = new Date(y + 1, mo - 1, d).getTime();
+  return t;
+}
+function upcomingEvents(days) {
+  const lim = startOfDay() + days * DAY, out = [];
+  for (const c of contacts()) {
+    const b = nextBirthday(c); if (b && b <= lim) out.push({ c, d: b, label: 'Geburtstag', year: c.birthday.slice(0, 4) > '1900' ? +c.birthday.slice(0, 4) : null, what: 'wird' });
+    for (const x of c.dates || []) { const t = nextOccurrence(x.date); if (t && t <= lim) out.push({ c, d: t, label: x.label, year: x.date.startsWith('----') ? null : +x.date.slice(0, 4), what: 'Jahrestag' }); }
+  }
+  return out.sort((a, b) => a.d - b.d);
 }
 
 /* ---------------- Dateien (verschlüsselt) ---------------- */
@@ -724,6 +795,7 @@ $('#lockForm').addEventListener('submit', async e => {
     fails = 0; sessionStorageSafe('set', 'fails', 0);
     $('#pw1').value = ''; $('#pw2').value = '';
     await loadAll();
+    await migrateCRM();
     startApp();
   } catch (ex) {
     console.warn(ex);
@@ -809,11 +881,11 @@ function startApp() {
 }
 function renderNav() {
   const counts = { contacts: contacts().length, tasks: all('task').filter(t => !t.done).length, pipeline: all('deal').filter(d => !['Gewonnen', 'Verloren'].includes(d.stage)).length, media: all('file').length };
-  $('#nav').replaceChildren(...VIEWS.map(v => h('button', { class: v.id === current ? 'on' : '', onclick: () => { if (v.id === 'campaigns') UI.campId = null; go(v.id); } }, icon(v.icon), v.label, counts[v.id] ? h('span', { class: 'count' }, counts[v.id]) : null)));
-  $('#bnav').replaceChildren(...VIEWS.map(v => h('button', { class: v.id === current ? 'on' : '', onclick: () => { if (v.id === 'campaigns') UI.campId = null; go(v.id); }, 'aria-label': v.label }, icon(v.icon), v.label.replace('Einstellungen', 'Mehr').replace('Kampagnen', 'Mails'))));
+  $('#nav').replaceChildren(...visibleViews().map(v => h('button', { class: v.id === current ? 'on' : '', onclick: () => { if (v.id === 'campaigns') UI.campId = null; go(v.id); } }, icon(v.icon), v.label, counts[v.id] ? h('span', { class: 'count' }, counts[v.id]) : null)));
+  $('#bnav').replaceChildren(...visibleViews().map(v => h('button', { class: v.id === current ? 'on' : '', onclick: () => { if (v.id === 'campaigns') UI.campId = null; go(v.id); }, 'aria-label': v.label }, icon(v.icon), v.label.replace('Einstellungen', 'Mehr').replace('Kampagnen', 'Mails'))));
 }
 function go(id) {
-  if (!VIEWS.find(v => v.id === id)) id = 'dash';
+  if (!visibleViews().find(v => v.id === id)) id = 'dash';
   current = id; history.replaceState(null, '', '#' + id);
   $('#viewTitle').textContent = VIEWS.find(v => v.id === id).label;
   render();
@@ -864,15 +936,15 @@ function viewDash() {
 
   const kpi = (lbl, val, sub) => h('div', { class: 'card kpi' }, h('div', { class: 'lbl' }, lbl), h('div', { class: 'val' }, val), h('div', { class: 'sub' }, sub));
   const k = h('div', { class: 'grid kpis' },
-    kpi('Kontakte', cs.length, `${cs.filter(c => c.status === 'Kunde').length} Kunden · ${cs.filter(isCompany).length} Firmen`),
+    kpi('Kontakte', cs.length, SET.statuses.map(st => [st, cs.filter(c => c.status === st).length]).filter(x => x[1]).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([st, n]) => `${n} ${st}`).join(' · ') || `${cs.filter(isCompany).length} Firmen`),
     kpi('Aktivitäten · 30 Tage', a30, `${acts.length} insgesamt`),
-    SET.pipelineKpis ? kpi('Offene Pipeline', fmtEUR(open.reduce((s, d) => s + (+d.value || 0), 0)), `gewichtet ${fmtEUR(weighted)}`) : null,
-    SET.pipelineKpis ? kpi('Gewonnen ' + new Date().getFullYear(), fmtEUR(won.reduce((s, d) => s + (+d.value || 0), 0)), `${won.length} Abschlüsse`) : null,
+    SET.pipeline && SET.pipelineKpis ? kpi('Offene Pipeline', fmtEUR(open.reduce((s, d) => s + (+d.value || 0), 0)), `gewichtet ${fmtEUR(weighted)}`) : null,
+    SET.pipeline && SET.pipelineKpis ? kpi('Gewonnen ' + new Date().getFullYear(), fmtEUR(won.reduce((s, d) => s + (+d.value || 0), 0)), `${won.length} Abschlüsse`) : null,
   );
 
   // Fällig
   const touch = cs.map(c => ({ c, d: dueKeepInTouch(c) })).filter(x => x.d && x.d <= today + 7 * DAY).sort((a, b) => a.d - b.d).slice(0, 8);
-  const bdays = cs.map(c => ({ c, d: nextBirthday(c) })).filter(x => x.d && x.d <= today + 30 * DAY).sort((a, b) => a.d - b.d).slice(0, 6);
+  const bdays = upcomingEvents(30).slice(0, 8);
   const recent = acts.sort((a, b) => b.date - a.date).slice(0, 7);
 
   const listCard = (title, ic, items, empty, act) => h('div', { class: 'card' }, h('h3', null, icon(ic), title, act || null), items.length ? items : h('div', { class: 'empty' }, empty));
@@ -882,8 +954,8 @@ function viewDash() {
     listCard('Heute zu tun', 'i-tasks', due.sort((a, b) => (a.due > b.due ? 1 : -1)).slice(0, 8).map(taskRow), 'Alles erledigt. Schön!', h('button', { class: 'btn sm ghost', onclick: () => editTask() }, icon('i-plus'), 'Aufgabe')),
     listCard('Melde dich mal bei …', 'i-clock', touch.map(x => crow(x.c, 'Kontaktrhythmus ' + x.c.cadence + ' Tage · zuletzt ' + (rel(lastContact(x.c)) || 'nie'), h('span', { class: 'chip ' + (x.d < today ? 'bad' : 'warn') }, x.d < today ? 'überfällig' : rel(x.d)))), 'Lege bei Kontakten einen Kontaktrhythmus fest, dann erinnert dich das CRM hier.'),
     h('div', { class: 'card' }, h('h3', null, icon('i-cal'), 'Aktivität · letzte 12 Wochen'), weekChart(acts)),
-    h('div', { class: 'card' }, h('h3', null, icon('i-kanban'), 'Pipeline nach Phase'), stageBars(deals)),
-    listCard('Geburtstage · 30 Tage', 'i-gift', bdays.map(x => crow(x.c, fmtDate(x.d, { day: '2-digit', month: 'long' }) + (x.c.birthday.slice(0, 4) > '1900' ? ` · wird ${new Date(x.d).getFullYear() - +x.c.birthday.slice(0, 4)}` : ''), h('span', { class: 'chip gold' }, rel(x.d)))), 'Keine Geburtstage in den nächsten 30 Tagen.'),
+    SET.pipeline ? h('div', { class: 'card' }, h('h3', null, icon('i-kanban'), 'Pipeline nach Phase'), stageBars(deals)) : null,
+    listCard('Geburtstage und Jahrestage · 30 Tage', 'i-gift', bdays.map(x => crow(x.c, `${x.label} · ${fmtDate(x.d, { day: '2-digit', month: 'long' })}` + (x.year ? (x.what === 'wird' ? ` · wird ${new Date(x.d).getFullYear() - x.year}` : ` · ${new Date(x.d).getFullYear() - x.year}. Jahrestag`) : ''), h('span', { class: 'chip gold' }, rel(x.d)))), 'Keine Geburtstage oder Jahrestage in den nächsten 30 Tagen.'),
     listCard('Zuletzt', 'i-note', recent.map(a => { const c = get(a.contactId); return c ? crow(c, [a.type, a.type === 'Medien' && !a.text ? `${(a.fileIds || []).length} Datei(en)` : (a.text || '').slice(0, 70)].filter(Boolean).join(' · '), h('span', { class: 'muted', style: 'font-size:12px' }, rel(a.date))) : null; }).filter(Boolean), 'Noch keine Aktivitäten. Öffne einen Kontakt und halte fest, was passiert ist.'),
   );
   const wrap = h('div', null, k, g2);
@@ -930,14 +1002,14 @@ function untip() { $('#tip').style.opacity = 0; }
 
 /* ---------------- Kontakte ---------------- */
 function allTags() { const s = new Set(); contacts().forEach(c => (c.tags || []).forEach(t => s.add(t))); return [...s].sort((a, b) => a.localeCompare(b, 'de')); }
-function searchText(c) { return norm([cname(c), c.company, c.role, (c.emails || []).join(' '), (c.phones || []).join(' '), c.city, c.address, (c.tags || []).join(' '), c.notes, c.status, (c.custom || []).map(x => x.k + ' ' + x.v).join(' ')].join(' ')); }
+function searchText(c) { return norm([cname(c), c.company, c.role, (c.emails || []).join(' '), (c.phones || []).join(' '), c.city, c.address, (c.tags || []).join(' '), c.notes, c.status, (c.custom || []).map(x => x.k + ' ' + x.v).join(' '), (c.dates || []).map(x => x.label).join(' '), c.gifts, (c.links || []).map(l => l.rel + ' ' + cname(get(l.id))).join(' ')].join(' ')); }
 function viewContacts() {
   const statuses = SET.statuses, tags = allTags();
   const sel = (val, opts, ph, on) => h('select', { class: 'input', onchange: e => { on(e.target.value); refreshContacts(); }, 'aria-label': ph }, h('option', { value: '' }, ph), opts.map(o => h('option', { value: o, selected: o === val }, o)));
   const q = h('input', { class: 'input grow', type: 'search', placeholder: 'Filtern nach Name, Firma, Tag, Notiz …', value: UI.q, oninput: e => { UI.q = e.target.value; refreshContacts(); } });
   const tb = h('div', { class: 'toolbar' }, q,
     sel(UI.ctype, ['Personen', 'Firmen'], 'Alle Arten', v => UI.ctype = v),
-    sel(UI.status, statuses, 'Alle Status', v => UI.status = v),
+    sel(UI.status, statuses, 'Alle Kategorien', v => UI.status = v),
     tags.length ? sel(UI.tag, tags, 'Alle Tags', v => UI.tag = v) : null,
     h('select', { class: 'input', 'aria-label': 'Sortierung', onchange: e => { UI.sort = e.target.value; refreshContacts(); } },
       [['name', 'Name A–Z'], ['recent', 'Zuletzt kontaktiert'], ['stale', 'Am längsten her'], ['stars', 'Wichtigkeit'], ['new', 'Neu angelegt']].map(([v, l]) => h('option', { value: v, selected: UI.sort === v }, l))),
@@ -960,7 +1032,7 @@ function contactList() {
   const cs = filteredContacts();
   if (!cs.length) return h('div', { class: 'card empty' }, contacts().length ? 'Nichts gefunden.' : 'Noch keine Kontakte. Drücke „Neu“ oder importiere eine vCard/CSV in den Einstellungen.');
   if (SET.view === 'table') return h('div', { class: 'card', style: 'padding:6px;overflow-x:auto' }, h('table', { class: 'list' },
-    h('thead', null, h('tr', null, ['', 'Name', 'Firma / Position', 'Status', 'Kontakt', 'Zuletzt'].map(t => h('th', null, t)))),
+    h('thead', null, h('tr', null, ['', 'Name', 'Firma / Position', 'Kategorie', 'Kontakt', 'Zuletzt'].map(t => h('th', null, t)))),
     h('tbody', null, cs.map(c => h('tr', { class: 'click', onclick: () => openDetail(c.id) },
       h('td', { style: 'width:52px' }, avatar(c)), h('td', null, cname(c), c.stars ? h('div', { class: 'stars' }, '★'.repeat(c.stars)) : null),
       h('td', { class: 'muted' }, isCompany(c) ? `${members(c).length} Personen` : [companyName(c), c.role].filter(Boolean).join(' · ')),
@@ -999,7 +1071,8 @@ function renderDetail() {
     h('button', { class: 'btn sm', onclick: () => pickFiles({ contactId: c.id }) }, icon('i-clip'), 'Medien'),
     h('button', { class: 'btn sm', onclick: () => pickFiles({ contactId: c.id }, 'image/*', true) }, icon('i-cam'), 'Foto'),
     h('button', { class: 'btn sm', onclick: () => editTask({ contactId: c.id }) }, icon('i-tasks'), 'Aufgabe'),
-    h('button', { class: 'btn sm', onclick: () => editDeal({ contactId: c.id }) }, icon('i-euro'), 'Chance'),
+    h('button', { class: 'btn sm', onclick: () => addRelation(c) }, icon('i-link'), 'Beziehung'),
+    SET.pipeline ? h('button', { class: 'btn sm', onclick: () => editDeal({ contactId: c.id }) }, icon('i-euro'), 'Chance') : null,
     tel ? h('a', { class: 'btn sm ghost', href: 'tel:' + tel.replace(/[^\d+]/g, '') }, icon('i-phone'), 'Anrufen') : null,
     mail ? h('a', { class: 'btn sm ghost', href: 'mailto:' + mail }, icon('i-mail'), 'E-Mail') : null);
   const facts = h('dl', { class: 'facts' });
@@ -1010,8 +1083,17 @@ function renderDetail() {
   fact('Adresse', [c.address, c.city].filter(Boolean).join(', '));
   if (!isCompany(c) && c.companyId && get(c.companyId)) fact('Firma', h('a', { href: '#', onclick: e => { e.preventDefault(); openDetail(c.companyId); } }, cname(get(c.companyId))));
   if (isCompany(c)) { const m = members(c); if (m.length) fact('Personen', h('div', { class: 'chips' }, m.map(p => h('a', { href: '#', class: 'chip', onclick: e => { e.preventDefault(); openDetail(p.id); } }, cname(p))))); }
+  const rels = relationsOf(c);
+  if (rels.length) fact('Beziehungen', h('div', { class: 'chips' }, rels.map(r => h('span', { class: 'chip', style: 'gap:6px' },
+    h('a', { href: '#', onclick: e => { e.preventDefault(); openDetail(r.other.id); } }, r.rel + ': ' + cname(r.other)),
+    h('button', { class: 'btn ghost sm', style: 'padding:0 2px;line-height:1', title: 'Beziehung entfernen', 'aria-label': 'Beziehung entfernen', onclick: async () => {
+      const owner = get(r.owner); owner.links = (owner.links || []).filter(l => !(l.id === (r.owner === c.id ? r.other.id : c.id)));
+      await save(owner); refresh(); toast('Beziehung entfernt');
+    } }, '×')))));
   fact('Geburtstag', c.birthday ? fmtDate(c.birthday + 'T12:00') + (nextBirthday(c) ? ` (${rel(nextBirthday(c))})` : '') : null);
   fact('Kennengelernt', c.met);
+  if ((c.dates || []).length) fact('Wichtige Daten', h('div', null, c.dates.map(x => { const t = nextOccurrence(x.date); const y = x.date.startsWith('----') ? null : +x.date.slice(0, 4); return h('div', null, `${x.label}: ${fmtImpDate(x)}` + (t ? ` (${rel(t)}${y ? `, ${new Date(t).getFullYear() - y}. Jahrestag` : ''})` : '')); })));
+  fact('Geschenkideen', c.gifts ? h('div', { style: 'white-space:pre-wrap' }, c.gifts) : null);
   fact('Anrede', !isCompany(c) && (c.salutation || c.du) ? [c.salutation, c.du ? 'per Du' : 'per Sie'].filter(Boolean).join(' · ') : null);
   fact('E-Mail-Werbung', c.mailConsent ? CONSENT[c.mailConsent] + (c.mailConsentNote ? ' · ' + c.mailConsentNote : '') + (c.mailConsentAt ? ' · erfasst ' + fmtDate(c.mailConsentAt) : '') : null);
   fact('Kontaktrhythmus', c.cadence ? `alle ${c.cadence} Tage · nächster: ${rel(dueKeepInTouch(c))}` : null);
@@ -1019,7 +1101,7 @@ function renderDetail() {
   (c.custom || []).forEach(x => fact(x.k, x.v));
   fact('Angelegt', fmtDate(c.createdAt) + (c.updatedAt ? ' · geändert ' + fmtDate(c.updatedAt) : ''));
 
-  const tabs = [['timeline', 'Verlauf', actsOf(c.id).length], ['media', 'Medien', filesOf(c.id).length], ['tasks', 'Aufgaben', tasksOf(c.id).filter(t => !t.done).length], ['deals', 'Chancen', dealsOf(c.id).length], ['notes', 'Notizen', 0]];
+  const tabs = [['timeline', 'Verlauf', actsOf(c.id).length], ['media', 'Medien', filesOf(c.id).length], ['tasks', 'Aufgaben', tasksOf(c.id).filter(t => !t.done).length], ...(SET.pipeline ? [['deals', 'Chancen', dealsOf(c.id).length]] : []), ['notes', 'Notizen', 0]];
   const tabBar = h('div', { class: 'tabs', role: 'tablist' }, tabs.map(([id, l, n]) => h('button', { class: dtab === id ? 'on' : '', role: 'tab', onclick: () => { dtab = id; renderDetail(); } }, l + (n ? ` · ${n}` : ''))));
   let body;
   if (dtab === 'timeline') body = timeline(c);
@@ -1202,7 +1284,7 @@ async function editContact(c = {}) {
   const custom = (c.custom || []).map(x => `${x.k}: ${x.v}`).join('\n');
   const content = h('div', { class: 'fgrid' },
     fld('Art', type),
-    fld('Status', sel('status', c.status || '', [['', '—'], ...SET.statuses])),
+    fld('Kategorie', sel('status', c.status || '', [['', '—'], ...SET.statuses, ...(c.status && !SET.statuses.includes(c.status) ? [c.status] : [])])),
     h('div', { class: 'full p-only fgrid', style: 'padding:0' }, fld('Vorname', inp('firstName', c.firstName, { autocomplete: 'off' })), fld('Nachname', inp('lastName', c.lastName, { autocomplete: 'off' })),
       fld('Anrede', sel('salutation', c.salutation || '', [['', '—'], ['Frau', 'Frau'], ['Herr', 'Herr']])),
       h('label', { class: 'field', style: 'flex-direction:row;align-items:center;gap:10px;margin-top:22px' }, h('input', { type: 'checkbox', name: 'du', checked: !!c.du, style: 'width:18px;height:18px;accent-color:var(--gold)' }), h('span', { style: 'text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink)' }, 'Wir duzen uns'))),
@@ -1223,6 +1305,8 @@ async function editContact(c = {}) {
     fld('E-Mail-Werbung', sel('mailConsent', c.mailConsent || '', Object.entries(CONSENT))),
     fld('Nachweis (Datum, Quelle)', inp('mailConsentNote', c.mailConsentNote, { placeholder: 'z. B. 12.03.2026, Formular Erstgespräch' })),
     fld('Eigene Felder (je Zeile „Name: Wert“)', txa('custom', custom, { rows: 3, style: 'min-height:0', placeholder: 'LinkedIn: …\nHobby: Segeln' }), true),
+    fld('Wichtige Daten (je Zeile „Bezeichnung: TT.MM.JJJJ“ oder „TT.MM.“)', txa('dates', (c.dates || []).map(x => x.label + ': ' + fmtImpDate(x)).join('\n'), { rows: 2, style: 'min-height:0', placeholder: 'Hochzeitstag: 12.06.2015\nNamenstag: 24.06.' }), true),
+    fld('Geschenkideen', txa('gifts', c.gifts, { rows: 2, style: 'min-height:0', placeholder: 'z. B. Rotwein, Bücher über Segeln' }), true),
     fld('Notizen', txa('notes', c.notes), true));
   const sync = () => { content.querySelector('.p-only').style.display = type.value === 'company' ? 'none' : ''; content.querySelector('[name=company]').previousSibling.textContent = type.value === 'company' ? 'Firmenname' : 'Firma'; };
   type.addEventListener('change', sync); sync();
@@ -1236,6 +1320,8 @@ async function editContact(c = {}) {
     custom: v.custom.split('\n').map(l => { const i = l.indexOf(':'); return i > 0 ? { k: l.slice(0, i).trim(), v: l.slice(i + 1).trim() } : l.trim() ? { k: 'Info', v: l.trim() } : null; }).filter(Boolean),
   });
   if ((c.mailConsent || '') !== v.mailConsent) o.mailConsentAt = Date.now();
+  const pd = parseDates(v.dates); o.dates = pd.ok; o.gifts = (v.gifts || '').trim();
+  if (pd.bad.length) toast('Nicht erkannt und nicht gespeichert: ' + pd.bad.join(', ') + '. Format: „Bezeichnung: TT.MM.JJJJ“', true);
   Object.assign(o, { salutation: v.salutation || '', du: !!v.du, mailConsent: v.mailConsent || '', mailConsentNote: (v.mailConsentNote || '').trim() });
   if (v.type === 'company') { o.company = v.company.trim(); o.firstName = ''; o.lastName = ''; o.companyId = null; o.salutation = ''; o.du = false; }
   else {
@@ -1253,6 +1339,7 @@ async function deleteContact(c) {
   for (const x of f) await delFile(x.id);
   for (const x of [...a, ...t, ...d]) await del(x.id);
   for (const m of contacts()) if (m.companyId === c.id) { m.companyId = null; await save(m); }
+  for (const m of contacts()) if ((m.links || []).some(l => l.id === c.id)) { m.links = m.links.filter(l => l.id !== c.id); await save(m); }
   await del(c.id); closeDetail(); toast('Kontakt gelöscht');
 }
 
@@ -1382,8 +1469,8 @@ function openPalette() {
   const input = h('input', { class: 'input pin', placeholder: 'Suche nach Kontakten, Notizen, Aufgaben, Dateien … oder Befehl', 'aria-label': 'Suche' });
   const res = h('div', { class: 'res' });
   const cmds = [
-    ['Neuer Kontakt', 'i-user', () => editContact()], ['Neue Aufgabe', 'i-tasks', () => editTask()], ['Neue Verkaufschance', 'i-euro', () => editDeal()],
-    ['Backup erstellen', 'i-shield', () => exportBackup()], ['Sperren', 'i-lock', lockClick], ...VIEWS.map(v => ['Gehe zu ' + v.label, v.icon, () => go(v.id)])];
+    ['Neuer Kontakt', 'i-user', () => editContact()], ['Neue Aufgabe', 'i-tasks', () => editTask()], ...(SET.pipeline ? [['Neue Verkaufschance', 'i-euro', () => editDeal()]] : []), ['Neue Rundmail', 'i-mail', () => newCampaign()],
+    ['Backup erstellen', 'i-shield', () => exportBackup()], ['Sperren', 'i-lock', lockClick], ...visibleViews().map(v => ['Gehe zu ' + v.label, v.icon, () => go(v.id)])];
   const run = () => {
     const q = norm(input.value).split(/\s+/).filter(Boolean); items = [];
     const m = t => q.every(w => t.includes(w));
@@ -1392,7 +1479,7 @@ function openPalette() {
       contacts().forEach(c => m(searchText(c)) && items.push({ l: cname(c), s: [c.role, companyName(c), c.status].filter(Boolean).join(' · ') || 'Kontakt', c, f: () => openDetail(c.id) }));
       all('activity').forEach(a => { const c = get(a.contactId); c && m(norm(a.text + ' ' + a.type)) && items.push({ l: (a.text || a.type).slice(0, 80), s: `${a.type} · ${cname(c)} · ${fmtDate(a.date)}`, i: KINDS[a.type], f: () => openDetail(c.id) }); });
       all('task').forEach(t => m(norm(t.title + ' ' + t.note)) && items.push({ l: t.title, s: 'Aufgabe' + (t.done ? ' · erledigt' : ''), i: 'i-tasks', f: () => editTask(t) }));
-      all('deal').forEach(d => m(norm(d.title + ' ' + d.product + ' ' + d.note)) && items.push({ l: d.title, s: `Chance · ${d.stage} · ${fmtEUR(d.value)}`, i: 'i-euro', f: () => editDeal(d) }));
+      if (SET.pipeline) all('deal').forEach(d => m(norm(d.title + ' ' + d.product + ' ' + d.note)) && items.push({ l: d.title, s: `Chance · ${d.stage} · ${fmtEUR(d.value)}`, i: 'i-euro', f: () => editDeal(d) }));
       all('file').forEach(f => m(norm(f.name)) && items.push({ l: f.name, s: 'Datei · ' + fmtSize(f.size), i: FICON[ftype(f.type)], f: () => viewFile(f.id) }));
       cmds.forEach(([l, i, f]) => m(norm(l)) && items.push({ l, i, s: 'Befehl', f }));
       items = items.slice(0, 40);
@@ -1423,6 +1510,9 @@ function viewSettings() {
   th.addEventListener('change', async () => { SET.theme = th.value; applyTheme(); await save(SET); });
   const pk = h('input', { type: 'checkbox', id: 'pipelineKpis', checked: !!SET.pipelineKpis, style: 'width:18px;height:18px;accent-color:var(--gold)' });
   pk.addEventListener('change', async () => { SET.pipelineKpis = pk.checked; await save(SET); toast(pk.checked ? 'Pipeline-Kennzahlen eingeblendet' : 'Pipeline-Kennzahlen ausgeblendet'); });
+  const pl = h('input', { type: 'checkbox', id: 'pipelineOn', checked: !!SET.pipeline, style: 'width:18px;height:18px;accent-color:var(--gold)' });
+  pl.addEventListener('change', async () => { SET.pipeline = pl.checked; await save(SET); render(); toast(pl.checked ? 'Pipeline eingeblendet' : 'Pipeline ausgeblendet. Vorhandene Chancen bleiben gespeichert.'); });
+  const plRow = h('label', { style: 'display:flex;gap:10px;align-items:center;font-size:14px;margin:4px 0 8px;cursor:pointer' }, pl, 'Pipeline und Chancen anzeigen (Vertrieb)');
   const pkRow = h('label', { style: 'display:flex;gap:10px;align-items:center;font-size:14px;margin:4px 0 14px;cursor:pointer' }, pk, 'Pipeline-Kennzahlen in der Übersicht anzeigen („Offene Pipeline“, „Gewonnen“)');
   const listEditor = (key, label) => {
     const t = txa(key, SET[key].join('\n'), { rows: 6, style: 'min-height:0' });
@@ -1448,7 +1538,7 @@ function viewSettings() {
     appCard(card, btns),
     mailSettingsCard(card, btns),
     card('Darstellung & Felder', 'i-gear',
-      fld('Farbschema', th), pkRow, h('div', { class: 'fgrid' }, listEditor('statuses', 'Status'), listEditor('stages', 'Pipeline-Phasen'))),
+      fld('Farbschema', th), plRow, SET.pipeline ? pkRow : null, h('div', { class: 'fgrid' }, listEditor('statuses', 'Kategorien'), SET.pipeline ? listEditor('stages', 'Pipeline-Phasen') : null)),
     card('Speicher', 'i-image',
       h('dl', { class: 'facts' }, h('dt', null, 'Belegung'), h('dd', null, usage), h('dt', null, 'Speicherung'), h('dd', null, persisted),
         h('dt', null, 'Datensätze'), h('dd', null, `${contacts().length} Kontakte · ${all('activity').length} Einträge · ${all('task').length} Aufgaben · ${all('deal').length} Chancen · ${all('file').length} Dateien`),
@@ -1543,7 +1633,7 @@ async function restoreBackup() {
 /* ---------------- Import / Export Kontakte ---------------- */
 const csvCell = v => { let s = (v ?? '').toString(); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
 function exportCSV() {
-  const cols = [['Vorname', c => c.firstName], ['Nachname', c => c.lastName], ['Firma', c => isCompany(c) ? c.company : companyName(c)], ['Art', c => isCompany(c) ? 'Firma' : 'Person'], ['Position', c => c.role], ['Status', c => c.status],
+  const cols = [['Vorname', c => c.firstName], ['Nachname', c => c.lastName], ['Firma', c => isCompany(c) ? c.company : companyName(c)], ['Art', c => isCompany(c) ? 'Firma' : 'Person'], ['Position', c => c.role], ['Kategorie', c => c.status],
     ['E-Mail', c => (c.emails || []).join(', ')], ['Telefon', c => (c.phones || []).join(', ')], ['Adresse', c => c.address], ['Ort', c => c.city], ['Website', c => c.website],
     ['Geburtstag', c => c.birthday], ['Tags', c => (c.tags || []).join(', ')], ['Wichtigkeit', c => c.stars || ''], ['Kontaktrhythmus (Tage)', c => c.cadence || ''], ['Zuletzt Kontakt', c => fmtDate(lastContact(c))], ['Notizen', c => c.notes]];
   const rows = [cols.map(c => c[0]).join(';'), ...contacts().sort((a, b) => cname(a).localeCompare(cname(b), 'de')).map(c => cols.map(([, f]) => csvCell(f(c))).join(';'))];
@@ -1609,7 +1699,7 @@ function parseCSV(text) {
   const findX = (ks, not) => hd.findIndex(x => ks.some(k => x === k || x.includes(k)) && !not.some(n => x.includes(n)));
   const ix = { fn: find('vorname', 'first name', 'given name'), ln: find('nachname', 'last name', 'family name', 'surname'), name: find('name', 'anzeigename', 'display name'),
     co: find('firma', 'company', 'organization', 'unternehmen'), role: find('position', 'title', 'job', 'funktion'), mail: find('e-mail', 'email', 'mail'), tel: find('telefon', 'phone', 'mobil', 'handy'),
-    adr: findX(['adresse', 'strasse', 'street', 'address'], ['mail', 'web', 'url']), city: findX(['ort', 'stadt', 'city'], ['geburt', 'sport', 'port', 'wort']), sal: findX(['anrede', 'salutation'], ['brief']), web: find('website', 'web', 'url'), bday: find('geburtstag', 'birthday'), tags: find('tags', 'kategorie', 'categories', 'gruppe'), notes: find('notiz', 'notes', 'bemerkung'), status: find('status') };
+    adr: findX(['adresse', 'strasse', 'street', 'address'], ['mail', 'web', 'url']), city: findX(['ort', 'stadt', 'city'], ['geburt', 'sport', 'port', 'wort']), sal: findX(['anrede', 'salutation'], ['brief']), web: find('website', 'web', 'url'), bday: find('geburtstag', 'birthday'), tags: find('tags', 'categories', 'gruppe'), notes: find('notiz', 'notes', 'bemerkung'), status: find('status', 'kategorie') };
   return rows.filter(r => r.some(x => x.trim())).map(r => {
     const g = k => ix[k] >= 0 ? (r[ix[k]] || '').trim() : '';
     let fn = g('fn'), ln = g('ln'); if (!fn && !ln && g('name')) { const p = g('name').split(' '); ln = p.pop(); fn = p.join(' '); }
@@ -1661,9 +1751,11 @@ const CONSENT = { '': 'ungeklärt', einwilligung: 'Einwilligung liegt vor', best
 const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 const firstMail = c => (c.emails || [])[0] || '';
 
-function mailReason(c) {
+const isPersonal = camp => camp?.type === 'personal';
+function mailReason(c, camp) {
   if (!firstMail(c)) return 'keine E-Mail-Adresse';
   if (c.mailConsent === 'widerspruch') return 'Widerspruch / abgemeldet';
+  if (isPersonal(camp)) return null;
   if (!['einwilligung', 'bestandskunde'].includes(c.mailConsent)) return 'Einwilligung ungeklärt';
   return null;
 }
@@ -1688,6 +1780,7 @@ function optOutText(c, cfg) {
 }
 function emailHtml(camp, c) {
   const cfg = mailCfg();
+  if (isPersonal(camp)) return '<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#1D2433;max-width:620px">' + mdToHtml(fillText(camp.body, c)) + '</div>';
   const foot = esc(cfg.footer).replace(/\n/g, '<br>');
   return '<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#1D2433;max-width:620px">' +
     mdToHtml(fillText(camp.body, c)) +
@@ -1695,7 +1788,7 @@ function emailHtml(camp, c) {
     '<div style="font-size:12px;line-height:1.5;color:#6B7385">' + foot + '<br><br>' + esc(optOutText(c, cfg)) +
     ' <a href="mailto:' + esc(cfg.from) + '?subject=Abmelden" style="color:#7E6219">Abmelden</a></div></div>';
 }
-const emailText = (camp, c) => mdToText(fillText(camp.body, c)) + '\n\n--\n' + mailCfg().footer + '\n\n' + optOutText(c, mailCfg());
+const emailText = (camp, c) => mdToText(fillText(camp.body, c)) + (isPersonal(camp) ? '' : '\n\n--\n' + mailCfg().footer + '\n\n' + optOutText(c, mailCfg()));
 const footerIncomplete = () => /\[[^\]]+\]/.test(mailCfg().footer);
 
 function campaignRecipients(camp) {
@@ -1715,7 +1808,7 @@ function campaignRecipients(camp) {
   const removed = cs.filter(c => (camp.remove || []).includes(c.id));
   cs = cs.filter(c => !(camp.remove || []).includes(c.id));
   const ok = [], out = [];
-  for (const c of cs) { const r = mailReason(c); r ? out.push({ c, r }) : ok.push(c); }
+  for (const c of cs) { const r = mailReason(c, camp); r ? out.push({ c, r }) : ok.push(c); }
   const by = (a, b) => cname(a.c || a).localeCompare(cname(b.c || b), 'de');
   return { ok: ok.sort(by), out: out.sort(by), removed: removed.sort(by) };
 }
@@ -1817,7 +1910,7 @@ function viewCampaigns() {
     const st = campaignState(cp), n = campaignRecipients(cp).ok.length;
     return h('div', { class: 'ccard', tabindex: 0, onclick: () => { UI.campId = cp.id; render(); }, onkeydown: e => e.key === 'Enter' && (UI.campId = cp.id, render()) },
       h('div', { class: 'nm' }, cp.name), h('div', { class: 'muted', style: 'font-size:13px' }, cp.subject || 'ohne Betreff'),
-      h('div', { class: 'chips' }, h('span', { class: 'chip ' + st.cls }, st.label), h('span', { class: 'chip' }, `${n} Empfänger`), st.okN ? h('span', { class: 'chip' }, `${st.okN} versendet`) : null, st.errN ? h('span', { class: 'chip bad' }, `${st.errN} Fehler`) : null),
+      h('div', { class: 'chips' }, h('span', { class: 'chip ' + st.cls }, st.label), h('span', { class: 'chip gold' }, isPersonal(cp) ? 'persönlich' : 'geschäftlich'), h('span', { class: 'chip' }, `${n} Empfänger`), st.okN ? h('span', { class: 'chip' }, `${st.okN} versendet`) : null, st.errN ? h('span', { class: 'chip bad' }, `${st.errN} Fehler`) : null),
       h('div', { class: 'muted', style: 'font-size:12.5px' }, 'geändert ' + fmtDT(cp.updatedAt)));
   })));
 }
@@ -1841,11 +1934,15 @@ function campaignEditor(camp) {
   const subj = inp('campSubject', camp.subject, { placeholder: 'Betreff, z. B. Ihr Jahresgespräch 2027' }); subj.addEventListener('input', () => { camp.subject = subj.value; persist(); updPreview(); });
   const body = txa('campBody', camp.body, { style: 'min-height:260px;font-size:14.5px' }); body.addEventListener('input', () => { camp.body = body.value; persist(); updPreview(); });
   const ins = k => { const s = body.selectionStart ?? body.value.length; body.setRangeText('{{' + k + '}}', s, body.selectionEnd ?? s, 'end'); body.focus(); body.dispatchEvent(new Event('input')); };
+  const ctyp = sel('campKind', camp.type || 'business', [['business', 'Geschäftlich (Werbung, Einwilligung nötig)'], ['personal', 'Persönlich (Einladung, Gruß, keine Werbung)']]);
+  ctyp.onchange = async () => { camp.type = ctyp.value; await save(camp); render(); };
   const content = h('div', { class: 'card' }, h('h3', null, '1 · Inhalt'),
+    fld('Art der Rundmail', ctyp),
+    isPersonal(camp) ? h('p', { class: 'chip warn', style: 'white-space:normal;margin:-4px 0 12px' }, 'Nur für echte private Anlässe an Familie und Freunde, z. B. Einladung oder Gruß. Grüße mit geschäftlichem Bezug an Geschäftskontakte gelten oft als Werbung, dann „Geschäftlich“ wählen.') : null,
     sentAny ? h('p', { class: 'chip warn', style: 'white-space:normal;margin-bottom:12px' }, 'Bereits teilweise versendet. Änderungen gelten nur für die noch offenen Empfänger.') : null,
     fld('Betreff', subj), fld('Text', body),
     h('div', { class: 'chips', style: 'margin:-4px 0 8px' }, h('span', { class: 'muted', style: 'font-size:13px' }, 'Einfügen:'), Object.keys(PLACEHOLDERS).map(k => h('button', { class: 'btn sm', type: 'button', onclick: () => ins(k) }, '{{' + k + '}}'))),
-    h('p', { class: 'note' }, 'Formatierung: Leerzeile = neuer Absatz, **fett**, [Linktext](https://…). Pflichtangaben und Abmeldehinweis werden automatisch angehängt.'));
+    h('p', { class: 'note' }, 'Formatierung: Leerzeile = neuer Absatz, **fett**, [Linktext](https://…). ' + (isPersonal(camp) ? 'Persönliche Rundmails gehen ohne Geschäfts-Fußtext raus.' : 'Pflichtangaben und Abmeldehinweis werden automatisch angehängt.')));
   // 2 Empfänger
   const s = camp.sel = Object.assign({ status: [], tagsAny: [], tagsNone: [], ctype: 'person', city: '', minStars: 0 }, camp.sel || {});
   const toggles = (arr, values, neg) => h('div', { class: 'checks' }, values.length ? values.map(v => {
@@ -1862,7 +1959,7 @@ function campaignEditor(camp) {
   const recBox = h('div');
   const selection = h('div', { class: 'card' }, h('h3', null, '2 · Empfänger auswählen'),
     h('div', { class: 'fgrid' },
-      fld('Status (keine Auswahl = alle)', toggles(s.status, SET.statuses), true),
+      fld('Kategorie (keine Auswahl = alle)', toggles(s.status, SET.statuses), true),
       fld('Mit einem dieser Tags', toggles(s.tagsAny, allTags())), fld('Ohne diese Tags', toggles(s.tagsNone, allTags(), true)),
       fld('Art', ctype), fld('Ort enthält', city), fld('Wichtigkeit', stars), fld('Einzelnen Kontakt hinzufügen', addInp)),
     addList, recBox);
@@ -1875,7 +1972,7 @@ function campaignEditor(camp) {
       ok.length ? h('div', { class: 'rlist' }, ok.map(c => row(c, h('div', { style: 'display:flex;gap:6px;align-items:center' }, sentChip(c), h('button', { class: 'btn sm ghost', type: 'button', title: 'Aus dieser Rundmail entfernen', onclick: () => { camp.remove = [...new Set([...(camp.remove || []), c.id])]; persist(true); } }, icon('i-x')))))) : h('div', { class: 'empty' }, 'Keine Empfänger. Passe die Auswahl an oder kläre bei den Kontakten den Status „E-Mail-Werbung“.'),
       out.length ? h('details', { style: 'margin-top:12px' }, h('summary', { style: 'cursor:pointer;font-size:14px' }, `Ausgeschlossen (${out.length}): ohne E-Mail, ohne geklärte Einwilligung oder abgemeldet`),
         h('div', { class: 'rlist', style: 'margin-top:8px' }, out.map(({ c, r }) => row(c, h('div', { style: 'display:flex;gap:6px;align-items:center' }, h('span', { class: 'chip ' + (r.startsWith('Widerspruch') ? 'bad' : 'warn') }, r), h('button', { class: 'btn sm', type: 'button', onclick: () => editContact(c) }, 'Kontakt öffnen'))))),
-        h('p', { class: 'note' }, 'Zulässig sind nur Kontakte mit dokumentierter Einwilligung oder als Bestandskunde markiert (nur für eigene ähnliche Produkte). Den Status pflegst du im Kontakt unter „E-Mail-Werbung“.')) : null,
+        h('p', { class: 'note' }, isPersonal(camp) ? 'Bei persönlichen Rundmails sind nur Kontakte ohne E-Mail-Adresse oder mit Widerspruch ausgeschlossen.' : 'Zulässig sind nur Kontakte mit dokumentierter Einwilligung oder als Bestandskunde markiert (nur für eigene ähnliche Produkte). Den Status pflegst du im Kontakt unter „E-Mail-Werbung“.')) : null,
       removed.length ? h('details', { style: 'margin-top:8px' }, h('summary', { style: 'cursor:pointer;font-size:14px' }, `Manuell entfernt (${removed.length})`),
         h('div', { class: 'rlist', style: 'margin-top:8px' }, removed.map(c => row(c, h('button', { class: 'btn sm', type: 'button', onclick: () => { camp.remove = camp.remove.filter(x => x !== c.id); persist(true); } }, 'Wieder aufnehmen'))))) : null);
     updPreview(); updSend();
@@ -1902,7 +1999,7 @@ function campaignEditor(camp) {
     const p = [];
     if (!camp.subject?.trim()) p.push('Betreff fehlt.');
     if (!camp.body?.trim() || /\[Ihr Text\]/.test(camp.body)) p.push('Text fehlt oder enthält noch „[Ihr Text]“.');
-    if (footerIncomplete()) p.push('Pflichtangaben im Fußtext sind noch nicht ausgefüllt (Einstellungen → E-Mail-Versand).');
+    if (!isPersonal(camp) && footerIncomplete()) p.push('Pflichtangaben im Fußtext sind noch nicht ausgefüllt (Einstellungen → E-Mail-Versand).');
     if (!ok.length) p.push('Keine zulässigen Empfänger.');
     return p;
   }
@@ -1942,7 +2039,7 @@ function campaignEditor(camp) {
     const f = await dialog('Rundmail senden?', h('div', null,
       h('p', null, `„${camp.subject}“ wird an ${open.length} Empfänger einzeln gesendet, Absender ${mailCfg().from}.`),
       h('p', { class: 'muted', style: 'font-size:14px;margin:10px 0' }, `Dauer etwa ${Math.max(1, Math.ceil(open.length / mailCfg().perMinute))} Minute(n). Lass das Fenster währenddessen geöffnet.`),
-      h('label', { style: 'display:flex;gap:10px;align-items:flex-start;font-size:14px' }, chk, 'Ich habe Text, Empfänger und die rechtliche Zulässigkeit (Einwilligung bzw. Bestandskunde) geprüft.')), 'Jetzt senden');
+      h('label', { style: 'display:flex;gap:10px;align-items:flex-start;font-size:14px' }, chk, isPersonal(camp) ? 'Ich bestätige: Es ist eine private Nachricht ohne Werbung, und ich habe Text und Empfänger geprüft.' : 'Ich habe Text, Empfänger und die rechtliche Zulässigkeit (Einwilligung bzw. Bestandskunde) geprüft.')), 'Jetzt senden');
     if (!f) return;
     if (!await ensureLogin()) return;
     RUN = { id: camp.id, stop: false }; updSend();
