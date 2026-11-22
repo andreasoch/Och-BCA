@@ -140,6 +140,9 @@ main{overflow:auto;position:relative}
 .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
 .ccard{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:10px;transition:transform .15s,border-color .15s}
 .ccard:hover{border-color:var(--gold);transform:translateY(-2px)}
+.ccard.picked{border-color:var(--gold);box-shadow:inset 0 0 0 2px var(--gold);background:var(--goldsoft)}
+table.list tr.picked td{background:var(--goldsoft)}
+.bulkbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:12px 14px;position:sticky;top:76px;z-index:4}
 .ccard .hd{display:flex;gap:12px;align-items:center}
 .ccard .nm{font-weight:500}
 table.list{width:100%;border-collapse:collapse}
@@ -413,7 +416,7 @@ details summary{color:var(--ink2)}
    AES-256-GCM verschlüsselt. Datenschlüssel (DEK) wird mit einem
    aus der Passphrase per PBKDF2-SHA256 abgeleiteten Schlüssel verpackt.
    ===================================================================== */
-const VERSION = '1.7';
+const VERSION = '1.8';
 const DB_NAME = 'och-crm', DB_VER = 1;
 const PBKDF2_ITER = 600000;
 const te = new TextEncoder(), td = new TextDecoder();
@@ -870,7 +873,7 @@ const VIEWS = [
   { id: 'settings', label: 'Einstellungen', icon: 'i-gear' },
 ];
 let current = 'dash';
-const UI = { q: '', status: '', tag: '', sort: 'name', ctype: '', mediaType: '', campId: null };
+const UI = { q: '', status: '', tag: '', sort: 'name', ctype: '', mediaType: '', campId: null, bulk: false, picked: new Set() };
 
 function applyTheme() {
   const t = SET?.theme || 'auto';
@@ -1019,11 +1022,85 @@ function viewContacts() {
     tags.length ? sel(UI.tag, tags, 'Alle Tags', v => UI.tag = v) : null,
     h('select', { class: 'input', 'aria-label': 'Sortierung', onchange: e => { UI.sort = e.target.value; refreshContacts(); } },
       [['name', 'Name A–Z'], ['recent', 'Zuletzt kontaktiert'], ['stale', 'Am längsten her'], ['stars', 'Wichtigkeit'], ['new', 'Neu angelegt']].map(([v, l]) => h('option', { value: v, selected: UI.sort === v }, l))),
-    h('div', { class: 'seg' }, h('button', { class: SET.view === 'cards' ? 'on' : '', onclick: () => setView('cards'), title: 'Karten' }, '▦'), h('button', { class: SET.view === 'table' ? 'on' : '', onclick: () => setView('table'), title: 'Tabelle' }, '☰')));
-  return h('div', null, tb, h('div', { id: 'clist' }, contactList()));
+    h('div', { class: 'seg' }, h('button', { class: SET.view === 'cards' ? 'on' : '', onclick: () => setView('cards'), title: 'Karten' }, '▦'), h('button', { class: SET.view === 'table' ? 'on' : '', onclick: () => setView('table'), title: 'Tabelle' }, '☰')),
+    h('button', { class: 'btn' + (UI.bulk ? ' primary' : ''), id: 'bulkToggle', onclick: () => { UI.bulk = !UI.bulk; if (!UI.bulk) UI.picked.clear(); render(); } }, icon('i-check'), UI.bulk ? 'Auswahl beenden' : 'Auswählen'));
+  return h('div', null, tb, UI.bulk ? bulkBar() : null, h('div', { id: 'clist' }, contactList()));
 }
 async function setView(v) { SET.view = v; await save(SET); render(); }
-function refreshContacts() { const l = $('#clist'); if (l) l.replaceChildren(contactList()); }
+function refreshContacts() { const l = $('#clist'); if (l) l.replaceChildren(contactList()); updBulk(); }
+
+/* ---------------- Mehrfachbearbeitung ---------------- */
+function bulkBar() {
+  return h('div', { class: 'card bulkbar' },
+    h('strong', { id: 'bulkCount' }, `${UI.picked.size} ausgewählt`),
+    h('button', { class: 'btn sm', onclick: () => { filteredContacts().forEach(c => UI.picked.add(c.id)); refreshContacts(); } }, 'Alle angezeigten auswählen'),
+    h('button', { class: 'btn sm', onclick: () => { UI.picked.clear(); refreshContacts(); } }, 'Auswahl aufheben'),
+    h('span', { style: 'flex:1' }),
+    h('button', { class: 'btn sm primary', id: 'bulkEdit', disabled: !UI.picked.size, onclick: bulkEdit }, icon('i-edit'), 'Bearbeiten …'),
+    h('button', { class: 'btn sm danger', id: 'bulkDel', disabled: !UI.picked.size, onclick: bulkDelete }, icon('i-trash'), 'Löschen …'));
+}
+function updBulk() {
+  const live = [...UI.picked].filter(id => get(id)); UI.picked = new Set(live);
+  const n = UI.picked.size, el = $('#bulkCount'); if (el) el.textContent = `${n} ausgewählt`;
+  ['#bulkEdit', '#bulkDel'].forEach(sel => { const b = $(sel); if (b) b.disabled = !n; });
+}
+function togglePick(id, el) {
+  UI.picked.has(id) ? UI.picked.delete(id) : UI.picked.add(id);
+  if (el) { el.classList.toggle('picked', UI.picked.has(id)); const cb = el.querySelector('input[type=checkbox]'); if (cb) cb.checked = UI.picked.has(id); }
+  updBulk();
+}
+async function bulkEdit() {
+  const ids = [...UI.picked]; if (!ids.length) return;
+  const keep = ['', '— unverändert —'];
+  const tagsIn = [...new Set(ids.flatMap(id => get(id)?.tags || []))].sort((a, b) => a.localeCompare(b, 'de'));
+  const content = h('div', { class: 'fgrid' },
+    h('p', { class: 'full', style: 'font-size:14px;margin-bottom:8px' }, `Änderungen gelten für ${ids.length} Kontakt${ids.length === 1 ? '' : 'e'}. Felder auf „unverändert“ bleiben, wie sie sind.`),
+    fld('Kategorie', sel('bStatus', '', [keep, ['__none', '(keine Kategorie)'], ...SET.statuses])),
+    fld('oder neue Kategorie anlegen', inp('bNewCat', '', { placeholder: 'z. B. Verein' })),
+    fld('Tags hinzufügen (Komma)', inp('bTagAdd', '', { list: 'bTagList', placeholder: 'z. B. Sommerfest' })),
+    fld('Tags entfernen (Komma)', inp('bTagDel', '', { list: 'bTagList2', placeholder: tagsIn.slice(0, 2).join(', ') })),
+    h('datalist', { id: 'bTagList' }, allTags().map(t => h('option', { value: t }))), h('datalist', { id: 'bTagList2' }, tagsIn.map(t => h('option', { value: t }))),
+    fld('E-Mail-Werbung', sel('bConsent', '__keep', [['__keep', '— unverändert —'], ...Object.entries(CONSENT)])),
+    fld('Nachweis (nur wenn E-Mail-Werbung geändert wird)', inp('bConsentNote', '', { placeholder: 'z. B. 22.11.2026, Bestandskunde laut DIVA' })),
+    fld('Kontaktrhythmus', sel('bCadence', '__keep', [['__keep', '— unverändert —'], ['', 'keiner'], ['7', 'wöchentlich'], ['14', 'alle 2 Wochen'], ['30', 'monatlich'], ['90', 'vierteljährlich'], ['180', 'halbjährlich'], ['365', 'jährlich']])),
+    fld('Wichtigkeit', sel('bStars', '__keep', [['__keep', '— unverändert —'], ['0', '—'], ['1', '★'], ['2', '★★'], ['3', '★★★'], ['4', '★★★★'], ['5', '★★★★★']])));
+  const f = await dialog('Ausgewählte Kontakte bearbeiten', content, `${ids.length} Kontakte ändern`);
+  if (!f) return;
+  const v = Object.fromEntries(new FormData(f));
+  let cat = v.bStatus;
+  const newCat = (v.bNewCat || '').trim();
+  if (newCat) {
+    const ex = SET.statuses.find(x => norm(x) === norm(newCat));
+    cat = ex || newCat;
+    if (!ex) { SET.statuses = [...SET.statuses, newCat]; await save(SET); }
+  }
+  const add = splitList(v.bTagAdd), rem = splitList(v.bTagDel).map(norm);
+  let n = 0;
+  for (const id of ids) {
+    const c = get(id); if (!c) continue;
+    if (cat === '__none') c.status = ''; else if (cat) c.status = cat;
+    if (add.length || rem.length) c.tags = [...new Set([...(c.tags || []).filter(t => !rem.includes(norm(t))), ...add])];
+    if (v.bConsent !== '__keep' && (c.mailConsent || '') !== v.bConsent) { c.mailConsent = v.bConsent; c.mailConsentAt = Date.now(); if (v.bConsentNote.trim()) c.mailConsentNote = v.bConsentNote.trim(); }
+    else if (v.bConsent !== '__keep' && v.bConsentNote.trim()) c.mailConsentNote = v.bConsentNote.trim();
+    if (v.bCadence !== '__keep') c.cadence = +v.bCadence || null;
+    if (v.bStars !== '__keep') c.stars = +v.bStars;
+    await save(c); n++;
+  }
+  toast(`${n} Kontakte geändert` + (newCat ? ` · Kategorie „${cat}“ angelegt` : ''));
+  render();
+}
+async function bulkDelete() {
+  const ids = [...UI.picked].filter(id => get(id)); if (!ids.length) return;
+  const word = inp('bDelConfirm', '', { required: true, autocomplete: 'off', autocapitalize: 'characters' });
+  const f = await dialog(`${ids.length} Kontakte löschen?`, h('div', null,
+    h('p', null, `Die ausgewählten Kontakte werden mit allen Einträgen, Medien, Aufgaben und Chancen endgültig gelöscht.`),
+    h('p', { class: 'muted', style: 'font-size:14px;margin:10px 0' }, 'Tipp: Vorher ein Backup machen (Einstellungen → Backup).'),
+    fld('Zur Bestätigung LÖSCHEN eingeben', word)), 'Endgültig löschen');
+  if (!f) return;
+  if (!confirmWord(word.value)) return toast('Bestätigung stimmt nicht. Bitte LÖSCHEN eingeben.', true);
+  for (const id of ids) { const c = get(id); if (c) await purgeContact(c); }
+  UI.picked.clear(); toast(`${ids.length} Kontakte gelöscht`); render();
+}
 function filteredContacts() {
   let cs = contacts(); const q = norm(UI.q).split(/\s+/).filter(Boolean);
   if (q.length) cs = cs.filter(c => { const t = searchText(c); return q.every(w => t.includes(w)); });
@@ -1039,14 +1116,14 @@ function contactList() {
   if (!cs.length) return h('div', { class: 'card empty' }, contacts().length ? 'Nichts gefunden.' : 'Noch keine Kontakte. Drücke „Neu“ oder importiere eine vCard/CSV in den Einstellungen.');
   if (SET.view === 'table') return h('div', { class: 'card', style: 'padding:6px;overflow-x:auto' }, h('table', { class: 'list' },
     h('thead', null, h('tr', null, ['', 'Name', 'Firma / Position', 'Kategorie', 'Kontakt', 'Zuletzt'].map(t => h('th', null, t)))),
-    h('tbody', null, cs.map(c => h('tr', { class: 'click', onclick: () => openDetail(c.id) },
-      h('td', { style: 'width:52px' }, avatar(c)), h('td', null, cname(c), c.stars ? h('div', { class: 'stars' }, '★'.repeat(c.stars)) : null),
+    h('tbody', null, cs.map(c => h('tr', { class: 'click' + (UI.bulk && UI.picked.has(c.id) ? ' picked' : ''), onclick: e => UI.bulk ? togglePick(c.id, e.currentTarget) : openDetail(c.id) },
+      h('td', { style: 'width:52px' }, UI.bulk ? h('input', { type: 'checkbox', checked: UI.picked.has(c.id), 'aria-label': 'Auswählen', style: 'width:18px;height:18px;accent-color:var(--gold);pointer-events:none' }) : avatar(c)), h('td', null, cname(c), c.stars ? h('div', { class: 'stars' }, '★'.repeat(c.stars)) : null),
       h('td', { class: 'muted' }, isCompany(c) ? `${members(c).length} Personen` : [companyName(c), c.role].filter(Boolean).join(' · ')),
       h('td', null, c.status ? h('span', { class: 'chip gold' }, c.status) : ''),
       h('td', { class: 'muted' }, (c.emails || [])[0] || (c.phones || [])[0] || ''),
       h('td', { class: 'muted' }, rel(lastContact(c)) || '—'))))));
-  return h('div', { class: 'cgrid' }, cs.map(c => h('div', { class: 'ccard', tabindex: 0, onclick: () => openDetail(c.id), onkeydown: e => e.key === 'Enter' && openDetail(c.id) },
-    h('div', { class: 'hd' }, avatar(c), h('div', { style: 'min-width:0' }, h('div', { class: 'nm' }, cname(c)), h('div', { class: 'muted', style: 'font-size:13px' }, isCompany(c) ? `Firma · ${members(c).length} Personen` : [c.role, companyName(c)].filter(Boolean).join(' · ') || '—'))),
+  return h('div', { class: 'cgrid' }, cs.map(c => h('div', { class: 'ccard' + (UI.bulk && UI.picked.has(c.id) ? ' picked' : ''), tabindex: 0, onclick: e => UI.bulk ? togglePick(c.id, e.currentTarget) : openDetail(c.id), onkeydown: e => e.key === 'Enter' && (UI.bulk ? togglePick(c.id, e.currentTarget) : openDetail(c.id)) },
+    h('div', { class: 'hd' }, UI.bulk ? h('input', { type: 'checkbox', checked: UI.picked.has(c.id), 'aria-label': 'Auswählen', style: 'width:20px;height:20px;accent-color:var(--gold);flex:none;pointer-events:none' }) : null, avatar(c), h('div', { style: 'min-width:0' }, h('div', { class: 'nm' }, cname(c)), h('div', { class: 'muted', style: 'font-size:13px' }, isCompany(c) ? `Firma · ${members(c).length} Personen` : [c.role, companyName(c)].filter(Boolean).join(' · ') || '—'))),
     h('div', { class: 'chips' }, c.status ? h('span', { class: 'chip gold' }, c.status) : null, (c.tags || []).slice(0, 3).map(t => h('span', { class: 'chip' }, '#' + t)), c.stars ? h('span', { class: 'stars' }, '★'.repeat(c.stars)) : null),
     h('div', { class: 'muted', style: 'font-size:12.5px;display:flex;justify-content:space-between' }, h('span', null, 'zuletzt: ' + (rel(lastContact(c)) || '—')), h('span', null, (n => n + (n === 1 ? ' Eintrag' : ' Einträge'))(actsOf(c.id).length) + ' · ' + filesOf(c.id).length + ' Medien')))));
 }
@@ -1342,11 +1419,15 @@ async function editContact(c = {}) {
 async function deleteContact(c) {
   const a = actsOf(c.id), f = filesOf(c.id), t = tasksOf(c.id), d = dealsOf(c.id);
   if (!await confirmBox('Kontakt löschen?', `„${cname(c)}“ wird mit ${a.length} Einträgen, ${f.length} Medien, ${t.length} Aufgaben und ${d.length} Chancen endgültig gelöscht. Tipp: Vorher ein Backup machen.`)) return;
+  await purgeContact(c); closeDetail(); toast('Kontakt gelöscht');
+}
+async function purgeContact(c) {
+  const a = actsOf(c.id), f = filesOf(c.id), t = tasksOf(c.id), d = dealsOf(c.id);
   for (const x of f) await delFile(x.id);
   for (const x of [...a, ...t, ...d]) await del(x.id);
   for (const m of contacts()) if (m.companyId === c.id) { m.companyId = null; await save(m); }
   for (const m of contacts()) if ((m.links || []).some(l => l.id === c.id)) { m.links = m.links.filter(l => l.id !== c.id); await save(m); }
-  await del(c.id); closeDetail(); toast('Kontakt gelöscht');
+  await del(c.id);
 }
 
 async function editActivity(a = {}) {
