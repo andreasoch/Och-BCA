@@ -278,6 +278,11 @@ details summary{color:var(--ink2)}
   .hide-m{display:none}
   .tl .acts{opacity:1}
 }
+/* iOS zoomt beim Antippen von Feldern unter 16px automatisch hinein: auf Touch-Geräten mindestens 16px */
+@media (pointer:coarse), (max-width:860px){
+  input, select, textarea, .input, select.input, textarea.input, #palette .pin, .toolbar .input{font-size:16px!important}
+  .deal select{font-size:16px}
+}
 @media print{aside,.top,.bottomnav,#drawer{display:none!important}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -291,7 +296,7 @@ details summary{color:var(--ink2)}
     <form id="lockForm" autocomplete="off">
       <p class="lead" id="lockLead">Dein privates, verschlüsseltes CRM.</p>
       <label class="field"><span>Passphrase</span>
-        <input class="input" type="password" id="pw1" autocomplete="current-password" required minlength="12" autofocus>
+        <input class="input" type="password" id="pw1" autocomplete="current-password" required minlength="12">
       </label>
       <div id="pwNew" class="hidden">
         <div class="meter"><i id="pwMeter"></i></div>
@@ -407,7 +412,7 @@ details summary{color:var(--ink2)}
    AES-256-GCM verschlüsselt. Datenschlüssel (DEK) wird mit einem
    aus der Passphrase per PBKDF2-SHA256 abgeleiteten Schlüssel verpackt.
    ===================================================================== */
-const VERSION = '1.2';
+const VERSION = '1.3';
 const DB_NAME = 'och-crm', DB_VER = 1;
 const PBKDF2_ITER = 600000;
 const te = new TextEncoder(), td = new TextDecoder();
@@ -686,7 +691,8 @@ async function initLock() {
     $('#lockNote').textContent = 'Daten bleiben auf diesem Gerät. Nichts wird übertragen. Passphrase nicht zur Hand? Schau im Passwortmanager bzw. unter iPhone-Einstellungen → Passwörter nach „github.io“.';
     $('#resetWrap').classList.remove('hidden');
   }
-  $('#pw1').focus();
+  // Am Handy nicht automatisch anwählen: sonst zoomt iOS beim Öffnen hinein
+  if (!matchMedia('(pointer:coarse)').matches) $('#pw1').focus();
 }
 function strength(p) {
   let s = 0; if (p.length >= 12) s++; if (p.length >= 16) s++; if (p.length >= 22) s++;
@@ -1163,7 +1169,7 @@ function dialog(title, content, okLabel = 'Speichern', extra) {
     const d = $('#dlg'); const my = ++dlgGen;
     if (d.open) d.close('cancel');
     const form = h('form', { method: 'dialog' },
-      h('div', { class: 'dh' }, title), h('div', { class: 'db' }, content),
+      h('div', { class: 'dh', tabindex: '-1', autofocus: matchMedia('(pointer:coarse)').matches, style: 'outline:none' }, title), h('div', { class: 'db' }, content),
       h('div', { class: 'df' }, extra ? h('span', { class: 'left' }, extra) : null,
         h('button', { class: 'btn', value: 'cancel', type: 'button', onclick: () => { d.close('cancel'); } }, okLabel ? 'Abbrechen' : 'Schließen'),
         okLabel ? h('button', { class: 'btn primary', value: 'ok', type: 'submit' }, okLabel) : null));
@@ -1177,7 +1183,7 @@ function dialog(title, content, okLabel = 'Speichern', extra) {
     };
     d.addEventListener('close', onClose);
     d.returnValue = ''; d.showModal();
-    const first = form.querySelector('input:not([type=hidden]),textarea,select'); if (first) setTimeout(() => first.focus(), 30);
+    const first = form.querySelector('input:not([type=hidden]),textarea,select'); if (first && !matchMedia('(pointer:coarse)').matches) setTimeout(() => first.focus(), 30);
   });
 }
 async function confirmBox(title, text, label = 'Löschen') {
