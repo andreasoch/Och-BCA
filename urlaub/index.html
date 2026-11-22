@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: https://upload.wikimedia.org; connect-src 'self' https://api.open-meteo.com https://marine-api.open-meteo.com https://geocoding-api.open-meteo.com https://de.wikipedia.org; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="theme-color" content="#F5EFE4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E151D" media="(prefers-color-scheme: dark)">
+<title>Fernweh</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Fernweh">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F5EFE4;--surface:#FFFDF8;--surface2:#EFE6D6;--ink:#1D2733;--muted:#56626F;--line:rgba(29,39,51,.12);
+  --accent:#C9502F;--accent-soft:rgba(201,80,47,.12);--accent-ink:#fff;--sea:#136C80;--sea-soft:rgba(19,108,128,.12);
+  --sun:#E9A21F;--good:#2C7F52;--warn:#B5651D;--shadow:0 8px 28px rgba(60,40,10,.10);--radius:20px;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E151D;--surface:#16212C;--surface2:#1E2B38;--ink:#EEF2F5;--muted:#A3B0BC;--line:rgba(255,255,255,.10);
+    --accent:#F0805F;--accent-soft:rgba(240,128,95,.16);--accent-ink:#1A0F0A;--sea:#5BBCD0;--sea-soft:rgba(91,188,208,.14);
+    --sun:#F5BE4F;--good:#5CC08A;--warn:#E8A15C;--shadow:0 8px 28px rgba(0,0,0,.35);color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E151D;--surface:#16212C;--surface2:#1E2B38;--ink:#EEF2F5;--muted:#A3B0BC;--line:rgba(255,255,255,.10);
+  --accent:#F0805F;--accent-soft:rgba(240,128,95,.16);--accent-ink:#1A0F0A;--sea:#5BBCD0;--sea-soft:rgba(91,188,208,.14);
+  --sun:#F5BE4F;--good:#5CC08A;--warn:#E8A15C;--shadow:0 8px 28px rgba(0,0,0,.35);color-scheme:dark;
+}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--sans);min-height:100vh;padding-bottom:env(safe-area-inset-bottom)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--sea);outline-offset:2px;border-radius:8px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+h1,h2,h3{font-family:var(--serif);font-weight:600;letter-spacing:-.01em;line-height:1.15}
+.muted{color:var(--muted)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* Kopf */
+.top{display:flex;align-items:center;gap:12px;padding:calc(14px + env(safe-area-inset-top)) 0 10px}
+.brand{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.brand svg{width:34px;height:34px;flex:none}
+.brand b{font-family:var(--serif);font-size:22px;font-weight:600}
+.iconbtn{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--surface);box-shadow:var(--shadow);flex:none}
+.iconbtn svg{width:20px;height:20px}
+.iconbtn.spin svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Übersicht */
+.hello{padding:18px 0 6px}
+.hello h1{font-size:clamp(28px,6vw,40px)}
+.hello p{margin-top:6px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;margin:20px 0}
+.card{text-decoration:none;color:inherit;background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;text-align:left;transition:transform .15s}
+.card:hover{transform:translateY(-2px)}
+.card .scene{height:132px;position:relative}
+.scene svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.scene .over{position:absolute;inset:auto 0 0 0;padding:12px 16px;color:#fff;display:flex;align-items:flex-end;justify-content:space-between;gap:8px;background:linear-gradient(transparent,rgba(0,0,0,.42))}
+.scene .over h2{font-size:24px;text-shadow:0 1px 8px rgba(0,0,0,.35)}
+.scene .over .t{font-size:30px;font-weight:300;text-shadow:0 1px 8px rgba(0,0,0,.35);white-space:nowrap}
+.card .body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px;flex:1}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--surface2);font-size:13px;font-weight:500}
+.pill.accent{background:var(--accent-soft);color:var(--accent)}
+.pill.sea{background:var(--sea-soft);color:var(--sea)}
+.pill svg{width:16px;height:16px}
+.brief{font-size:15px}
+.addcard{border:2px dashed var(--line);border-radius:var(--radius);min-height:220px;display:grid;place-items:center;color:var(--muted);font-weight:600;gap:6px;text-align:center;padding:20px}
+.addcard:hover{border-color:var(--accent);color:var(--accent)}
+.addcard span{font-size:40px;line-height:1;font-weight:300}
+
+/* Detail */
+.hero{position:relative;height:clamp(290px,42vw,360px);border-radius:0 0 28px 28px;overflow:hidden;margin:0 -16px}
+@media (min-width:1112px){.hero{margin:0;border-radius:28px}}
+.hero .over{position:absolute;inset:0;padding:calc(14px + env(safe-area-inset-top)) 18px 20px;display:flex;flex-direction:column;justify-content:space-between;color:#fff;background:linear-gradient(rgba(0,0,0,.18),transparent 35%,transparent 50%,rgba(0,0,0,.5))}
+.hero .bar{display:flex;justify-content:space-between;gap:10px}
+.hero .bar .iconbtn{background:rgba(255,255,255,.9);color:#1D2733}
+.hero h1{font-size:clamp(30px,7vw,48px);text-shadow:0 2px 12px rgba(0,0,0,.35)}
+.hero .sub{opacity:.95;text-shadow:0 1px 6px rgba(0,0,0,.4)}
+.hero .now{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hero .temp{font-size:clamp(48px,11vw,72px);font-weight:200;line-height:1;text-shadow:0 2px 12px rgba(0,0,0,.3)}
+.hero .cond{text-align:right;text-shadow:0 1px 6px rgba(0,0,0,.45);font-size:15px}
+.hero .cond b{display:block;font-size:18px}
+.countdown{margin:-22px auto 0;position:relative;z-index:2;width:fit-content;max-width:calc(100% - 32px);background:var(--surface);box-shadow:var(--shadow);border-radius:999px;padding:8px 18px;font-weight:600;display:flex;gap:8px;align-items:center;text-align:center}
+.countdown.empty{font-weight:500;color:var(--muted)}
+.countdown svg{width:18px;height:18px;flex:none}
+.actions{display:flex;gap:10px;overflow-x:auto;padding:18px 2px 6px;scrollbar-width:none}
+.actions::-webkit-scrollbar{display:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;border-radius:999px;background:var(--surface);box-shadow:0 2px 10px rgba(0,0,0,.06);border:1px solid var(--line);font-weight:600;font-size:14px;text-decoration:none;white-space:nowrap;min-height:42px}
+.btn svg{width:18px;height:18px;flex:none}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn.sea{background:var(--sea);color:#fff;border-color:transparent}
+:root[data-theme="dark"] .btn.sea{color:#06222A}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn.sea{color:#06222A}}
+.btn.small{padding:6px 12px;min-height:34px;font-size:13px}
+.btn.ghost{background:transparent;box-shadow:none}
+.btn.danger{color:#fff;background:#B3261E;border-color:transparent}
+section.sec{margin:26px 0}
+.sec h2{font-size:24px;margin-bottom:4px}
+.sec .lead{color:var(--muted);font-size:14px;margin-bottom:14px}
+.panel{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+
+/* Empfehlungen */
+.recos{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.reco{background:linear-gradient(135deg,var(--accent-soft),var(--sea-soft));border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:8px}
+.reco h3{font-size:19px}
+.reco .why{font-size:13px;color:var(--muted)}
+
+/* Wetter */
+.hours{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x proximity}
+.hour{flex:none;width:58px;text-align:center;padding:8px 2px;border-radius:14px;scroll-snap-align:start;font-size:13px}
+.hour.now{background:var(--sea-soft)}
+.hour svg{width:32px;height:32px;display:block;margin:4px auto}
+.hour b{font-size:15px}
+.hour .pp{color:var(--sea);font-size:12px;min-height:16px}
+.days{display:flex;flex-direction:column;margin-top:10px}
+.day{display:grid;grid-template-columns:78px 34px 1fr 46px;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.day:first-child{border-top:0}
+.day svg{width:32px;height:32px}
+.day .lbl{font-weight:600;font-size:14px}
+.day .lbl small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.range{display:flex;align-items:center;gap:8px;font-size:14px}
+.range .lo{color:var(--muted);width:30px;text-align:right}
+.range .track{flex:1;height:6px;border-radius:3px;background:var(--surface2);position:relative}
+.range .fill{position:absolute;top:0;bottom:0;border-radius:3px;background:linear-gradient(90deg,#4FA3C7,#F2B33D,#E2674A)}
+.day .rain{font-size:12px;color:var(--sea);text-align:right}
+.day .best{grid-column:1/-1;margin-top:-4px;padding:0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:14px}
+.tile{background:var(--surface);border-radius:16px;box-shadow:var(--shadow);padding:12px 14px}
+.tile small{display:block;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.tile b{font-size:22px;font-weight:500;display:block;margin-top:2px}
+.tile span{font-size:13px;color:var(--muted)}
+.stamp{font-size:12px;color:var(--muted);margin-top:10px}
+
+/* Tipps */
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:14px;font-weight:500}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tips{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.tip{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:8px}
+.tip .head{display:flex;gap:12px;align-items:flex-start}
+.tip .emo{font-size:26px;width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:var(--surface2);flex:none}
+.tip h3{font-size:18px}
+.tip .meta{font-size:13px;color:var(--muted)}
+.tip p{font-size:15px}
+.tip .foot{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto;padding-top:4px;align-items:center}
+.tip .star{margin-left:auto}
+.star svg{width:22px;height:22px}
+.star[aria-pressed="true"] svg{fill:var(--sun);stroke:var(--sun)}
+.own{font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--sea)}
+
+/* Entdecken */
+.wiki{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.wk{background:var(--surface);border-radius:16px;box-shadow:var(--shadow);display:flex;gap:12px;padding:12px;align-items:flex-start}
+.wk img,.wk .ph{width:72px;height:72px;border-radius:12px;object-fit:cover;flex:none;background:var(--surface2);display:grid;place-items:center;font-size:26px}
+.wk h3{font-size:16px;font-family:var(--sans);font-weight:650}
+.wk p{font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.wk .foot{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.links{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.links a{justify-content:flex-start}
+
+/* Zustände */
+.skel{background:linear-gradient(90deg,var(--surface2),var(--surface),var(--surface2));background-size:200% 100%;animation:sk 1.4s infinite;border-radius:12px}
+@keyframes sk{to{background-position:-200% 0}}
+.err{padding:14px 16px;border-radius:16px;background:var(--accent-soft);display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:14px}
+footer{padding:30px 0 40px;color:var(--muted);font-size:13px;text-align:center}
+footer button{text-decoration:underline;color:inherit;font-size:13px}
+
+/* Dialoge */
+dialog{border:0;border-radius:24px;background:var(--surface);color:var(--ink);width:min(520px,calc(100% - 24px));max-height:calc(100vh - 40px);padding:0;box-shadow:0 30px 80px rgba(0,0,0,.35);margin:auto}
+dialog::backdrop{background:rgba(10,15,20,.5);backdrop-filter:blur(3px)}
+.dlg{padding:22px;display:flex;flex-direction:column;gap:14px}
+.dlg h2{font-size:24px}
+.dlg .x{position:absolute;right:14px;top:14px}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600}
+label.f small{font-weight:400;color:var(--muted)}
+.inp{width:100%;min-width:0;padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-weight:400;font-size:16px}
+textarea.inp{min-height:90px;resize:vertical}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.two .inp{min-width:0}
+.msg{font-size:14px;color:#B3261E;font-weight:600;min-height:0}
+:root[data-theme="dark"] .msg{color:#FF8A80}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .msg{color:#FF8A80}}
+.results{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto}
+.res{text-align:left;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg)}
+.res[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.res small{display:block;color:var(--muted)}
+.themes{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.th{border-radius:14px;overflow:hidden;border:2px solid transparent;font-size:13px;font-weight:600;background:var(--bg);padding-bottom:6px}
+.th svg{width:100%;height:56px;display:block}
+.th[aria-pressed="true"]{border-color:var(--accent)}
+.btns{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.confirm{background:var(--accent-soft);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px;font-size:14px}
+.info p{font-size:14px;margin-bottom:8px}
+.info h3{font-size:17px;margin:8px 0 4px;font-family:var(--sans)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:14px;font-weight:600;z-index:50;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:520px){.grid,.tips,.wiki,.recos{grid-template-columns:1fr}.day{grid-template-columns:70px 30px 1fr 40px;gap:8px}.themes{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div id="app" class="wrap"></div>
+<dialog id="dlg" aria-labelledby="dlgTitle"></dialog>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+const VERSION = '1.0';
+const KEY = 'fernweh.v1';
+
+/* ---------- Kuratierte Ziele und Ausflugstipps ---------- */
+const CATS = {
+  strand:  ['Strand', '🏖️'],
+  wasser:  ['Wasser & Boot', '⛵'],
+  kultur:  ['Kultur', '🏛️'],
+  natur:   ['Natur', '🌿'],
+  aktiv:   ['Aktiv', '🚴'],
+  familie: ['Familie', '🎡'],
+  genuss:  ['Genuss', '🍝'],
+  ausflug: ['Tagesausflug', '🚗'],
+};
+const FITS = { sonne: 'bei Sonne am schönsten', egal: 'bei jedem Wetter', regen: 'auch bei Regen gut' };
+
+const TIPS = {
+  misano: [
+    { id: 'm-strand', title: 'Strand & Lungomare', cat: 'strand', fit: 'sonne', dist: 'vor Ort', dur: 'flexibel', q: 'Spiaggia Misano Adriatico', text: 'Breite, flach abfallende Sandstrände mit Bagni (Liegen und Schirme). Ideal für Kinder und lange Spaziergänge an der Strandpromenade.' },
+    { id: 'm-circuit', title: 'Misano World Circuit', cat: 'aktiv', fit: 'egal', dist: 'ca. 5 km', dur: '2–4 Std.', q: 'Misano World Circuit Marco Simoncelli', text: 'Die Rennstrecke „Marco Simoncelli“ – im September Schauplatz des MotoGP-Laufs. Ganzjährig Events, Trackdays und Führungen (vorher Programm prüfen).' },
+    { id: 'm-portoverde', title: 'Portoverde am Abend', cat: 'genuss', fit: 'egal', dist: 'ca. 3 km', dur: '2 Std.', q: 'Portoverde Misano Adriatico', text: 'Kleiner Jachthafen am Südende von Misano. Schön zum Bummeln, für einen Aperitivo und Fisch am Hafen.' },
+    { id: 'm-piadina', title: 'Piadina probieren', cat: 'genuss', fit: 'egal', dist: 'vor Ort', dur: '1 Std.', q: 'Piadineria Misano Adriatico', text: 'Das Fladenbrot der Romagna – frisch gefüllt mit Squacquerone, Rucola und Rohschinken. Am besten am Kiosk direkt vom Blech.' },
+    { id: 'm-riccione', title: 'Riccione & Viale Ceccarini', cat: 'genuss', fit: 'egal', dist: 'ca. 6 km', dur: 'halber Tag', q: 'Viale Ceccarini Riccione', text: 'Die „Perle der Adria“: Flaniermeile mit Boutiquen, Eisdielen und Abendleben. Mit dem Rad über die Uferpromenade erreichbar.' },
+    { id: 'm-rimini', title: 'Rimini Altstadt', cat: 'kultur', fit: 'egal', dist: 'ca. 18 km', dur: 'halber Tag', q: 'Ponte di Tiberio Rimini', text: 'Römische Tiberiusbrücke, Augustusbogen, Tempio Malatestiano und die Piazza Cavour – 2000 Jahre Geschichte in kurzer Wegstrecke.' },
+    { id: 'm-gradara', title: 'Burg Gradara', cat: 'kultur', fit: 'egal', dist: 'ca. 12 km', dur: 'halber Tag', q: 'Rocca di Gradara', text: 'Mittelalterliche Festung mit vollständiger Stadtmauer – Schauplatz der Liebesgeschichte von Paolo und Francesca aus Dantes Göttlicher Komödie.' },
+    { id: 'm-sanmarino', title: 'San Marino', cat: 'ausflug', fit: 'sonne', dist: 'ca. 25 km', dur: 'ganzer Tag', q: 'Torre Guaita San Marino', text: 'Die Altstadt der kleinen Republik auf dem Monte Titano ist UNESCO-Welterbe. Bei klarer Sicht reicht der Blick von den Türmen bis zur Küste.' },
+    { id: 'm-sanleo', title: 'Festung San Leo', cat: 'ausflug', fit: 'sonne', dist: 'ca. 45 km', dur: 'halber Tag', q: 'Forte di San Leo', text: 'Spektakulär auf einem Felsklotz gelegene Festung, einst Gefängnis des Grafen Cagliostro. Dazu ein hübsches Bergdorf.' },
+    { id: 'm-santarcangelo', title: 'Santarcangelo di Romagna', cat: 'kultur', fit: 'egal', dist: 'ca. 25 km', dur: 'halber Tag', q: 'Santarcangelo di Romagna', text: 'Malerisches Hügelstädtchen mit Gassen, Burg und geheimnisvollen Tuffsteinhöhlen unter der Altstadt.' },
+    { id: 'm-aquafan', title: 'Aquafan Riccione', cat: 'familie', fit: 'sonne', dist: 'ca. 7 km', dur: 'ganzer Tag', q: 'Aquafan Riccione', text: 'Einer der bekanntesten Wasserparks Italiens mit Rutschen und Wellenbad – nur in der Sommersaison geöffnet.' },
+    { id: 'm-oltremare', title: 'Oltremare Riccione', cat: 'familie', fit: 'egal', dist: 'ca. 7 km', dur: 'halber Tag', q: 'Oltremare Riccione', text: 'Themenpark rund um Meer und Natur, gleich neben dem Aquafan. Öffnungszeiten saisonabhängig.' },
+    { id: 'm-acquario', title: 'Acquario di Cattolica', cat: 'familie', fit: 'regen', dist: 'ca. 6 km', dur: '3 Std.', q: 'Acquario di Cattolica', text: 'Großes Aquarium mit Haien, Pinguinen und Meeresbewohnern der Adria – die Rettung für einen Regentag mit Kindern.' },
+    { id: 'm-miniatura', title: 'Italia in Miniatura', cat: 'familie', fit: 'sonne', dist: 'ca. 25 km', dur: 'halber Tag', q: 'Italia in Miniatura Rimini', text: 'Ganz Italien und Europa im Kleinformat – über 270 Miniaturen, dazu Fahrgeschäfte für Kinder.' },
+    { id: 'm-ravenna', title: 'Mosaiken von Ravenna', cat: 'ausflug', fit: 'regen', dist: 'ca. 70 km', dur: 'ganzer Tag', q: 'Basilica di San Vitale Ravenna', text: 'Die frühchristlichen Mosaiken in San Vitale und im Mausoleum der Galla Placidia gehören zum UNESCO-Welterbe – vieles davon drinnen.' },
+    { id: 'm-urbino', title: 'Urbino', cat: 'ausflug', fit: 'egal', dist: 'ca. 50 km', dur: 'ganzer Tag', q: 'Palazzo Ducale Urbino', text: 'Renaissance-Juwel und Geburtsort Raffaels. Der Palazzo Ducale beherbergt die Nationalgalerie der Marken.' },
+    { id: 'm-rad', title: 'Radtour an der Küste', cat: 'aktiv', fit: 'sonne', dist: 'vor Ort', dur: '2–3 Std.', q: 'Lungomare Cattolica', text: 'Flach und entspannt die Promenade entlang nach Riccione oder Cattolica – Eis-Stopp inklusive.' },
+  ],
+  lemmer: [
+    { id: 'l-hafen', title: 'Hafen & Schleuse Lemmer', cat: 'genuss', fit: 'egal', dist: 'vor Ort', dur: '1–2 Std.', q: 'Lemstersluis Lemmer', text: 'Im Sommer reger Bootsverkehr durch die Schleuse mitten im Ort. Dazu Kibbeling oder Matjes am Hafen und ein Kaffee auf der Terrasse.' },
+    { id: 'l-woudagemaal', title: 'Ir. D.F. Woudagemaal', cat: 'kultur', fit: 'egal', dist: 'ca. 2 km', dur: '2 Std.', q: 'Ir. D.F. Woudagemaal', text: 'Das größte noch betriebsfähige Dampfpumpwerk der Welt – UNESCO-Welterbe direkt vor der Haustür, mit Besucherzentrum.' },
+    { id: 'l-sloep', title: 'Sloep oder Segelboot mieten', cat: 'wasser', fit: 'sonne', dist: 'vor Ort', dur: 'halber Tag', q: 'Bootsverhuur Lemmer', text: 'Mit dem führerscheinfreien Motorboot (Sloep) über die Friesischen Seen und Kanäle. Vorher Wind prüfen – siehe Wetter.' },
+    { id: 'l-strand', title: 'Strand am IJsselmeer', cat: 'strand', fit: 'sonne', dist: 'vor Ort', dur: 'flexibel', q: 'Strand Lemmer', text: 'Sandstrand mit Blick aufs IJsselmeer – gut für Kinder und für einen Sonnenuntergang über dem Wasser.' },
+    { id: 'l-sloten', title: 'Sloten', cat: 'kultur', fit: 'sonne', dist: 'ca. 10 km', dur: 'halber Tag', q: 'Sloten Friesland', text: 'Eine der kleinsten Städte der Niederlande: Grachten, Festungswall und eine Windmühle – auch per Boot oder Rad erreichbar.' },
+    { id: 'l-gaasterland', title: 'Gaasterland & Rote Klippe', cat: 'natur', fit: 'sonne', dist: 'ca. 20 km', dur: 'halber Tag', q: 'Mirnser Klif', text: 'Wälder, Hügel und die eiszeitlichen Steilufer am IJsselmeer – ungewöhnlich für Friesland und ideal zum Wandern oder Radeln.' },
+    { id: 'l-tjeukemeer', title: 'Radtour ums Tjeukemeer', cat: 'aktiv', fit: 'sonne', dist: 'ca. 12 km', dur: '3 Std.', q: 'Tjeukemeer', text: 'Flache Runde auf gut ausgebauten Radwegen über Deiche, vorbei an Wiesen, Kühen und Booten.' },
+    { id: 'l-sneek', title: 'Sneek & Wassertor', cat: 'kultur', fit: 'egal', dist: 'ca. 25 km', dur: 'halber Tag', q: 'Waterpoort Sneek', text: 'Das Waterpoort ist das Wahrzeichen Frieslands. Dazu Einkaufsstraßen und Cafés an den Grachten.' },
+    { id: 'l-hindeloopen', title: 'Hindeloopen', cat: 'kultur', fit: 'egal', dist: 'ca. 35 km', dur: 'halber Tag', q: 'Hindeloopen', text: 'Malerisches Hafenstädtchen am IJsselmeer, bekannt für bemalte Möbel und sein Schlittschuhmuseum.' },
+    { id: 'l-urk', title: 'Fischerdorf Urk', cat: 'genuss', fit: 'egal', dist: 'ca. 25 km', dur: 'halber Tag', q: 'Vuurtoren Urk', text: 'Die ehemalige Insel lebt bis heute vom Fischfang: Leuchtturm, enge Gassen und fangfrischer Fisch.' },
+    { id: 'l-schokland', title: 'Schokland', cat: 'kultur', fit: 'egal', dist: 'ca. 30 km', dur: '2–3 Std.', q: 'Museum Schokland', text: 'Ehemalige Insel in der Zuiderzee, heute mitten im Polderland – UNESCO-Welterbe mit kleinem Museum.' },
+    { id: 'l-enkhuizen', title: 'Fähre nach Enkhuizen', cat: 'ausflug', fit: 'sonne', dist: 'ca. 30 km bis Stavoren', dur: 'ganzer Tag', q: 'Zuiderzeemuseum Enkhuizen', text: 'Von Stavoren mit der (saisonalen) Fähre übers IJsselmeer nach Enkhuizen. Dort lockt das Freilichtmuseum Zuiderzeemuseum.' },
+    { id: 'l-giethoorn', title: 'Giethoorn', cat: 'ausflug', fit: 'sonne', dist: 'ca. 40 km', dur: 'halber Tag', q: 'Giethoorn', text: 'Das „Venedig des Nordens“: Reetgedeckte Häuser, Brücken und Kanäle – am schönsten mit dem Flüsterboot.' },
+    { id: 'l-joure', title: 'Museum Joure', cat: 'kultur', fit: 'regen', dist: 'ca. 20 km', dur: '2 Std.', q: 'Museum Joure', text: 'Hier begann die Geschichte von Douwe Egberts: Kaffee, Tee und friesisches Handwerk – ein gutes Programm bei Regen.' },
+    { id: 'l-fries', title: 'Fries Museum Leeuwarden', cat: 'ausflug', fit: 'regen', dist: 'ca. 55 km', dur: 'ganzer Tag', q: 'Fries Museum Leeuwarden', text: 'Kunst und Geschichte Frieslands, dazu der schiefe Turm Oldehove und die Altstadt von Leeuwarden.' },
+    { id: 'l-thialf', title: 'Eisstadion Thialf', cat: 'aktiv', fit: 'regen', dist: 'ca. 30 km', dur: '2 Std.', q: 'Thialf Heerenveen', text: 'Berühmte Eisschnelllaufhalle in Heerenveen – zu bestimmten Zeiten öffentliches Eislaufen (Termine vorher prüfen).' },
+  ],
+};
+
+const PRESETS = [
+  { id: 'misano', name: 'Misano Adriatico', region: 'Emilia-Romagna', country: 'Italien', lat: 43.9776, lon: 12.6979, mlat: 43.99, mlon: 12.72, theme: 'sea', tipsKey: 'misano' },
+  { id: 'lemmer', name: 'Lemmer', region: 'Friesland', country: 'Niederlande', lat: 52.8445, lon: 5.7112, mlat: 52.83, mlon: 5.64, theme: 'lake', tipsKey: 'lemmer' },
+];
+const THEMES = { sea: 'Meer', lake: 'See & Polder', mountain: 'Berge', city: 'Stadt & Land' };
+
+/* ---------- Speicher ---------- */
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
+  del(k) { try { localStorage.removeItem(k); } catch { } },
+};
+const newPlace = p => ({ ...p, trip: null, custom: [], hidden: [], fav: [] });
+let S = store.get(KEY);
+if (!S || !Array.isArray(S.places)) S = { v: 1, places: PRESETS.map(newPlace) };
+const save = () => { if (!store.set(KEY, S)) toast('Speichern nicht möglich (Speicher voll oder gesperrt)'); };
+
+const ui = { cat: 'alle', wikiAll: false, loading: {} };
+const wx = {}, wiki = {};
+
+/* ---------- Hilfen ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = n => String(n).padStart(2, '0');
+const uid = () => Math.random().toString(36).slice(2, 10);
+const gmSearch = q => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q);
+const gmRoute = q => 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(q);
+const placeQ = p => [p.name, p.region, p.country].filter(Boolean).join(', ');
+const todayIso = () => { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+const dayNum = iso => { const [y, m, d] = iso.split('-').map(Number); return Math.round(Date.UTC(y, m - 1, d) / 864e5); };
+const WD = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+const WDL = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+const isoDate = iso => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); };
+const fmtDate = iso => { const d = isoDate(iso); return pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear(); };
+const dayLabel = (iso, i) => i === 0 ? 'Heute' : i === 1 ? 'Morgen' : WD[isoDate(iso).getDay()];
+const r0 = v => v == null || isNaN(v) ? '–' : Math.round(v);
+function distKm(a, b, c, d) { const R = 6371, t = x => x * Math.PI / 180; const h = Math.sin(t(c - a) / 2) ** 2 + Math.cos(t(a)) * Math.cos(t(c)) * Math.sin(t(d - b) / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); }
+const BFT = [1, 6, 12, 20, 29, 39, 50, 62, 75, 89, 103, 118];
+const beaufort = kmh => { let b = 0; while (b < 12 && kmh >= BFT[b]) b++; return b; };
+const DIRS = ['N', 'NO', 'O', 'SO', 'S', 'SW', 'W', 'NW'];
+const dirName = deg => deg == null ? '' : DIRS[Math.round(deg / 45) % 8];
+let toastT;
+function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 2600); }
+const getPlace = id => S.places.find(p => p.id === id);
+
+/* ---------- Wettercodes (WMO) ---------- */
+function wmo(code, day = 1) {
+  const c = Number(code);
+  const T = {
+    0: 'Klar', 1: 'Überwiegend klar', 2: 'Teils bewölkt', 3: 'Bedeckt', 45: 'Nebel', 48: 'Raureifnebel',
+    51: 'Leichter Niesel', 53: 'Niesel', 55: 'Starker Niesel', 56: 'Gefrierender Niesel', 57: 'Gefrierender Niesel',
+    61: 'Leichter Regen', 63: 'Regen', 65: 'Starker Regen', 66: 'Gefrierender Regen', 67: 'Gefrierender Regen',
+    71: 'Leichter Schnee', 73: 'Schnee', 75: 'Starker Schnee', 77: 'Schneegriesel', 80: 'Regenschauer', 81: 'Regenschauer',
+    82: 'Heftige Schauer', 85: 'Schneeschauer', 86: 'Schneeschauer', 95: 'Gewitter', 96: 'Gewitter mit Hagel', 99: 'Gewitter mit Hagel',
+  };
+  let kind = 'cloud';
+  if (c === 0 || c === 1) kind = day ? 'sun' : 'moon';
+  else if (c === 2) kind = day ? 'partly' : 'partlyn';
+  else if (c === 3) kind = 'cloud';
+  else if (c === 45 || c === 48) kind = 'fog';
+  else if (c >= 51 && c <= 57) kind = 'drizzle';
+  else if ((c >= 61 && c <= 67) || (c >= 80 && c <= 82)) kind = 'rain';
+  else if ((c >= 71 && c <= 77) || c === 85 || c === 86) kind = 'snow';
+  else if (c >= 95) kind = 'thunder';
+  if (c === 0 && !day) T[0] = 'Sternenklar';
+  const wet = ['drizzle', 'rain', 'snow', 'thunder'].includes(kind);
+  const sunny = c <= 1, fair = c <= 2;
+  return { text: T[c] || 'Wetter', kind, wet, sunny, fair };
+}
+
+function icon(kind) {
+  const sun = (x, y, r) => `<g stroke="#F2B33D" stroke-width="3" stroke-linecap="round">${[0, 45, 90, 135, 180, 225, 270, 315].map(a => { const t = a * Math.PI / 180; return `<line x1="${(x + Math.cos(t) * (r + 4)).toFixed(1)}" y1="${(y + Math.sin(t) * (r + 4)).toFixed(1)}" x2="${(x + Math.cos(t) * (r + 9)).toFixed(1)}" y2="${(y + Math.sin(t) * (r + 9)).toFixed(1)}"/>`; }).join('')}</g><circle cx="${x}" cy="${y}" r="${r}" fill="#F7C04A"/>`;
+  const moon = (x, y) => `<path d="M${x + 6} ${y - 12}a13 13 0 1 0 8 20 11 11 0 0 1-8-20z" fill="#C9D3E0"/>`;
+  const cloud = (fill = '#B8C4CF') => `<path d="M18 48h28a10 10 0 0 0 1-20 14 14 0 0 0-27-2 11 11 0 0 0-2 22z" fill="${fill}"/>`;
+  const drops = (n, col = '#3D8FD1') => `<g stroke="${col}" stroke-width="3" stroke-linecap="round">${[22, 32, 42].slice(0, n).map(x => `<line x1="${x}" y1="52" x2="${x - 3}" y2="60"/>`).join('')}</g>`;
+  const inner = {
+    sun: sun(32, 32, 11),
+    moon: moon(30, 32),
+    partly: sun(24, 24, 9) + cloud('#C7D1DA'),
+    partlyn: moon(24, 26) + cloud('#AEB9C4'),
+    cloud: cloud('#A9B6C2') ,
+    fog: cloud('#BAC4CC') + '<g stroke="#9AA7B2" stroke-width="3" stroke-linecap="round"><line x1="14" y1="54" x2="50" y2="54"/><line x1="20" y1="60" x2="44" y2="60"/></g>',
+    drizzle: cloud('#A3B1BE') + drops(2, '#5AA6DD'),
+    rain: cloud('#8E9DAB') + drops(3),
+    snow: cloud('#B3C0CB') + '<g fill="#8FB8DA"><circle cx="22" cy="56" r="3"/><circle cx="32" cy="59" r="3"/><circle cx="42" cy="56" r="3"/></g>',
+    thunder: cloud('#7D8B98') + '<path d="M33 46l-7 10h6l-3 8 9-12h-6l3-6z" fill="#F2B33D"/>',
+  }[kind] || cloud();
+  return `<svg viewBox="0 0 64 64" aria-hidden="true">${inner}</svg>`;
+}
+
+/* ---------- Szenen (Illustrationen) ---------- */
+function sky(state) {
+  return {
+    day: ['#4AA8DE', '#A9DCF3', '#FFE9B8'],
+    cloud: ['#7F93A4', '#B9C6D0', '#DCE2E6'],
+    wet: ['#56677A', '#8797A6', '#AFBAC3'],
+    night: ['#0B1834', '#22386A', '#4A5F8E'],
+  }[state];
+}
+function sceneState(p) {
+  const d = wx[p.id]?.data;
+  if (!d?.current) return 'day';
+  const w = wmo(d.current.weather_code, d.current.is_day);
+  if (!d.current.is_day) return 'night';
+  return w.wet ? 'wet' : w.fair ? 'day' : 'cloud';
+}
+function hash(s) { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h); }
+function scene(theme, state, seed = 'x') {
+  const [a, b, c] = sky(state), id = 'g' + hash(theme + state + seed) % 99999;
+  const night = state === 'night', wet = state === 'wet', cloudy = state === 'cloud' || wet;
+  const orb = night ? '<circle cx="320" cy="56" r="20" fill="#F3EBD0"/><circle cx="329" cy="50" r="18" fill="' + a + '"/>' +
+    [[40, 30], [90, 60], [150, 25], [210, 50], [260, 20], [370, 90]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.6" fill="#fff" opacity=".8"/>`).join('')
+    : cloudy ? '' : '<circle cx="318" cy="62" r="34" fill="#FFF3C4" opacity=".55"/><circle cx="318" cy="62" r="24" fill="#FFD866"/>';
+  const clouds = cloudy ? `<g fill="#fff" opacity="${wet ? .35 : .6}"><ellipse cx="90" cy="50" rx="70" ry="20"/><ellipse cx="140" cy="40" rx="50" ry="22"/><ellipse cx="300" cy="60" rx="80" ry="22"/><ellipse cx="350" cy="45" rx="45" ry="18"/></g>`
+    : night ? '' : '<g fill="#fff" opacity=".75"><ellipse cx="90" cy="52" rx="40" ry="10"/><ellipse cx="112" cy="45" rx="24" ry="10"/></g>';
+  const rain = wet ? `<g stroke="#fff" stroke-width="1.4" opacity=".45">${Array.from({ length: 34 }, (_, i) => { const x = (i * 37) % 420, y = (i * 53) % 160; return `<line x1="${x}" y1="${y}" x2="${x - 6}" y2="${y + 16}"/>`; }).join('')}</g>` : '';
+  const water = night ? '#1B3157' : wet ? '#4E6A7C' : cloudy ? '#5D8597' : '#1F8FB0';
+  const water2 = night ? '#24406B' : wet ? '#5F7C8D' : cloudy ? '#6F98A8' : '#37A9C6';
+  let land = '';
+  if (theme === 'sea') {
+    land = `<rect y="128" width="400" height="60" fill="${water}"/><path d="M0 140q25-6 50 0t50 0 50 0 50 0 50 0 50 0 50 0 50 0" stroke="${water2}" stroke-width="3" fill="none"/><path d="M0 156q25-6 50 0t50 0 50 0 50 0 50 0 50 0 50 0 50 0" stroke="${water2}" stroke-width="3" fill="none" opacity=".7"/>
+    <path d="M0 176q100-22 200-10t200-6v60H0z" fill="${night ? '#6B5F4A' : '#EED6A6'}"/><path d="M0 190q120-14 240-6t160-2v40H0z" fill="${night ? '#5A503F' : '#E5C68C'}"/>
+    <g transform="translate(92 150)"><line x1="0" y1="0" x2="4" y2="46" stroke="#6B4E33" stroke-width="3"/><path d="M-34 6q36-34 72 0z" fill="#E2674A"/><path d="M-34 6q12-12 24-15l-6 15zM2 -9q14 3 24 15h-18z" fill="#fff" opacity=".9"/></g>
+    <g transform="translate(250 132)" fill="${night ? '#C9D3E0' : '#fff'}"><path d="M0 0l14-28v28z"/><path d="M-10 2h30l-4 6h-22z" fill="${night ? '#8798B2' : '#D9583B'}"/></g>`;
+  } else if (theme === 'lake') {
+    land = `<path d="M0 132h400v70H0z" fill="${water}"/><path d="M0 146q25-4 50 0t50 0 50 0 50 0 50 0 50 0 50 0 50 0" stroke="${water2}" stroke-width="2.5" fill="none"/>
+    <path d="M0 126q60-8 140-2t130 0 130-2v10H0z" fill="${night ? '#2D4A3A' : '#6FAE62'}"/>
+    <g transform="translate(70 70)" fill="${night ? '#1D2A3E' : '#3B3A44'}"><path d="M-9 56l5-44h10l5 44z"/><rect x="-11" y="8" width="22" height="7" rx="2"/>
+    <g transform="translate(0 12)" stroke="${night ? '#1D2A3E' : '#3B3A44'}" stroke-width="3"><line x1="-34" y1="-34" x2="34" y2="34"/><line x1="34" y1="-34" x2="-34" y2="34"/></g>
+    <g transform="translate(0 12)" fill="${night ? '#33445E' : '#F3EFE6'}" opacity=".9"><path d="M5 5l22 22 6-6-22-22z"/><path d="M-5 -5l-22-22-6 6 22 22z"/><path d="M5 -5l22-22 6 6-22 22z" opacity=".7"/><path d="M-5 5l-22 22-6-6 22-22z" opacity=".7"/></g></g>
+    <g transform="translate(260 104)"><path d="M0 40V0l34 38z" fill="${night ? '#C9D3E0' : '#fff'}"/><path d="M-4 38V8l-22 30z" fill="${night ? '#9AA8C0' : '#F2E3C6'}"/><path d="M-30 42h70l-8 9h-54z" fill="${night ? '#6D7F9B' : '#C9502F'}"/></g>
+    <g stroke="${night ? '#2E4A33' : '#4F8A3E'}" stroke-width="2" stroke-linecap="round">${[330, 338, 346, 352, 360, 368].map((x, i) => `<line x1="${x}" y1="200" x2="${x + (i % 2 ? 4 : -3)}" y2="${160 + (i % 3) * 8}"/>`).join('')}</g>`;
+  } else if (theme === 'mountain') {
+    land = `<path d="M-10 170L90 60l70 70 60-80 110 120 80-40v90H-10z" fill="${night ? '#2A3B5C' : cloudy ? '#7D8E99' : '#5E86A6'}"/><path d="M90 60l22 24-12 8-10-10-12 10 -6-8z M220 50l24 26-14 8-10-12-12 12-10-10z" fill="#fff" opacity=".85"/>
+    <path d="M-10 190l90-60 80 50 90-70 100 70 60-30v70H-10z" fill="${night ? '#20314A' : '#5F9A5E'}"/><path d="M-10 205q120-30 230-10t190 0v20H-10z" fill="${night ? '#18273B' : '#4C8550'}"/>`;
+  } else {
+    const bl = night ? '#1D2B44' : cloudy ? '#7E8A94' : '#C98C6A';
+    land = `<g fill="${bl}">${[[20, 120, 40], [64, 96, 36], [104, 130, 50], [160, 84, 28], [192, 110, 46], [244, 70, 30], [278, 104, 42], [324, 126, 36], [364, 92, 40]].map(([x, y, w]) => `<rect x="${x}" y="${y}" width="${w}" height="${220 - y}" rx="2"/>`).join('')}</g>
+    <path d="M244 70l15-24 15 24z" fill="${bl}"/><g fill="${night ? '#F3D27A' : '#FFF6E0'}" opacity=".75">${Array.from({ length: 24 }, (_, i) => `<rect x="${30 + (i * 47) % 350}" y="${140 + (i * 13) % 60}" width="6" height="8"/>`).join('')}</g>
+    <path d="M0 196h400v30H0z" fill="${night ? '#14213A' : '#8FA86A'}"/>`;
+  }
+  return `<svg viewBox="0 0 400 220" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset=".6" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></linearGradient></defs><rect width="400" height="220" fill="url(#${id})"/>${orb}${clouds}${land}${rain}</svg>`;
+}
+
+/* ---------- Daten laden ---------- */
+async function getJSON(url, ms = 12000) {
+  const ac = new AbortController(); const t = setTimeout(() => ac.abort(), ms);
+  try { const r = await fetch(url, { signal: ac.signal, referrerPolicy: 'no-referrer' }); if (!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); }
+  finally { clearTimeout(t); }
+}
+const STALE = 30 * 60 * 1000;
+function loadCached(p) {
+  if (!wx[p.id]) { const c = store.get('fernweh.wx.' + p.id); if (c) wx[p.id] = c; }
+  if (!wiki[p.id]) { const c = store.get('fernweh.wiki.' + p.id); if (c) wiki[p.id] = c; }
+}
+async function loadWeather(p, force = false) {
+  loadCached(p);
+  const c = wx[p.id];
+  if (!force && c && Date.now() - c.t < STALE && !c.err) return;
+  if (ui.loading[p.id]) return;
+  ui.loading[p.id] = true; render();
+  const f = 'https://api.open-meteo.com/v1/forecast?latitude=' + p.lat + '&longitude=' + p.lon +
+    '&current=temperature_2m,apparent_temperature,relative_humidity_2m,is_day,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m' +
+    '&hourly=temperature_2m,weather_code,precipitation_probability,is_day' +
+    '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,sunrise,sunset,uv_index_max,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant' +
+    '&timezone=auto&forecast_days=7';
+  const water = p.theme === 'sea' || p.theme === 'lake';
+  const m = 'https://marine-api.open-meteo.com/v1/marine?latitude=' + (p.mlat ?? p.lat) + '&longitude=' + (p.mlon ?? p.lon) +
+    '&current=sea_surface_temperature,wave_height&timezone=auto';
+  try {
+    const [data, marine] = await Promise.all([getJSON(f), water ? getJSON(m).catch(() => null) : Promise.resolve(null)]);
+    if (!data?.current || !data?.daily) throw new Error('Unvollständige Wetterdaten');
+    wx[p.id] = { t: Date.now(), data, marine };
+    store.set('fernweh.wx.' + p.id, wx[p.id]);
+  } catch (e) {
+    if (c) c.err = true; else wx[p.id] = { t: 0, err: true };
+  } finally { ui.loading[p.id] = false; render(); }
+}
+async function loadWiki(p, force = false) {
+  loadCached(p);
+  const c = wiki[p.id];
+  if (!force && c && Date.now() - c.t < 7 * 864e5 && !c.err) return;
+  const u = 'https://de.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=geosearch&ggscoord=' + p.lat + '%7C' + p.lon +
+    '&ggsradius=10000&ggslimit=30&prop=coordinates%7Cpageimages%7Cdescription%7Cextracts&exintro=1&explaintext=1&exsentences=2&exlimit=20&piprop=thumbnail&pithumbsize=160';
+  try {
+    const j = await getJSON(u);
+    const pages = Object.values(j?.query?.pages || {});
+    const items = pages.filter(x => x.coordinates?.[0]).map(x => ({
+      title: x.title, desc: x.description || '', extract: x.extract || '',
+      thumb: x.thumbnail?.source?.startsWith('https://upload.wikimedia.org/') ? x.thumbnail.source : '',
+      lat: x.coordinates[0].lat, lon: x.coordinates[0].lon,
+      dist: distKm(p.lat, p.lon, x.coordinates[0].lat, x.coordinates[0].lon),
+    })).filter(x => x.title.toLowerCase() !== p.name.toLowerCase()).sort((a, b) => a.dist - b.dist);
+    wiki[p.id] = { t: Date.now(), items };
+    store.set('fernweh.wiki.' + p.id, wiki[p.id]);
+  } catch { if (c) c.err = true; else wiki[p.id] = { t: 0, err: true, items: [] }; }
+  render();
+}
+
+/* ---------- Auswertungen ---------- */
+function dayInfo(d, i) {
+  const D = d.daily;
+  return { i, date: D.time[i], code: D.weather_code[i], max: D.temperature_2m_max[i], min: D.temperature_2m_min[i], pp: D.precipitation_probability_max?.[i], sum: D.precipitation_sum?.[i], wind: D.wind_speed_10m_max?.[i], gust: D.wind_gusts_10m_max?.[i], dir: D.wind_direction_10m_dominant?.[i], uv: D.uv_index_max?.[i], rise: D.sunrise?.[i], set: D.sunset?.[i], w: wmo(D.weather_code[i]) };
+}
+function dayScore(x) { return (x.w.sunny ? 3 : x.w.fair ? 2 : x.w.wet ? -2 : 0.5) + (x.max ?? 15) / 8 - (x.pp ?? 0) / 35 - Math.max(0, beaufort(x.wind ?? 0) - 5); }
+function bestDay(d) {
+  const n = d.daily.time.length; let best = null;
+  for (let i = 0; i < n; i++) { const x = dayInfo(d, i); x.s = dayScore(x); if (!best || x.s > best.s) best = x; }
+  return best && best.s >= 2.5 ? best : null;
+}
+function seaTemp(p) { const v = wx[p.id]?.marine?.current?.sea_surface_temperature; return v == null ? null : v; }
+function focusDay(d) { const h = Number((d.current?.time || '').slice(11, 13)); return h >= 18 && d.daily.time.length > 1 ? 1 : 0; }
+
+function allTips(p) { return [...(TIPS[p.tipsKey] || []), ...(p.custom || []).map(t => ({ ...t, own: true }))]; }
+function visibleTips(p) { const h = new Set(p.hidden || []); return allTips(p).filter(t => !h.has(t.id)); }
+function tipQ(p, t) { return t.q || (t.title + ', ' + p.name); }
+
+function recommend(p) {
+  const d = wx[p.id]?.data; const tips = visibleTips(p);
+  if (!d?.daily || !tips.length) return null;
+  const fi = focusDay(d), x = dayInfo(d, fi), bft = beaufort(x.wind ?? 0);
+  const doy = dayNum(todayIso());
+  const rain = x.w.wet || (x.pp ?? 0) >= 60, hot = (x.max ?? 0) >= 24, warm = (x.max ?? 0) >= 18;
+  const scored = tips.map((t, k) => {
+    let s = 0;
+    if (rain) s += t.fit === 'regen' ? 4 : t.fit === 'egal' ? 1.5 : -3;
+    else if (x.w.fair) { s += t.fit === 'sonne' ? 2.5 : t.fit === 'regen' ? -1 : 1; if (hot && (t.cat === 'strand' || t.cat === 'wasser')) s += 3; if (!warm && t.cat === 'strand') s -= 2; }
+    else s += t.fit === 'egal' ? 2 : t.fit === 'regen' ? 1.5 : 0;
+    if (t.cat === 'wasser' && bft >= 6) s -= 4;
+    if (!warm && (t.cat === 'strand' || t.id === 'm-aquafan')) s -= 2;
+    if ((p.fav || []).includes(t.id)) s += 1;
+    s += ((hash(t.id) + doy * 7 + k) % 10) / 10; // tägliche Abwechslung
+    return { t, s };
+  }).sort((a, b) => b.s - a.s).slice(0, 3);
+  let why;
+  if (rain) why = 'Regen erwartet – Programm mit Dach';
+  else if (x.w.fair && hot) why = 'Sonnig und warm – raus ans Wasser';
+  else if (x.w.fair && !warm) why = 'Klar, aber frisch – gut für Erkundungen';
+  else if (x.w.fair) why = 'Freundliches Wetter für Ausflüge';
+  else why = 'Wechselhaft – flexibel bleiben';
+  return { day: fi === 0 ? 'Heute' : 'Morgen', x, why, list: scored.map(s => s.t), bft };
+}
+function briefing(p) {
+  const d = wx[p.id]?.data; if (!d?.daily) return '';
+  const x = dayInfo(d, focusDay(d)), sst = seaTemp(p), bft = beaufort(x.wind ?? 0);
+  const when = focusDay(d) ? 'Morgen' : 'Heute';
+  let s;
+  if (x.w.wet || (x.pp ?? 0) >= 60) s = `${when} nass (${r0(x.pp)} % Regenrisiko) – Zeit für Museum & Café.`;
+  else if (x.w.fair && (x.max ?? 0) >= 24 && (p.theme === 'sea' || p.theme === 'lake')) s = `${when} Strandwetter: bis ${r0(x.max)}°${sst != null ? ', Wasser ' + r0(sst) + '°' : ''}.`;
+  else if (bft >= 6) s = `${when} windig: bis ${bft} Bft aus ${dirName(x.dir)} – gut festhalten.`;
+  else s = `${when} ${x.w.text.toLowerCase()}, ${r0(x.min)}° bis ${r0(x.max)}°.`;
+  const b = bestDay(d);
+  if (b && b.i > focusDay(d)) s += ` Top-Tag: ${WDL[isoDate(b.date).getDay()]}.`;
+  return s;
+}
+function tripStatus(p) {
+  const t = p.trip; if (!t?.from) return null;
+  const today = dayNum(todayIso()), a = dayNum(t.from), b = t.to ? dayNum(t.to) : a;
+  if (today < a) { const n = a - today; return { kind: 'soon', text: n === 1 ? 'Morgen geht’s los!' : `Noch ${n} Tage bis ${p.name}`, n }; }
+  if (today <= b) return { kind: 'now', text: `Du bist da – Tag ${today - a + 1} von ${b - a + 1}` };
+  return { kind: 'past', text: `Zuletzt hier bis ${fmtDate(t.to || t.from)}` };
+}
+
+/* ---------- Ansichten ---------- */
+const I = {
+  back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+  refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
+  route: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2-8z"/></svg>',
+  star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2.8 5.8 6.2.9-4.5 4.4 1 6.2L12 17.4 6.5 20.3l1-6.2L3 9.7l6.2-.9z"/></svg>',
+  info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  wave: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12c2.5-3 5-3 7.5 0s5 3 7.5 0 3.5-2 5-1M2 18c2.5-3 5-3 7.5 0s5 3 7.5 0 3.5-2 5-1"/></svg>',
+};
+const LOGO = '<svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#C9502F"/><circle cx="44" cy="22" r="8" fill="#FFD866"/><path d="M0 40q8-5 16 0t16 0 16 0 16 0v24H0z" fill="#1F8FB0"/><path d="M0 48q8-5 16 0t16 0 16 0 16 0v16H0z" fill="#37A9C6"/><path d="M22 38V16l14 22z" fill="#fff"/></svg>';
+
+function greet() { const h = new Date().getHours(); return h < 5 ? 'Gute Nacht' : h < 11 ? 'Guten Morgen' : h < 18 ? 'Hallo' : 'Guten Abend'; }
+
+function renderHome() {
+  const soon = S.places.map(p => ({ p, s: tripStatus(p) })).filter(x => x.s && x.s.kind !== 'past').sort((a, b) => (a.s.kind === 'now' ? -1 : a.s.n) - (b.s.kind === 'now' ? -1 : b.s.n))[0];
+  const sub = soon ? (soon.s.kind === 'now' ? `Schönen Urlaub in ${esc(soon.p.name)}!` : esc(soon.s.text) + '.') : 'Wetter, Ausflugstipps und Wege zu deinen Lieblingsorten.';
+  const cards = S.places.map(p => {
+    const c = wx[p.id], d = c?.data, cur = d?.current;
+    const w = cur ? wmo(cur.weather_code, cur.is_day) : null, ts = tripStatus(p), sst = seaTemp(p);
+    const today = d?.daily ? dayInfo(d, 0) : null;
+    return `<a class="card" href="#/ort/${encodeURIComponent(p.id)}" aria-label="${esc(p.name)} öffnen">
+      <div class="scene">${scene(p.theme, sceneState(p), p.id)}<div class="over"><h2>${esc(p.name)}</h2><span class="t">${cur ? r0(cur.temperature_2m) + '°' : ''}</span></div></div>
+      <div class="body">
+        <div class="row">
+          ${w ? `<span class="pill">${icon(w.kind)}${esc(w.text)}</span>` : c?.err ? '<span class="pill">Wetter offline</span>' : '<span class="pill skel" style="width:120px;height:26px"></span>'}
+          ${today ? `<span class="pill">↑ ${r0(today.max)}° ↓ ${r0(today.min)}°</span>` : ''}
+          ${sst != null ? `<span class="pill sea">${I.wave}${r0(sst)}°</span>` : ''}
+        </div>
+        ${ts && ts.kind !== 'past' ? `<span class="pill accent" style="align-self:flex-start">${I.cal}${esc(ts.text)}</span>` : ''}
+        <p class="brief muted">${esc(briefing(p)) || esc([p.region, p.country].filter(Boolean).join(' · '))}</p>
+      </div></a>`;
+  }).join('');
+  return `<header class="top"><div class="brand">${LOGO}<b>Fernweh</b></div>
+    <button class="iconbtn${Object.values(ui.loading).some(Boolean) ? ' spin' : ''}" data-act="refresh-all" aria-label="Alle aktualisieren" title="Aktualisieren">${I.refresh}</button>
+    <button class="iconbtn" data-act="info" aria-label="Info & Datenschutz" title="Info">${I.info}</button></header>
+    <div class="hello"><h1>${greet()}!</h1><p>${sub}</p></div>
+    <div class="grid">${cards}<button class="addcard" data-act="add"><div><span>+</span><br>Ort hinzufügen</div></button></div>
+    ${footer()}`;
+}
+function footer() { return `<footer>Fernweh ${VERSION} · Wetter: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0) · Orte: <a href="https://de.wikipedia.org/" target="_blank" rel="noopener">Wikipedia</a> (CC BY-SA) · <button data-act="info">Datenschutz & Quellen</button></footer>`; }
+
+function renderPlace(p) {
+  const c = wx[p.id], d = c?.data, cur = d?.current, w = cur ? wmo(cur.weather_code, cur.is_day) : null, ts = tripStatus(p);
+  const q = placeQ(p);
+  const hero = `<div class="hero">${scene(p.theme, sceneState(p), p.id)}<div class="over">
+    <div class="bar"><a class="iconbtn" href="#/" aria-label="Zur Übersicht">${I.back}</a>
+      <div class="row"><button class="iconbtn${ui.loading[p.id] ? ' spin' : ''}" data-act="refresh" aria-label="Aktualisieren">${I.refresh}</button><button class="iconbtn" data-act="edit" aria-label="Ort bearbeiten">${I.edit}</button></div></div>
+    <div><h1>${esc(p.name)}</h1><div class="sub">${esc([p.region, p.country].filter(Boolean).join(' · '))}</div></div>
+    <div class="now"><div class="temp">${cur ? r0(cur.temperature_2m) + '°' : ''}</div>
+      ${w ? `<div class="cond"><b>${esc(w.text)}</b>gefühlt ${r0(cur.apparent_temperature)}° · Wind ${beaufort(cur.wind_speed_10m)} Bft ${dirName(cur.wind_direction_10m)}</div>` : ''}</div>
+  </div></div>`;
+  const cd = ts ? `<div class="countdown">${I.cal}<span>${esc(ts.text)}</span></div>` : `<button class="countdown empty" data-act="edit">${I.cal}<span>Reisezeitraum eintragen</span></button>`;
+  const actions = `<div class="actions">
+    <a class="btn primary" href="${gmSearch(q)}" target="_blank" rel="noopener">${I.pin}In Google Maps</a>
+    <a class="btn" href="${gmRoute(q)}" target="_blank" rel="noopener">${I.route}Route dorthin</a>
+    <a class="btn" href="${gmSearch('Restaurants in ' + q)}" target="_blank" rel="noopener">🍽️ Restaurants</a>
+    <a class="btn" href="${gmSearch('Sehenswürdigkeiten in ' + q)}" target="_blank" rel="noopener">📸 Sehenswertes</a>
+  </div>`;
+  return hero + cd + `<div>${actions}${recoSection(p)}${weatherSection(p)}${tipsSection(p)}${wikiSection(p)}${linksSection(p)}</div>${footer()}`;
+}
+
+function recoSection(p) {
+  const r = recommend(p);
+  if (!r) return '';
+  return `<section class="sec"><h2>${r.day} empfohlen</h2><p class="lead">${esc(r.why)} · ${esc(r.x.w.text)}, bis ${r0(r.x.max)}°</p>
+    <div class="recos">${r.list.map(t => `<div class="reco"><div class="row"><span class="pill">${CATS[t.cat]?.[1] || '📍'} ${esc(CATS[t.cat]?.[0] || 'Tipp')}</span>${t.dist ? `<span class="pill">${esc(t.dist)}</span>` : ''}</div>
+      <h3>${esc(t.title)}</h3><p class="why">${esc(t.text || '')}</p>
+      ${t.cat === 'wasser' && r.bft >= 4 ? `<p class="why"><b>Wind ${r.bft} Bft</b> – ${r.bft >= 6 ? 'heute lieber an Land bleiben.' : 'nur für Geübte.'}</p>` : ''}
+      <div class="row"><a class="btn small sea" href="${gmSearch(tipQ(p, t))}" target="_blank" rel="noopener">${I.pin}Karte</a><a class="btn small" href="${gmRoute(tipQ(p, t))}" target="_blank" rel="noopener">${I.route}Route</a></div></div>`).join('')}</div></section>`;
+}
+
+function weatherSection(p) {
+  const c = wx[p.id], d = c?.data;
+  if (!d) {
+    if (c?.err) return `<section class="sec"><h2>Wetter</h2><div class="err"><span>Wetterdaten konnten nicht geladen werden. Bist du online?</span><button class="btn small" data-act="refresh">Erneut versuchen</button></div></section>`;
+    return `<section class="sec"><h2>Wetter</h2><div class="skel" style="height:120px"></div><div class="skel" style="height:260px;margin-top:12px"></div></section>`;
+  }
+  const cur = d.current, H = d.hourly, D = d.daily;
+  const nowKey = (cur.time || '').slice(0, 13);
+  let start = H.time.findIndex(t => t.slice(0, 13) >= nowKey); if (start < 0) start = 0;
+  const hours = H.time.slice(start, start + 24).map((t, k) => {
+    const i = start + k, w = wmo(H.weather_code[i], H.is_day?.[i] ?? 1), pp = H.precipitation_probability?.[i];
+    return `<div class="hour${k === 0 ? ' now' : ''}"><div>${k === 0 ? 'Jetzt' : t.slice(11, 13) + ' Uhr'}</div>${icon(w.kind)}<b>${r0(H.temperature_2m[i])}°</b><div class="pp">${pp >= 20 ? pp + ' %' : ''}</div></div>`;
+  }).join('');
+  const lo = Math.min(...D.temperature_2m_min.filter(v => v != null)), hi = Math.max(...D.temperature_2m_max.filter(v => v != null)), span = Math.max(1, hi - lo);
+  const best = bestDay(d);
+  const days = D.time.map((t, i) => {
+    const x = dayInfo(d, i), a = ((x.min - lo) / span) * 100, b = ((x.max - lo) / span) * 100;
+    return `<div class="day"><div class="lbl">${dayLabel(t, i)}<small>${t.slice(8, 10)}.${t.slice(5, 7)}.</small></div>${icon(x.w.kind)}
+      <div class="range"><span class="lo">${r0(x.min)}°</span><span class="track"><span class="fill" style="left:${a.toFixed(1)}%;right:${(100 - b).toFixed(1)}%"></span></span><b>${r0(x.max)}°</b></div>
+      <div class="rain">${x.pp != null ? x.pp + ' %' : ''}</div>
+      ${best && best.i === i ? `<div class="best"><span class="pill accent">☀️ Bester Tag der Woche</span></div>` : ''}</div>`;
+  }).join('');
+  const t0 = dayInfo(d, 0), sst = seaTemp(p), wave = c.marine?.current?.wave_height;
+  const bft = beaufort(cur.wind_speed_10m);
+  const windNote = bft >= 7 ? 'Sturmisch – Boote im Hafen lassen' : bft >= 5 ? 'Frisch – nur für Geübte auf dem Wasser' : bft >= 3 ? 'Schöner Segelwind' : 'Kaum Wind';
+  const uv = t0.uv, uvNote = uv == null ? '' : uv >= 8 ? 'sehr hoch – Schatten suchen' : uv >= 6 ? 'hoch – Sonnenschutz!' : uv >= 3 ? 'mittel' : 'niedrig';
+  const tiles = [
+    `<div class="tile"><small>Wind</small><b>${bft} Bft ${dirName(cur.wind_direction_10m)}</b><span>${r0(cur.wind_speed_10m)} km/h, Böen ${r0(cur.wind_gusts_10m)} · ${windNote}</span></div>`,
+    sst != null ? `<div class="tile"><small>Wasser</small><b>${r0(sst)}°</b><span>${wave != null ? 'Wellen ' + wave.toFixed(1).replace('.', ',') + ' m' : 'Oberflächentemperatur'}</span></div>` : '',
+    `<div class="tile"><small>Sonne</small><b>${(t0.rise || '').slice(11, 16)} – ${(t0.set || '').slice(11, 16)}</b><span>Sonnenauf- und -untergang (Ortszeit)</span></div>`,
+    uv != null ? `<div class="tile"><small>UV-Index</small><b>${uv.toFixed(0)}</b><span>${uvNote}</span></div>` : '',
+    `<div class="tile"><small>Luftfeuchte</small><b>${r0(cur.relative_humidity_2m)} %</b><span>Niederschlag heute ${t0.sum != null ? t0.sum.toFixed(1).replace('.', ',') + ' mm' : '–'}</span></div>`,
+  ].join('');
+  const at = new Date(c.t);
+  return `<section class="sec"><h2>Wetter</h2><p class="lead">Die nächsten 24 Stunden und 7 Tage – Ortszeit ${esc(p.name)}</p>
+    <div class="panel"><div class="hours">${hours}</div></div>
+    <div class="tiles">${tiles}</div>
+    <div class="panel" style="margin-top:14px"><div class="days">${days}</div></div>
+    <p class="stamp">Stand: ${at.toLocaleDateString('de-DE')} ${pad(at.getHours())}:${pad(at.getMinutes())} Uhr${c.err ? ' · Aktualisierung fehlgeschlagen, zeige gespeicherte Daten' : ''} · Quelle Open-Meteo</p></section>`;
+}
+
+function tipsSection(p) {
+  const tips = visibleTips(p), favs = new Set(p.fav || []);
+  const used = new Set(tips.map(t => t.cat));
+  const chips = [['alle', 'Alle'], ['fav', '★ Gemerkt'], ...Object.entries(CATS).filter(([k]) => used.has(k)).map(([k, v]) => [k, v[1] + ' ' + v[0]])];
+  if (ui.cat !== 'alle' && ui.cat !== 'fav' && !used.has(ui.cat)) ui.cat = 'alle';
+  const list = tips.filter(t => ui.cat === 'alle' || (ui.cat === 'fav' ? favs.has(t.id) : t.cat === ui.cat));
+  const hiddenN = (p.hidden || []).filter(id => allTips(p).some(t => t.id === id)).length;
+  const cards = list.map(t => `<article class="tip"><div class="head"><div class="emo" aria-hidden="true">${CATS[t.cat]?.[1] || '📍'}</div>
+      <div>${t.own ? '<div class="own">Eigener Tipp</div>' : ''}<h3>${esc(t.title)}</h3><div class="meta">${esc([CATS[t.cat]?.[0], t.dist, t.dur].filter(Boolean).join(' · '))}</div></div></div>
+      ${t.text ? `<p>${esc(t.text)}</p>` : ''}<div class="meta">${t.fit === 'regen' ? '☔' : t.fit === 'sonne' ? '☀️' : '🌤️'} ${esc(FITS[t.fit] || '')}</div>
+      <div class="foot"><a class="btn small sea" href="${gmSearch(tipQ(p, t))}" target="_blank" rel="noopener">${I.pin}Karte</a><a class="btn small" href="${gmRoute(tipQ(p, t))}" target="_blank" rel="noopener">${I.route}Route</a>
+        ${t.own ? `<button class="btn small ghost" data-act="tip-edit" data-id="${esc(t.id)}">Bearbeiten</button>` : `<button class="btn small ghost" data-act="tip-hide" data-id="${esc(t.id)}">Ausblenden</button>`}
+        <button class="iconbtn star" style="box-shadow:none;background:transparent" data-act="fav" data-id="${esc(t.id)}" aria-pressed="${favs.has(t.id)}" aria-label="${favs.has(t.id) ? 'Nicht mehr merken' : 'Merken'}">${I.star}</button></div></article>`).join('');
+  return `<section class="sec"><div class="row" style="justify-content:space-between"><h2>Ausflugstipps</h2><button class="btn small primary" data-act="tip-new">+ Eigener Tipp</button></div>
+    <p class="lead">${TIPS[p.tipsKey] ? 'Handverlesen für ' + esc(p.name) + ' – Entfernungen sind Circa-Angaben, Öffnungszeiten bitte vor Ort prüfen.' : 'Lege eigene Tipps an oder stöbere unten unter „Entdecken“.'}</p>
+    <div class="chips" role="toolbar" aria-label="Kategorie filtern">${chips.map(([k, l]) => `<button class="chip" data-act="cat" data-id="${k}" aria-pressed="${ui.cat === k}">${esc(l)}</button>`).join('')}</div>
+    ${list.length ? `<div class="tips">${cards}</div>` : `<div class="panel muted">${ui.cat === 'fav' ? 'Noch nichts gemerkt – tippe auf den Stern bei einem Tipp.' : 'Noch keine Tipps. Leg mit „+ Eigener Tipp“ los.'}</div>`}
+    ${hiddenN ? `<p class="stamp">${hiddenN} ausgeblendete${hiddenN === 1 ? 'r Tipp' : ' Tipps'} · <button class="btn small ghost" data-act="tip-unhide">wieder einblenden</button></p>` : ''}</section>`;
+}
+
+function wikiSection(p) {
+  const c = wiki[p.id];
+  let body;
+  if (!c) body = `<div class="skel" style="height:96px"></div>`;
+  else if (c.err && !c.items?.length) body = `<div class="err"><span>Wikipedia ist gerade nicht erreichbar.</span><button class="btn small" data-act="wiki-retry">Erneut versuchen</button></div>`;
+  else if (!c.items.length) body = `<div class="panel muted">Keine Wikipedia-Artikel im Umkreis von 10 km gefunden.</div>`;
+  else {
+    const items = ui.wikiAll ? c.items : c.items.slice(0, 8);
+    body = `<div class="wiki">${items.map(x => `<div class="wk">${x.thumb ? `<img src="${esc(x.thumb)}" alt="" loading="lazy">` : '<div class="ph" aria-hidden="true">📍</div>'}
+      <div style="min-width:0"><h3>${esc(x.title)}</h3><p>${esc(x.desc ? x.desc + (x.extract ? ' – ' : '') : '')}${esc(x.extract)}</p>
+      <div class="foot"><span class="pill">${x.dist < 1 ? Math.round(x.dist * 1000) + ' m' : x.dist.toFixed(1).replace('.', ',') + ' km'}</span>
+      <a class="btn small sea" href="${gmSearch(x.lat.toFixed(5) + ',' + x.lon.toFixed(5))}" target="_blank" rel="noopener">${I.pin}Karte</a>
+      <a class="btn small" href="https://de.wikipedia.org/wiki/${encodeURIComponent(x.title.replace(/ /g, '_'))}" target="_blank" rel="noopener">Lesen</a></div></div></div>`).join('')}</div>
+      ${c.items.length > 8 ? `<p style="margin-top:12px"><button class="btn small" data-act="wiki-more">${ui.wikiAll ? 'Weniger anzeigen' : 'Alle ' + c.items.length + ' anzeigen'}</button></p>` : ''}`;
+  }
+  return `<section class="sec"><h2>Entdecken</h2><p class="lead">Orte mit Wikipedia-Artikel im Umkreis von 10 km, nach Entfernung sortiert (Luftlinie)</p>${body}</section>`;
+}
+function linksSection(p) {
+  const q = placeQ(p);
+  const L = [['🏖️', 'Strände'], ['🍦', 'Eisdiele'], ['☕', 'Café'], ['🛒', 'Supermarkt'], ['💊', 'Apotheke'], ['⛽', 'Tankstelle'], ['🅿️', 'Parkplatz'], ['🚲', 'Fahrradverleih']];
+  return `<section class="sec"><h2>Schnell gefunden</h2><p class="lead">Öffnet die Suche direkt in Google Maps</p>
+    <div class="links">${L.map(([e, l]) => `<a class="btn" href="${gmSearch(l + ' in ' + q)}" target="_blank" rel="noopener">${e} ${l}</a>`).join('')}</div></section>`;
+}
+
+/* ---------- Routing & Render ---------- */
+function route() { const m = location.hash.match(/^#\/ort\/(.+)$/); return m ? decodeURIComponent(m[1]) : null; }
+function render() {
+  const id = route(), p = id && getPlace(id);
+  if (id && !p) { location.replace('#/'); return; }
+  $('#app').innerHTML = p ? renderPlace(p) : renderHome();
+  document.title = p ? p.name + ' · Fernweh' : 'Fernweh';
+}
+function onRoute() {
+  const id = route(), p = id && getPlace(id);
+  ui.cat = 'alle'; ui.wikiAll = false;
+  render(); window.scrollTo(0, 0);
+  if (p) { loadWeather(p); loadWiki(p); } else S.places.forEach(x => loadWeather(x));
+}
+
+/* ---------- Dialoge ---------- */
+const dlg = $('#dlg');
+function openDlg(html) { dlg.innerHTML = `<form class="dlg" method="dialog" novalidate>${html}</form>`; if (!dlg.open) dlg.showModal(); const f = dlg.querySelector('[autofocus]'); if (f) f.focus(); }
+function closeDlg() { if (dlg.open) dlg.close(); }
+dlg.addEventListener('click', e => { if (e.target === dlg) closeDlg(); });
+const xBtn = `<button type="button" class="iconbtn x" data-act="close" aria-label="Schließen">${I.x}</button>`;
+function themePicker(sel) { return `<div class="themes" role="group" aria-label="Motiv">${Object.entries(THEMES).map(([k, l]) => `<button type="button" class="th" data-act="theme" data-id="${k}" aria-pressed="${sel === k}">${scene(k, 'day', 'pick')}${l}</button>`).join('')}</div>`; }
+
+let addState = null, searchT = 0, searchSeq = 0;
+function openAdd() {
+  addState = { results: [], pick: null, theme: 'city', busy: false };
+  const missing = PRESETS.filter(pr => !S.places.some(p => p.id === pr.id));
+  openDlg(`${xBtn}<h2 id="dlgTitle">Ort hinzufügen</h2>
+    ${missing.length ? `<div><div class="muted" style="font-size:13px;margin-bottom:6px">Vorschläge</div><div class="row">${missing.map(pr => `<button type="button" class="chip" data-act="add-preset" data-id="${pr.id}">${esc(pr.name)}</button>`).join('')}</div></div>` : ''}
+    <label class="f">Ort suchen<input class="inp" id="q" type="search" autocomplete="off" placeholder="z. B. Gardasee, Bibione, Sylt" maxlength="80" autofocus></label>
+    <div class="results" id="results" aria-live="polite"></div>
+    <div id="themeBox" hidden><div class="muted" style="font-size:13px;margin-bottom:6px">Motiv für die Illustration</div><div id="themes">${themePicker(addState.theme)}</div></div>
+    <p class="msg" id="msg"></p>
+    <div class="btns"><button type="button" class="btn" data-act="close">Abbrechen</button><button type="submit" class="btn primary" data-act="add-save" disabled id="addSave">Hinzufügen</button></div>`);
+  $('#q').addEventListener('input', e => { clearTimeout(searchT); const v = e.target.value; searchT = setTimeout(() => doSearch(v), 350); });
+}
+async function doSearch(v) {
+  v = v.trim(); const box = $('#results'); if (!box) return;
+  if (v.length < 2) { box.innerHTML = ''; return; }
+  const seq = ++searchSeq; box.innerHTML = '<div class="skel" style="height:44px"></div>';
+  try {
+    const j = await getJSON('https://geocoding-api.open-meteo.com/v1/search?count=8&language=de&format=json&name=' + encodeURIComponent(v));
+    if (seq !== searchSeq || !$('#results')) return;
+    addState.results = (j.results || []).map(r => ({ name: r.name, region: r.admin1 || '', country: r.country || '', lat: r.latitude, lon: r.longitude }));
+    addState.pick = null; $('#addSave').disabled = true; $('#themeBox').hidden = true;
+    box.innerHTML = addState.results.length ? addState.results.map((r, i) => `<button type="button" class="res" data-act="pick" data-id="${i}" aria-pressed="false"><b>${esc(r.name)}</b><small>${esc([r.region, r.country].filter(Boolean).join(', '))}</small></button>`).join('') : '<p class="muted">Nichts gefunden. Andere Schreibweise probieren?</p>';
+  } catch { if (seq === searchSeq && $('#results')) box.innerHTML = '<p class="msg">Suche nicht erreichbar. Bist du online?</p>'; }
+}
+function addPlace(base, theme) {
+  const dup = S.places.find(p => distKm(p.lat, p.lon, base.lat, base.lon) < 2);
+  if (dup) { $('#msg').textContent = `${dup.name} ist schon in deiner Liste.`; return false; }
+  const p = newPlace({ ...base, theme, id: base.id || (base.name.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30) + '-' + uid().slice(0, 4)) });
+  S.places.push(p); save(); closeDlg(); toast(p.name + ' hinzugefügt'); location.hash = '#/ort/' + encodeURIComponent(p.id);
+  return true;
+}
+
+let editState = null;
+function openEdit(p) {
+  editState = { id: p.id, theme: p.theme, confirm: false };
+  openDlg(`${xBtn}<h2 id="dlgTitle">${esc(p.name)} bearbeiten</h2>
+    <label class="f">Name<input class="inp" id="eName" maxlength="60" value="${esc(p.name)}" required></label>
+    <label class="f">Region / Land <small>frei wählbar, erscheint unter dem Namen</small><input class="inp" id="eRegion" maxlength="80" value="${esc([p.region, p.country].filter(Boolean).join(', '))}"></label>
+    <div class="two"><label class="f">Anreise<input class="inp" id="eFrom" type="date" value="${esc(p.trip?.from || '')}"></label><label class="f">Abreise<input class="inp" id="eTo" type="date" value="${esc(p.trip?.to || '')}"></label></div>
+    <div><div class="muted" style="font-size:13px;margin-bottom:6px">Motiv</div><div id="themes">${themePicker(p.theme)}</div></div>
+    <div class="row"><button type="button" class="btn small" data-act="move" data-id="-1" ${S.places.indexOf(p) === 0 ? 'disabled' : ''}>← Weiter nach vorne</button><button type="button" class="btn small" data-act="move" data-id="1" ${S.places.indexOf(p) === S.places.length - 1 ? 'disabled' : ''}>Weiter nach hinten →</button></div>
+    <p class="msg" id="msg"></p>
+    <div id="delBox"><button type="button" class="btn small ghost" style="color:#B3261E" data-act="del-ask">Ort löschen …</button></div>
+    <div class="btns"><button type="button" class="btn" data-act="close">Abbrechen</button><button type="submit" class="btn primary" data-act="edit-save">Speichern</button></div>`);
+}
+function saveEdit() {
+  const p = getPlace(editState.id); if (!p) return closeDlg();
+  const name = $('#eName').value.trim(), reg = $('#eRegion').value.trim(), from = $('#eFrom').value, to = $('#eTo').value, msg = $('#msg');
+  if (!name) { msg.textContent = 'Bitte einen Namen eingeben.'; $('#eName').focus(); return; }
+  if (to && !from) { msg.textContent = 'Bitte auch das Anreisedatum eintragen.'; return; }
+  if (from && to && to < from) { msg.textContent = 'Die Abreise liegt vor der Anreise.'; return; }
+  const parts = reg.split(',').map(s => s.trim()).filter(Boolean);
+  p.name = name; p.region = parts.length > 1 ? parts.slice(0, -1).join(', ') : (parts[0] || ''); p.country = parts.length > 1 ? parts[parts.length - 1] : '';
+  const themeChanged = p.theme !== editState.theme;
+  p.theme = editState.theme;
+  p.trip = from ? { from, to: to || from } : null;
+  save(); closeDlg(); toast('Gespeichert');
+  if (themeChanged) loadWeather(p, true); else render();
+}
+function deletePlace(id) {
+  S.places = S.places.filter(p => p.id !== id); save();
+  store.del('fernweh.wx.' + id); store.del('fernweh.wiki.' + id); delete wx[id]; delete wiki[id];
+  closeDlg(); toast('Ort gelöscht'); location.hash = '#/';
+}
+
+let tipState = null;
+function openTip(p, t) {
+  tipState = { pid: p.id, id: t?.id || null, confirm: false };
+  openDlg(`${xBtn}<h2 id="dlgTitle">${t ? 'Tipp bearbeiten' : 'Eigener Tipp'}</h2>
+    <label class="f">Titel<input class="inp" id="tTitle" maxlength="80" value="${esc(t?.title || '')}" placeholder="z. B. Lieblings-Eisdiele" autofocus></label>
+    <div class="two"><label class="f">Kategorie<select class="inp" id="tCat">${Object.entries(CATS).map(([k, v]) => `<option value="${k}" ${(t?.cat || 'genuss') === k ? 'selected' : ''}>${v[1]} ${v[0]}</option>`).join('')}</select></label>
+    <label class="f">Wetter<select class="inp" id="tFit">${Object.entries(FITS).map(([k, v]) => `<option value="${k}" ${(t?.fit || 'egal') === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label></div>
+    <label class="f">Beschreibung <small>optional</small><textarea class="inp" id="tText" maxlength="500">${esc(t?.text || '')}</textarea></label>
+    <label class="f">Suchbegriff für Google Maps <small>leer = Titel + ${esc(p.name)}</small><input class="inp" id="tQ" maxlength="120" value="${esc(t?.q || '')}" placeholder="z. B. Gelateria Nome, ${esc(p.name)}"></label>
+    <label class="f">Entfernung <small>optional, z. B. „ca. 5 km“</small><input class="inp" id="tDist" maxlength="30" value="${esc(t?.dist || '')}"></label>
+    <p class="msg" id="msg"></p>
+    ${t ? '<div id="delBox"><button type="button" class="btn small ghost" style="color:#B3261E" data-act="tdel-ask">Tipp löschen …</button></div>' : ''}
+    <div class="btns"><button type="button" class="btn" data-act="close">Abbrechen</button><button type="submit" class="btn primary" data-act="tip-save">Speichern</button></div>`);
+}
+function saveTip() {
+  const p = getPlace(tipState.pid); if (!p) return closeDlg();
+  const title = $('#tTitle').value.trim();
+  if (!title) { $('#msg').textContent = 'Bitte einen Titel eingeben.'; $('#tTitle').focus(); return; }
+  const dupe = allTips(p).find(t => t.title.toLowerCase() === title.toLowerCase() && t.id !== tipState.id);
+  if (dupe) { $('#msg').textContent = 'Einen Tipp mit diesem Titel gibt es schon.'; return; }
+  const data = { title, cat: $('#tCat').value, fit: $('#tFit').value, text: $('#tText').value.trim(), q: $('#tQ').value.trim(), dist: $('#tDist').value.trim() };
+  p.custom = p.custom || [];
+  if (tipState.id) Object.assign(p.custom.find(t => t.id === tipState.id) || {}, data);
+  else p.custom.push({ id: 'c-' + uid(), ...data });
+  save(); closeDlg(); toast('Tipp gespeichert'); render();
+}
+
+function openInfo() {
+  openDlg(`${xBtn}<h2 id="dlgTitle">Über Fernweh</h2><div class="info">
+    <p>Fernweh hält dich über deine Lieblingsurlaubsorte auf dem Laufenden: Wetter für 7 Tage, Wassertemperatur, wetterabhängige Ausflugsempfehlungen und Wege per Google Maps.</p>
+    <h3>Deine Daten</h3><p>Orte, Reisedaten, eigene Tipps und Merkliste werden nur auf diesem Gerät im Browser gespeichert (localStorage). Es gibt kein Konto und keinen eigenen Server.</p>
+    <h3>Abgerufene Dienste</h3><p>Zum Laden werden nur die Koordinaten deiner Orte bzw. dein Suchbegriff an <b>Open-Meteo</b> (Wetter, Wassertemperatur, Ortssuche) und <b>Wikipedia</b> (Orte in der Umgebung, Vorschaubilder von Wikimedia) übertragen. Dabei sehen diese Dienste technisch bedingt deine IP-Adresse. Google Maps wird erst geöffnet, wenn du auf einen Karten- oder Routen-Knopf tippst.</p>
+    <h3>Quellen & Lizenzen</h3><p>Wetterdaten: Open-Meteo.com, CC BY 4.0. Ortsinformationen: Wikipedia, CC BY-SA 4.0. Ausflugstipps: redaktionell zusammengestellt, ohne Gewähr – Öffnungszeiten und Saison bitte vor Ort prüfen. Entfernungen sind Circa-Werte.</p>
+    <h3>Alles zurücksetzen</h3><p>Löscht alle Orte, Tipps und gespeicherten Wetterdaten auf diesem Gerät.</p>
+    <div id="resetBox"><button type="button" class="btn small ghost" style="color:#B3261E" data-act="reset-ask">Zurücksetzen …</button></div>
+    <p class="muted" style="margin-top:10px">Version ${VERSION}</p></div>`);
+}
+function confirmBox(boxId, text, act) {
+  $('#' + boxId).innerHTML = `<div class="confirm"><span>${text}</span><div class="row"><button type="button" class="btn small" data-act="cancel-confirm" data-id="${boxId}">Abbrechen</button><button type="button" class="btn small danger" data-act="${act}">Ja, löschen</button></div></div>`;
+}
+
+/* ---------- Ereignisse ---------- */
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const act = b.dataset.act, id = b.dataset.id, p = getPlace(route());
+  switch (act) {
+    case 'close': e.preventDefault(); closeDlg(); break;
+    case 'refresh': if (p) { loadWeather(p, true); loadWiki(p, true); } break;
+    case 'refresh-all': S.places.forEach(x => loadWeather(x, true)); break;
+    case 'info': openInfo(); break;
+    case 'add': openAdd(); break;
+    case 'edit': if (p) openEdit(p); break;
+    case 'cat': ui.cat = id; render(); break;
+    case 'wiki-more': ui.wikiAll = !ui.wikiAll; render(); break;
+    case 'wiki-retry': if (p) { delete wiki[p.id]; render(); loadWiki(p, true); } break;
+    case 'fav': if (p) { p.fav = p.fav || []; const i = p.fav.indexOf(id); i < 0 ? p.fav.push(id) : p.fav.splice(i, 1); save(); render(); } break;
+    case 'tip-hide': if (p) { p.hidden = [...new Set([...(p.hidden || []), id])]; p.fav = (p.fav || []).filter(x => x !== id); save(); render(); toast('Tipp ausgeblendet'); } break;
+    case 'tip-unhide': if (p) { p.hidden = []; save(); render(); } break;
+    case 'tip-new': if (p) openTip(p); break;
+    case 'tip-edit': if (p) openTip(p, (p.custom || []).find(t => t.id === id)); break;
+    case 'tdel-ask': confirmBox('delBox', 'Diesen eigenen Tipp wirklich löschen?', 'tdel'); break;
+    case 'tdel': { const q = getPlace(tipState.pid); if (q) { q.custom = q.custom.filter(t => t.id !== tipState.id); q.fav = (q.fav || []).filter(x => x !== tipState.id); save(); } closeDlg(); toast('Tipp gelöscht'); render(); break; }
+    case 'tip-save': e.preventDefault(); saveTip(); break;
+    case 'theme': { const sel = id; if (addState && dlg.querySelector('#addSave')) addState.theme = sel; if (editState && dlg.querySelector('#eName')) editState.theme = sel; dlg.querySelectorAll('.th').forEach(x => x.setAttribute('aria-pressed', x.dataset.id === sel)); break; }
+    case 'pick': { const r = addState.results[+id]; addState.pick = r; dlg.querySelectorAll('.res').forEach(x => x.setAttribute('aria-pressed', x === b)); $('#themeBox').hidden = false; $('#addSave').disabled = false; $('#msg').textContent = ''; break; }
+    case 'add-save': e.preventDefault(); if (addState?.pick) addPlace(addState.pick, addState.theme); break;
+    case 'add-preset': { const pr = PRESETS.find(x => x.id === id); if (pr) addPlace(pr, pr.theme); break; }
+    case 'edit-save': e.preventDefault(); saveEdit(); break;
+    case 'move': { const q = getPlace(editState.id), i = S.places.indexOf(q), j = i + Number(id); if (j >= 0 && j < S.places.length) { [S.places[i], S.places[j]] = [S.places[j], S.places[i]]; save(); toast('Reihenfolge geändert'); dlg.querySelectorAll('[data-act="move"]').forEach(x => x.disabled = (x.dataset.id === '-1' ? j === 0 : j === S.places.length - 1)); } break; }
+    case 'del-ask': confirmBox('delBox', `${esc(getPlace(editState.id)?.name)} mit allen eigenen Tipps und Reisedaten löschen?`, 'del'); break;
+    case 'del': deletePlace(editState.id); break;
+    case 'reset-ask': confirmBox('resetBox', 'Wirklich alle Orte, Tipps und Daten auf diesem Gerät löschen?', 'reset'); break;
+    case 'reset': { try { Object.keys(localStorage).filter(k => k.startsWith('fernweh.')).forEach(k => localStorage.removeItem(k)); } catch { } S = { v: 1, places: PRESETS.map(newPlace) }; save(); for (const k in wx) delete wx[k]; for (const k in wiki) delete wiki[k]; closeDlg(); toast('Zurückgesetzt'); location.hash = '#/'; onRoute(); break; }
+    case 'cancel-confirm': {
+      const box = $('#' + id);
+      if (id === 'resetBox') box.innerHTML = '<button type="button" class="btn small ghost" style="color:#B3261E" data-act="reset-ask">Zurücksetzen …</button>';
+      else box.innerHTML = tipState && dlg.querySelector('#tTitle') ? '<button type="button" class="btn small ghost" style="color:#B3261E" data-act="tdel-ask">Tipp löschen …</button>' : '<button type="button" class="btn small ghost" style="color:#B3261E" data-act="del-ask">Ort löschen …</button>';
+      break;
+    }
+  }
+});
+dlg.addEventListener('submit', e => {
+  e.preventDefault();
+  if (dlg.querySelector('#tTitle')) saveTip();
+  else if (dlg.querySelector('#eName')) saveEdit();
+  else if (dlg.querySelector('#addSave')) { clearTimeout(searchT); if (addState?.pick) addPlace(addState.pick, addState.theme); else doSearch($('#q').value); }
+});
+
+window.addEventListener('hashchange', onRoute);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  const p = getPlace(route());
+  (p ? [p] : S.places).forEach(x => loadWeather(x));
+});
+S.places.forEach(loadCached);
+onRoute();
+
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname)))
+  navigator.serviceWorker.register('sw.js').catch(() => { });
+</script>
+</body>
+</html>
