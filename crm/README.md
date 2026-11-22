@@ -40,6 +40,21 @@ Wichtig: Die Daten gehören zu *Browser bzw. App + Adresse*. Für einen Wechsel 
 
 Beim ersten Start von Version 1.4 wurden die alten Vertriebsstatus umgestellt: „Partner“ wurde zu „Geschäftspartner“, „Privat“ zu „Freunde“. Andere bereits verwendete Werte (z. B. „Kunde“) bleiben in der Liste, bis du sie umstellst.
 
+## Mehrere Kontakte auf einmal bearbeiten
+
+In **Kontakte** auf **„Auswählen“** klicken. Dann Kontakte anklicken oder mit Filter und **„Alle angezeigten auswählen“** markieren, z. B. alle mit dem Tag „Asuro“. Anschließend:
+
+- **Bearbeiten …:**
+  - Kategorie setzen (oder direkt eine **neue Kategorie anlegen**),
+  - Tags hinzufügen oder entfernen,
+  - E-Mail-Werbung mit Nachweis, Kontaktrhythmus, Wichtigkeit.
+  - Felder auf „unverändert“ bleiben unangetastet.
+- **Löschen …:** mit Bestätigung durch Eingabe von LÖSCHEN.
+
+„Auswahl beenden“ schaltet zurück, dann öffnet ein Klick wieder den Kontakt.
+
+Kategorien verwaltest du außerdem unter *Einstellungen → Darstellung & Felder → Kategorien* (eine pro Zeile).
+
 ## Kontakte importieren (Import-Assistent)
 
 *Einstellungen → Import & Export → „vCard / CSV importieren“.* Für Outlook am besten das **klassische Outlook** nehmen (Datei → Öffnen und exportieren → Importieren/Exportieren → In Datei exportieren → CSV → Ordner „Kontakte“). Das neue Outlook lässt die Kategorien *vermutlich* weg.
