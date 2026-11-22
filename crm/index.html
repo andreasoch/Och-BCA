@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' blob: data:; media-src blob:; frame-src blob:; object-src 'none'; base-uri 'none'; form-action 'none'; connect-src https://login.microsoftonline.com https://graph.microsoft.com; manifest-src 'self'; worker-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' blob: data:; media-src blob:; frame-src blob:; object-src 'none'; base-uri 'none'; form-action 'none'; connect-src 'self' https://login.microsoftonline.com https://graph.microsoft.com; manifest-src 'self'; worker-src 'self'">
 <meta name="theme-color" content="#0B1426">
 <title>Och · CRM</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -235,6 +235,9 @@ dialog .df .left{margin-right:auto}
 .rec{display:inline-flex;align-items:center;gap:8px}
 .rec .dotr{width:10px;height:10px;border-radius:50%;background:var(--bad);animation:pulse 1s infinite}
 @keyframes pulse{50%{opacity:.3}}
+#updBar{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;z-index:95;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;max-width:calc(100% - 32px);background:var(--panel);border:1px solid var(--gold);border-radius:14px;padding:10px 12px 10px 16px;box-shadow:var(--shadow);font-size:14px}
+#updTxt{flex:1 1 220px}
+@media (max-width:860px){#updBar{bottom:calc(84px + env(safe-area-inset-bottom));width:calc(100% - 32px)}}
 #toasts{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:8px;align-items:center}
 .toast{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 16px;box-shadow:var(--shadow);font-size:14px;animation:tin .2s}
 .toast.bad{border-color:var(--bad)}
@@ -337,6 +340,7 @@ details summary{color:var(--ink2)}
 <dialog id="viewer"></dialog>
 <dialog id="palette"></dialog>
 <div id="toasts"></div>
+<div id="updBar" class="hidden" role="status"><span id="updTxt">Neue Version verfügbar.</span><button class="btn primary sm" id="updBtn" type="button">Jetzt neu laden</button><button class="btn ghost sm" id="updLater" type="button" aria-label="Später">Später</button></div>
 <div class="tip" id="tip"></div>
 <input type="file" id="fileIn" multiple hidden>
 
@@ -403,7 +407,7 @@ details summary{color:var(--ink2)}
    AES-256-GCM verschlüsselt. Datenschlüssel (DEK) wird mit einem
    aus der Passphrase per PBKDF2-SHA256 abgeleiteten Schlüssel verpackt.
    ===================================================================== */
-const VERSION = '1.1';
+const VERSION = '1.2';
 const DB_NAME = 'och-crm', DB_VER = 1;
 const PBKDF2_ITER = 600000;
 const te = new TextEncoder(), td = new TextDecoder();
@@ -795,6 +799,7 @@ function startApp() {
   try { navigator.storage?.persist?.(); } catch { }
   go(location.hash.slice(1) || 'dash');
   loadDevice().then(() => { setSyncState(); autoSync(); });
+  setTimeout(() => checkUpdate(), 2500);
 }
 function renderNav() {
   const counts = { contacts: contacts().length, tasks: all('task').filter(t => !t.done).length, pipeline: all('deal').filter(d => !['Gewonnen', 'Verloren'].includes(d.stage)).length, media: all('file').length };
@@ -1441,7 +1446,7 @@ function viewSettings() {
     card('Speicher', 'i-image',
       h('dl', { class: 'facts' }, h('dt', null, 'Belegung'), h('dd', null, usage), h('dt', null, 'Speicherung'), h('dd', null, persisted),
         h('dt', null, 'Datensätze'), h('dd', null, `${contacts().length} Kontakte · ${all('activity').length} Einträge · ${all('task').length} Aufgaben · ${all('deal').length} Chancen · ${all('file').length} Dateien`),
-        h('dt', null, 'Version'), h('dd', null, 'Och · CRM ' + VERSION))),
+        h('dt', null, 'Version'), h('dd', null, 'Och · CRM ' + VERSION, ' ', h('button', { class: 'btn sm', style: 'margin-left:8px', onclick: () => checkUpdate(true) }, 'Nach Updates suchen')))),
     card('Gefahrenzone', 'i-trash',
       h('p', { class: 'muted', style: 'font-size:14px' }, 'Löscht das komplette CRM auf diesem Gerät unwiderruflich. Backups bleiben unberührt.'),
       btns(h('button', { class: 'btn danger', onclick: wipeAll }, icon('i-trash'), 'Alles löschen'))));
@@ -2192,6 +2197,39 @@ function syncCard(card, btns) {
     actions,
     h('p', { class: 'note' }, 'Neues Gerät einrichten: Dort auf dem Startbildschirm „Backup oder Sync-Datei einspielen“ tippen, die Sync-Datei dieses Geräts wählen und deine Passphrase eingeben.'));
 }
+
+/* ---------------- Updates erkennen ----------------
+   Holt die aktuelle index.html ohne Zwischenspeicher und vergleicht die
+   Versionsnummer. Bei jeder Auslieferung wird VERSION erhöht. */
+let lastUpdCheck = 0;
+const verNum = v => String(v).split('.').map(n => parseInt(n, 10) || 0);
+function isNewer(a, b) { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; }
+async function checkUpdate(manual) {
+  if (!KEY) return;
+  if (!manual && Date.now() - lastUpdCheck < 5 * 60000) return;
+  lastUpdCheck = Date.now();
+  try {
+    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 8000);
+    const r = await fetch('index.html?check=' + Date.now(), { cache: 'no-store', signal: ctl.signal }).finally(() => clearTimeout(to));
+    if (!r.ok) throw new Error(r.status);
+    const m = (await r.text()).match(/const VERSION = '([^']+)'/);
+    const latest = m && m[1];
+    if (latest && isNewer(latest, VERSION)) { showUpdate(latest); return latest; }
+    if (manual) toast('Du hast die neueste Version (' + VERSION + ').');
+  } catch { if (manual) toast('Prüfung nicht möglich. Bist du offline?', true); }
+}
+function showUpdate(latest) {
+  $('#updTxt').textContent = `Neue Version ${latest} verfügbar (du hast ${VERSION}). Danach kurz wieder entsperren.`;
+  $('#updBar').classList.remove('hidden');
+}
+$('#updLater').onclick = () => $('#updBar').classList.add('hidden');
+$('#updBtn').onclick = async () => {
+  if (RUN && !await confirmBox('Rundmail-Versand läuft', 'Das Neuladen bricht den laufenden Versand ab. Den Rest kannst du danach fortsetzen.', 'Trotzdem neu laden')) return;
+  try { const reg = await navigator.serviceWorker?.getRegistration(); await reg?.update(); } catch { }
+  location.reload();
+};
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkUpdate(); });
+setInterval(() => checkUpdate(), 30 * 60000);
 
 /* ---------------- App-Installation (PWA) ---------------- */
 let installEvt = null;
