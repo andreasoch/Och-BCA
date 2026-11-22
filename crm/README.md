@@ -40,6 +40,25 @@ Wichtig: Die Daten gehören zu *Browser bzw. App + Adresse*. Für einen Wechsel 
 
 Beim ersten Start von Version 1.4 wurden die alten Vertriebsstatus umgestellt: „Partner“ wurde zu „Geschäftspartner“, „Privat“ zu „Freunde“. Andere bereits verwendete Werte (z. B. „Kunde“) bleiben in der Liste, bis du sie umstellst.
 
+## Kontakte importieren (Import-Assistent)
+
+*Einstellungen → Import & Export → „vCard / CSV importieren“.* Für Outlook am besten das **klassische Outlook** nehmen (Datei → Öffnen und exportieren → Importieren/Exportieren → In Datei exportieren → CSV → Ordner „Kontakte“). Das neue Outlook lässt die Kategorien *vermutlich* weg.
+
+1. **Kategorien aus der Datei** erscheinen mit Anzahl. Je Kategorie wählst du eine Aktion:
+   - **Ausschließen:** Kontakte mit dieser Kategorie werden nicht importiert.
+   - **Weglassen:** Die Kategorie wird nicht übernommen.
+   - **Als Tag behalten.**
+   - **→ CRM-Kategorie**, z. B. Familie oder Kunde.
+2. **Vorbelegung:**
+   - „BCA …“ wird ausgeschlossen (BCA-Daten gehören nicht ins CRM).
+   - „Auto: …“ und „Radar: …“ (Sortierung des Posteingangs) werden weggelassen.
+   - Gleichnamige Kategorien werden zugeordnet, alles andere wird Tag.
+3. **Kontakte auswählen:** Suche, Filter nach Kategorie, nur mit E-Mail, nur mit Telefon. Standardmäßig ist **nichts** ausgewählt, „Alle angezeigten auswählen“ übernimmt die gefilterten.
+4. **Schon vorhandene Kontakte** (gleicher Name und gleiche E-Mail) werden ausgeblendet und nie doppelt angelegt.
+5. Die **Zuordnung der Kategorien wird gespeichert**. Dieselbe Datei später erneut laden und die nächste Gruppe übernehmen.
+
+Die Zeichenkodierung (auch Windows-1252 aus Outlook), mehrere E-Mail-Adressen und Telefonnummern sowie Anschrift mit PLZ und Ort werden automatisch erkannt.
+
 ## Synchronisation Laptop ↔ Handy
 
 Grundidee: Ein Ordner in deiner Cloud, empfohlen **OneDrive des OCH-Kontos, Ordner `OCH-CRM`**. Jedes Gerät legt dort eine eigene Datei `och-crm-<gerät>-<kennung>.ochsync` ab und liest die Dateien der anderen.
