@@ -45,15 +45,19 @@ svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-widt
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 
 /* ---------- Lock screen ---------- */
-#lock{position:fixed;inset:0;display:grid;place-items:center;padding:24px;z-index:50;
+#lock{position:fixed;inset:0;display:flex;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(24px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));z-index:50;
   background:radial-gradient(ellipse 70% 60% at 80% 20%,var(--goldsoft),transparent 60%),var(--bg)}
-#lock .card{width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:36px 30px;box-shadow:var(--shadow)}
+#lock .card{margin:auto;width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:36px 30px;box-shadow:var(--shadow)}
 .brand{display:flex;align-items:center;gap:12px}
 .mark{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--goldsoft);border:1px solid var(--line);color:var(--gold);font-family:var(--serif);font-size:24px}
 .brand h1{font-family:var(--serif);font-weight:500;font-size:28px;letter-spacing:.02em}
 #lock p.lead{margin:18px 0 22px;color:var(--ink2)}
 .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
 .field>span{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.pwwrap{position:relative;display:block}
+.pwwrap .input{padding-right:46px}
+.pwwrap .eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--muted);padding:8px;border-radius:8px;cursor:pointer;display:grid;place-items:center}
+.pwwrap .eye:hover{color:var(--gold2)}
 .input,select.input,textarea.input{width:100%;background:var(--bg2);border:1px solid var(--line2);border-radius:11px;padding:10px 12px;outline:none;transition:border-color .2s}
 .input:focus{border-color:var(--gold)}
 textarea.input{resize:vertical;min-height:90px}
@@ -284,6 +288,7 @@ dialog .df .left{margin-right:auto}
       <button class="btn primary" style="width:100%;padding:12px" id="lockBtn" type="submit">Entsperren</button>
       <p class="note" id="lockNote"></p>
       <p class="note"><a href="#" id="restoreLink">Backup oder Sync-Datei einspielen (z. B. neues Gerät) …</a></p>
+      <p class="note hidden" id="resetWrap"><a href="#" id="resetLink">Passphrase verloren? CRM auf diesem Gerät zurücksetzen …</a></p>
     </form>
   </div>
 </section>
@@ -361,6 +366,8 @@ dialog .df .left{margin-right:auto}
   <symbol id="i-pin" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></symbol>
   <symbol id="i-sync" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M3 21v-5h5"/></symbol>
   <symbol id="i-app" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M9.9 5.2A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-2.7 3.6M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7a9.8 9.8 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2M3 3l18 18"/></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></symbol>
 </svg>
 
@@ -644,9 +651,11 @@ async function initLock() {
     $('#pwNew').classList.remove('hidden'); $('#pw2').required = true;
     $('#lockBtn').textContent = 'CRM anlegen';
     $('#pw1').autocomplete = 'new-password';
+    $('#pwHint').textContent = 'Mindestens 12 Zeichen, am besten ein Satz aus 4–5 Wörtern. Ein „starkes Passwort“-Vorschlag des iPhones ist auch in Ordnung. Du findest es später unter Passwörter → „github.io“.';
     $('#lockNote').textContent = 'Wichtig: Es gibt keine „Passwort vergessen“-Funktion. Ohne Passphrase sind die Daten nicht wiederherstellbar. Bewahre sie in deinem Passwortmanager auf.';
   } else {
-    $('#lockNote').textContent = 'Daten bleiben auf diesem Gerät. Nichts wird übertragen.';
+    $('#lockNote').textContent = 'Daten bleiben auf diesem Gerät. Nichts wird übertragen. Passphrase nicht zur Hand? Schau im Passwortmanager bzw. unter iPhone-Einstellungen → Passwörter nach „github.io“.';
+    $('#resetWrap').classList.remove('hidden');
   }
   $('#pw1').focus();
 }
@@ -690,6 +699,36 @@ $('#lockForm').addEventListener('submit', async e => {
   } finally { btn.disabled = false; btn.textContent = lockMode === 'create' ? 'CRM anlegen' : 'Entsperren'; }
 });
 $('#restoreLink').addEventListener('click', e => { e.preventDefault(); restoreBackup(); });
+$('#resetLink').addEventListener('click', e => { e.preventDefault(); resetDevice(); });
+// Auge-Symbol: Passphrase sichtbar machen, um Tippfehler zu erkennen
+function eyeWrap(input) {
+  const wrap = h('span', { class: 'pwwrap' });
+  input.replaceWith(wrap); wrap.append(input);
+  const btn = h('button', { type: 'button', class: 'eye', 'aria-label': 'Passphrase anzeigen', title: 'Passphrase anzeigen' }, icon('i-eye'));
+  btn.addEventListener('click', () => {
+    const show = input.type === 'password'; input.type = show ? 'text' : 'password';
+    btn.replaceChildren(icon(show ? 'i-eye-off' : 'i-eye'));
+    btn.setAttribute('aria-label', show ? 'Passphrase verbergen' : 'Passphrase anzeigen'); btn.title = btn.getAttribute('aria-label');
+    input.focus();
+  });
+  wrap.append(btn);
+  return wrap;
+}
+['#pw1', '#pw2'].forEach(sel => { const el = $(sel); el.autocapitalize = 'off'; el.spellcheck = false; el.setAttribute('autocorrect', 'off'); eyeWrap(el); });
+const confirmWord = v => ['loschen', 'loeschen'].includes(norm(v).trim());
+async function resetDevice() {
+  const content = h('div', null,
+    h('p', null, 'Das löscht alle CRM-Daten auf diesem Gerät unwiderruflich. Ohne Passphrase sind sie ohnehin nicht mehr lesbar.'),
+    h('p', { class: 'muted', style: 'margin:10px 0 14px;font-size:14px' }, 'Backups und Sync-Dateien in deiner Cloud bleiben erhalten. Damit kannst du das CRM danach wiederherstellen, sofern du deren Passphrase kennst.'),
+    fld('Zur Bestätigung LÖSCHEN eingeben', inp('c', '', { required: true, autocomplete: 'off', autocapitalize: 'characters' })));
+  const f = await dialog('CRM auf diesem Gerät zurücksetzen?', content, 'Endgültig zurücksetzen');
+  if (!f) return;
+  if (!confirmWord(f.elements.c.value)) return toast('Bestätigung stimmt nicht. Bitte LÖSCHEN eingeben.', true);
+  try { db?.close(); } catch { }
+  await new Promise(r => { const q = indexedDB.deleteDatabase(DB_NAME); q.onsuccess = q.onerror = q.onblocked = r; });
+  sessionStorageSafe('set', 'fails', 0);
+  location.reload();
+}
 
 function lock() {
   KEY = null; R.clear();
@@ -1364,9 +1403,10 @@ function viewSettings() {
       btns(h('button', { class: 'btn danger', onclick: wipeAll }, icon('i-trash'), 'Alles löschen'))));
 }
 async function changePass() {
-  const content = h('div', null, fld('Aktuelle Passphrase', inp('old', '', { type: 'password', required: true, autocomplete: 'current-password' })),
-    fld('Neue Passphrase (mind. 12 Zeichen)', inp('n1', '', { type: 'password', required: true, minlength: 12, autocomplete: 'new-password' })),
-    fld('Neue Passphrase wiederholen', inp('n2', '', { type: 'password', required: true, minlength: 12, autocomplete: 'new-password' })),
+  const pwIn = (name, ac, min) => { const i = inp(name, '', { type: 'password', required: true, minlength: min, autocomplete: ac, autocapitalize: 'off', spellcheck: 'false' }); return eyeWrap(i); };
+  const content = h('div', null, fld('Aktuelle Passphrase', pwIn('old', 'current-password')),
+    fld('Neue Passphrase (mind. 12 Zeichen)', pwIn('n1', 'new-password', 12)),
+    fld('Neue Passphrase wiederholen', pwIn('n2', 'new-password', 12)),
     h('p', { class: 'note' }, 'Ältere Backups lassen sich weiterhin nur mit der alten Passphrase öffnen.'));
   const f = await dialog('Passphrase ändern', content, 'Ändern'); if (!f) return;
   const v = Object.fromEntries(new FormData(f));
@@ -1383,8 +1423,9 @@ async function changePass() {
   } catch { toast('Aktuelle Passphrase ist falsch.', true); }
 }
 async function wipeAll() {
-  const content = h('div', null, h('p', null, 'Gib zur Bestätigung LÖSCHEN ein.'), inp('c', '', { required: true, pattern: 'LÖSCHEN', autocomplete: 'off' }));
+  const content = h('div', null, h('p', null, 'Gib zur Bestätigung LÖSCHEN ein.'), inp('c', '', { required: true, autocomplete: 'off', autocapitalize: 'characters' }));
   const f = await dialog('Wirklich alles löschen?', content, 'Endgültig löschen'); if (!f) return;
+  if (!confirmWord(f.elements.c.value)) return toast('Bestätigung stimmt nicht. Bitte LÖSCHEN eingeben.', true);
   db.close(); await new Promise(r => { const q = indexedDB.deleteDatabase(DB_NAME); q.onsuccess = q.onerror = q.onblocked = r; });
   location.reload();
 }
