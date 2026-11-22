@@ -412,7 +412,7 @@ details summary{color:var(--ink2)}
    AES-256-GCM verschlüsselt. Datenschlüssel (DEK) wird mit einem
    aus der Passphrase per PBKDF2-SHA256 abgeleiteten Schlüssel verpackt.
    ===================================================================== */
-const VERSION = '1.4';
+const VERSION = '1.5';
 const DB_NAME = 'och-crm', DB_VER = 1;
 const PBKDF2_ITER = 600000;
 const te = new TextEncoder(), td = new TextDecoder();
@@ -426,7 +426,7 @@ let SET = null;                // Einstellungen
 const DEFAULT_SETTINGS = {
   id:'settings', kind:'settings', autolock:10, theme:'auto',
   stages:['Idee','Erstkontakt','Angebot','Verhandlung','Gewonnen','Verloren'],
-  statuses:['Familie','Freunde','Geschäftspartner','Dienstleister','Netzwerk','Bekannte'],
+  statuses:['Kunde','Familie','Freunde','Geschäftspartner','Dienstleister','Netzwerk','Bekannte'],
   pipeline:false,     // Pipeline und Chancen anzeigen
   view:'cards',
   pipelineKpis:false   // Kacheln „Offene Pipeline“ und „Gewonnen“ in der Übersicht
@@ -580,7 +580,13 @@ async function loadAll() {
 /* Umstellung auf Contact-Relationship-Management (einmalig, Version 1.4):
    Vertriebsstatus -> Beziehungskategorien; Pipeline nur sichtbar, wenn schon Chancen existieren */
 async function migrateCRM() {
-  if (SET.crmV2) return;
+  let changed = false;
+  if (!SET.crmV2) { await migrateV2(); changed = true; }
+  // Version 1.5: „Kunde“ (Kunden der Finanzanlagenvermittlung, Gewerbe OCH) als feste Kategorie
+  if (!SET.crmV3) { if (!SET.statuses.includes('Kunde')) SET.statuses = ['Kunde', ...SET.statuses]; SET.crmV3 = true; changed = true; }
+  if (changed) await save(SET);
+}
+async function migrateV2() {
   const OLD = ['Lead', 'Interessent', 'Kunde', 'Partner', 'Netzwerk', 'Privat'];
   const stored = R.get('settings') || {};
   if (!stored.statuses || JSON.stringify(stored.statuses) === JSON.stringify(OLD)) {
@@ -592,7 +598,6 @@ async function migrateCRM() {
   }
   if (stored.pipeline === undefined) SET.pipeline = all('deal').length > 0;
   SET.crmV2 = true;
-  await save(SET);
 }
 const visibleViews = () => VIEWS.filter(v => v.id !== 'pipeline' || SET.pipeline);
 

@@ -29,7 +29,7 @@ Wichtig: Die Daten gehören zu *Browser bzw. App + Adresse*. Für einen Wechsel 
 
 ## Beziehungen pflegen
 
-- **Kategorien:** Familie, Freunde, Geschäftspartner, Dienstleister, Netzwerk und Bekannte. Die Liste ist unter *Einstellungen → Darstellung & Felder* änderbar.
+- **Kategorien:** Kunde, Familie, Freunde, Geschäftspartner, Dienstleister, Netzwerk und Bekannte. Die Liste ist unter *Einstellungen → Darstellung & Felder* änderbar.
 - **Beziehungen:** Im Kontakt über **„Beziehung“** Kontakte verknüpfen, z. B. Ehepartner/in, Kind, Elternteil, Geschwister, Freund/in, Kollege/Kollegin, Empfohlen von.
   - Die Gegenrichtung erscheint automatisch: Ist Lisa „Kind“ von Anna, steht bei Lisa „Elternteil: Anna“.
   - Entfernen geht mit × von beiden Seiten.
@@ -167,11 +167,18 @@ Das CRM ist gemischt genutzt:
 - **Privatkontakte** (Familie, Freunde) fallen weitgehend unter die Haushaltsausnahme der DSGVO (Art. 2 Abs. 2 lit. c).
 - Für **Geschäftskontakte** von OCH gilt die DSGVO, verantwortlich ist OCH.
 
+**Abgrenzung BCA ↔ OCH, bitte sauber trennen:**
+
+| Daten | Herkunft | Wohin |
+|---|---|---|
+| **BCA-Daten** | Angestelltentätigkeit als Senior-Vertriebsmanager der BCA: Vermittlerdaten und deren Kundendaten | **nur auf den BCA-Laptop**, nie ins Och-CRM, nie auf Gewerbe- oder Privatgeräte |
+| **OCH-Kunden** | eigene Kunden der Finanzanlagenvermittlung (Gewerbe OCH), auch wenn sie in DIVA geführt werden | **Och-CRM erlaubt**, Kategorie „Kunde“ |
+
 **Kunden aus DIVA:** Der Kundenbestand gehört Andreas Och als Vermittler. Kundendaten aus DIVA **dürfen ins CRM übernommen werden**, z. B. per CSV-Export und Import.
 - **Keine KI-Verarbeitung:** Das CRM hat keine KI-Funktion und läuft verschlüsselt nur auf den eigenen Geräten.
 - **KI-Ampel:** Kundendaten sind Stufe **Gelb**. In Claude und andere Cloud-KIs nur pseudonymisiert. Also keine CSV-, JSON- oder Backup-Dateien und keine Screenshots mit Kundendaten in KI-Chats geben.
 - **Verantwortung:** Für die Kundendaten ist Andreas Och als Vermittler verantwortlich (DSGVO). Für Rundmails an Kunden gilt die Einwilligungs- bzw. Bestandskundenregel (siehe Kampagnen).
-- **Künftige DIVA-Anbindung:** MCP ist eine Schnittstelle für KI-Assistenten. Eine Verbindung über MCP bringt die Daten daher *vermutlich* in KI-Berührung, zulässig nur mit Copilot im OCH-Tenant oder pseudonymisiert. Ohne KI geht es per CSV oder über eine direkte DIVA-Schnittstelle (API), falls angeboten.
+- **Künftige DIVA-Anbindung:** Schritt 1: die Standardschnittstelle von BCA/DIVA anbinden (ohne KI). Schritt 2, nach eingehender Prüfung: MCP. Hinweis: MCP ist eine Schnittstelle für KI-Assistenten. Eine Verbindung über MCP bringt die Daten daher *vermutlich* in KI-Berührung, zulässig nur mit Copilot im OCH-Tenant oder pseudonymisiert. Ohne KI geht es per CSV oder über eine direkte DIVA-Schnittstelle (API), falls angeboten.
 
 - **Technik (Art. 25, 32):** lokale Verarbeitung, Verschlüsselung, Auto-Sperre, keine Übermittlung an Dritte. Die Cloud speichert nur verschlüsselte Dateien. Empfohlen ist der OneDrive-Ordner des OCH-Tenants, der durch den Microsoft-Vertrag zur Auftragsverarbeitung (Data Protection Addendum) abgedeckt ist.
 - **Verzeichnis von Verarbeitungstätigkeiten (Art. 30):** das CRM als Verarbeitung „Kontakt- und Kundenpflege“ eintragen (Zweck, Datenkategorien, Löschfristen, Technik).
