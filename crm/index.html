@@ -323,6 +323,7 @@ details summary{color:var(--ink2)}
       <button class="btn icon" id="syncBtn" title="Synchronisieren" aria-label="Synchronisieren"><svg class="i"><use href="#i-sync"/></svg><i class="sdot"></i></button>
       <button class="btn searchbtn" id="searchBtn" aria-label="Suchen"><svg class="i"><use href="#i-search"/></svg><span>Suchen …</span><kbd>⌘K</kbd></button>
       <button class="btn primary" id="newBtn"><svg class="i"><use href="#i-plus"/></svg><span class="hide-m">Neu</span></button>
+      <button class="btn icon" id="lockTop" title="Sperren" aria-label="CRM sperren"><svg class="i"><use href="#i-lock"/></svg></button>
     </header>
     <div class="view" id="view"></div>
   </main>
@@ -819,7 +820,12 @@ $('#themeBtn').onclick = async () => {
   const dark = getComputedStyle(document.documentElement).colorScheme.includes('dark');
   SET.theme = dark ? 'light' : 'dark'; applyTheme(); await save(SET);
 };
-$('#lockBtn2').onclick = lock;
+async function lockClick() {
+  if (RUN && !await confirmBox('Rundmail-Versand läuft', 'Beim Sperren wird der laufende Versand abgebrochen. Bereits gesendete Mails bleiben vermerkt, den Rest kannst du später fortsetzen.', 'Trotzdem sperren')) return;
+  lock();
+}
+$('#lockBtn2').onclick = lockClick;
+$('#lockTop').onclick = lockClick;
 $('#newBtn').onclick = () => {
   if (current === 'pipeline') editDeal();
   else if (current === 'tasks') editTask();
@@ -1366,7 +1372,7 @@ function openPalette() {
   const res = h('div', { class: 'res' });
   const cmds = [
     ['Neuer Kontakt', 'i-user', () => editContact()], ['Neue Aufgabe', 'i-tasks', () => editTask()], ['Neue Verkaufschance', 'i-euro', () => editDeal()],
-    ['Backup erstellen', 'i-shield', () => exportBackup()], ['Sperren', 'i-lock', lock], ...VIEWS.map(v => ['Gehe zu ' + v.label, v.icon, () => go(v.id)])];
+    ['Backup erstellen', 'i-shield', () => exportBackup()], ['Sperren', 'i-lock', lockClick], ...VIEWS.map(v => ['Gehe zu ' + v.label, v.icon, () => go(v.id)])];
   const run = () => {
     const q = norm(input.value).split(/\s+/).filter(Boolean); items = [];
     const m = t => q.every(w => t.includes(w));
@@ -1414,9 +1420,9 @@ function viewSettings() {
   };
   return h('div', { class: 'grid two' },
     card('Sicherheit', 'i-shield',
-      h('p', { class: 'muted', style: 'font-size:14px' }, 'Alle Kontakte, Notizen und Dateien sind mit AES-256-GCM verschlüsselt. Der Schlüssel entsteht aus deiner Passphrase und liegt nur im Arbeitsspeicher, solange das CRM entsperrt ist. Nichts verlässt dieses Gerät.'),
+      h('p', { class: 'muted', style: 'font-size:14px' }, 'Alle Kontakte, Notizen und Dateien sind mit AES-256-GCM verschlüsselt. Der Schlüssel entsteht aus deiner Passphrase und liegt nur im Arbeitsspeicher, solange das CRM entsperrt ist. Nichts verlässt dieses Gerät, außer Rundmails, die du selbst versendest.'),
       fld('Automatisch sperren nach', al),
-      btns(h('button', { class: 'btn', onclick: changePass }, icon('i-lock'), 'Passphrase ändern'), h('button', { class: 'btn', onclick: lock }, icon('i-lock'), 'Jetzt sperren'))),
+      btns(h('button', { class: 'btn', onclick: changePass }, icon('i-lock'), 'Passphrase ändern'), h('button', { class: 'btn', onclick: lockClick }, icon('i-lock'), 'Jetzt sperren'))),
     card('Backup', 'i-download',
       h('p', { style: 'font-size:14px' }, 'Letztes Backup: ', h('strong', null, lastB)),
       h('p', { class: 'muted', style: 'font-size:14px' }, 'Das Backup enthält alles inkl. Medien, bleibt verschlüsselt und lässt sich nur mit der Passphrase öffnen, die beim Erstellen galt. Lege es z. B. auf einen USB-Stick oder in deinen Cloud-Ordner.'),
