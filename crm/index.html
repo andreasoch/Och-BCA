@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' blob: data:; media-src blob:; frame-src blob:; object-src 'none'; base-uri 'none'; form-action 'none'; connect-src 'none'; manifest-src 'self'; worker-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' blob: data:; media-src blob:; frame-src blob:; object-src 'none'; base-uri 'none'; form-action 'none'; connect-src https://login.microsoftonline.com https://graph.microsoft.com; manifest-src 'self'; worker-src 'self'">
 <meta name="theme-color" content="#0B1426">
 <title>Och · CRM</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -241,6 +241,19 @@ dialog .df .left{margin-right:auto}
 @keyframes tin{from{transform:translateY(10px);opacity:0}}
 .fab{display:none}
 .drag-file{outline:2px dashed var(--gold);outline-offset:-8px}
+/* Kampagnen */
+.checks{display:flex;flex-wrap:wrap;gap:8px}
+.tgl{display:inline-flex;align-items:center;padding:5px 12px;border:1px solid var(--line2);border-radius:20px;font-size:13px;cursor:pointer;background:none;color:var(--ink2)}
+.tgl.on{background:var(--goldsoft);border-color:var(--gold);color:var(--gold2)}
+.tgl.neg.on{background:transparent;border-color:var(--bad);color:var(--bad)}
+.rlist{max-height:340px;overflow:auto;border:1px solid var(--line2);border-radius:12px}
+.rrow{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line2);font-size:14px}
+.rrow:last-child{border-bottom:0}
+.mailprev{background:#FFFFFF;color:#1D2433;border-radius:12px;padding:22px;border:1px solid var(--line2);overflow:auto;max-height:520px}
+.progress{height:8px;border-radius:6px;background:var(--line2);overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:var(--gold);transition:width .3s}
+.statline{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:14px}
+details summary{color:var(--ink2)}
 
 /* ---------- Responsive ---------- */
 @media (max-width:860px){
@@ -373,13 +386,23 @@ dialog .df .left{margin-right:auto}
 
 <script>
 'use strict';
+// Rückkehr aus dem Microsoft-Anmeldefenster: Code an das CRM-Fenster übergeben und sonst nichts tun
+(function () {
+  const q = new URLSearchParams(location.search), st = q.get('state') || '';
+  if (!st.startsWith('och-') || !(q.get('code') || q.get('error'))) return;
+  try { localStorage.setItem('och-ms-auth', JSON.stringify({ state: st, code: q.get('code'), error: q.get('error_description') || q.get('error') })); } catch { }
+  document.title = 'Anmeldung abgeschlossen';
+  document.addEventListener('DOMContentLoaded', () => { document.body.innerHTML = '<p style="font-family:system-ui,sans-serif;padding:32px;font-size:16px">Anmeldung abgeschlossen. Dieses Fenster schließt sich, sonst bitte einfach schließen.</p>'; });
+  setTimeout(() => window.close(), 400);
+  throw new Error('och-auth-popup');
+})();
 /* =====================================================================
    Och · CRM — privat, lokal, verschlüsselt.
    Daten: IndexedDB, jeder Datensatz und jede Datei einzeln mit
    AES-256-GCM verschlüsselt. Datenschlüssel (DEK) wird mit einem
    aus der Passphrase per PBKDF2-SHA256 abgeleiteten Schlüssel verpackt.
    ===================================================================== */
-const VERSION = '1.0';
+const VERSION = '1.1';
 const DB_NAME = 'och-crm', DB_VER = 1;
 const PBKDF2_ITER = 600000;
 const te = new TextEncoder(), td = new TextDecoder();
@@ -754,10 +777,11 @@ const VIEWS = [
   { id: 'pipeline', label: 'Pipeline', icon: 'i-kanban' },
   { id: 'tasks', label: 'Aufgaben', icon: 'i-tasks' },
   { id: 'media', label: 'Medien', icon: 'i-image' },
+  { id: 'campaigns', label: 'Kampagnen', icon: 'i-mail' },
   { id: 'settings', label: 'Einstellungen', icon: 'i-gear' },
 ];
 let current = 'dash';
-const UI = { q: '', status: '', tag: '', sort: 'name', ctype: '', mediaType: '' };
+const UI = { q: '', status: '', tag: '', sort: 'name', ctype: '', mediaType: '', campId: null };
 
 function applyTheme() {
   const t = SET?.theme || 'auto';
@@ -773,8 +797,8 @@ function startApp() {
 }
 function renderNav() {
   const counts = { contacts: contacts().length, tasks: all('task').filter(t => !t.done).length, pipeline: all('deal').filter(d => !['Gewonnen', 'Verloren'].includes(d.stage)).length, media: all('file').length };
-  $('#nav').replaceChildren(...VIEWS.map(v => h('button', { class: v.id === current ? 'on' : '', onclick: () => go(v.id) }, icon(v.icon), v.label, counts[v.id] ? h('span', { class: 'count' }, counts[v.id]) : null)));
-  $('#bnav').replaceChildren(...VIEWS.map(v => h('button', { class: v.id === current ? 'on' : '', onclick: () => go(v.id), 'aria-label': v.label }, icon(v.icon), v.label.replace('Einstellungen', 'Mehr'))));
+  $('#nav').replaceChildren(...VIEWS.map(v => h('button', { class: v.id === current ? 'on' : '', onclick: () => { if (v.id === 'campaigns') UI.campId = null; go(v.id); } }, icon(v.icon), v.label, counts[v.id] ? h('span', { class: 'count' }, counts[v.id]) : null)));
+  $('#bnav').replaceChildren(...VIEWS.map(v => h('button', { class: v.id === current ? 'on' : '', onclick: () => { if (v.id === 'campaigns') UI.campId = null; go(v.id); }, 'aria-label': v.label }, icon(v.icon), v.label.replace('Einstellungen', 'Mehr').replace('Kampagnen', 'Mails'))));
 }
 function go(id) {
   if (!VIEWS.find(v => v.id === id)) id = 'dash';
@@ -786,7 +810,7 @@ function go(id) {
 function render() {
   renderNav();
   const v = $('#view');
-  const fn = { dash: viewDash, contacts: viewContacts, pipeline: viewPipeline, tasks: viewTasks, media: viewMedia, settings: viewSettings }[current];
+  const fn = { dash: viewDash, contacts: viewContacts, pipeline: viewPipeline, tasks: viewTasks, media: viewMedia, campaigns: viewCampaigns, settings: viewSettings }[current];
   v.replaceChildren(fn());
 }
 function refresh() { render(); if (openId) renderDetail(); }
@@ -800,6 +824,7 @@ $('#newBtn').onclick = () => {
   if (current === 'pipeline') editDeal();
   else if (current === 'tasks') editTask();
   else if (current === 'media') pickFiles({});
+  else if (current === 'campaigns') newCampaign();
   else editContact();
 };
 $('#searchBtn').onclick = openPalette;
@@ -970,6 +995,8 @@ function renderDetail() {
   if (isCompany(c)) { const m = members(c); if (m.length) fact('Personen', h('div', { class: 'chips' }, m.map(p => h('a', { href: '#', class: 'chip', onclick: e => { e.preventDefault(); openDetail(p.id); } }, cname(p))))); }
   fact('Geburtstag', c.birthday ? fmtDate(c.birthday + 'T12:00') + (nextBirthday(c) ? ` (${rel(nextBirthday(c))})` : '') : null);
   fact('Kennengelernt', c.met);
+  fact('Anrede', !isCompany(c) && (c.salutation || c.du) ? [c.salutation, c.du ? 'per Du' : 'per Sie'].filter(Boolean).join(' · ') : null);
+  fact('E-Mail-Werbung', c.mailConsent ? CONSENT[c.mailConsent] + (c.mailConsentNote ? ' · ' + c.mailConsentNote : '') + (c.mailConsentAt ? ' · erfasst ' + fmtDate(c.mailConsentAt) : '') : null);
   fact('Kontaktrhythmus', c.cadence ? `alle ${c.cadence} Tage · nächster: ${rel(dueKeepInTouch(c))}` : null);
   fact('Zuletzt Kontakt', lc ? `${fmtDate(lc)} (${rel(lc)})` : null);
   (c.custom || []).forEach(x => fact(x.k, x.v));
@@ -1159,7 +1186,9 @@ async function editContact(c = {}) {
   const content = h('div', { class: 'fgrid' },
     fld('Art', type),
     fld('Status', sel('status', c.status || '', [['', '—'], ...SET.statuses])),
-    h('div', { class: 'full p-only fgrid', style: 'padding:0' }, fld('Vorname', inp('firstName', c.firstName, { autocomplete: 'off' })), fld('Nachname', inp('lastName', c.lastName, { autocomplete: 'off' }))),
+    h('div', { class: 'full p-only fgrid', style: 'padding:0' }, fld('Vorname', inp('firstName', c.firstName, { autocomplete: 'off' })), fld('Nachname', inp('lastName', c.lastName, { autocomplete: 'off' })),
+      fld('Anrede', sel('salutation', c.salutation || '', [['', '—'], ['Frau', 'Frau'], ['Herr', 'Herr']])),
+      h('label', { class: 'field', style: 'flex-direction:row;align-items:center;gap:10px;margin-top:22px' }, h('input', { type: 'checkbox', name: 'du', checked: !!c.du, style: 'width:18px;height:18px;accent-color:var(--gold)' }), h('span', { style: 'text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink)' }, 'Wir duzen uns'))),
     fld('Firma', inp('company', isCompany(c) ? c.company : companyName(c), { list: 'companyList', autocomplete: 'off' })),
     h('datalist', { id: 'companyList' }, companies.map(x => h('option', { value: cname(x) }))),
     fld('Position', inp('role', c.role)),
@@ -1174,6 +1203,8 @@ async function editContact(c = {}) {
     fld('Wichtigkeit', sel('stars', String(c.stars || 0), [['0', '—'], ['1', '★'], ['2', '★★'], ['3', '★★★'], ['4', '★★★★'], ['5', '★★★★★']])),
     fld('Kontaktrhythmus', sel('cadence', String(c.cadence || ''), [['', 'keiner'], ['7', 'wöchentlich'], ['14', 'alle 2 Wochen'], ['30', 'monatlich'], ['90', 'vierteljährlich'], ['180', 'halbjährlich'], ['365', 'jährlich']])),
     fld('Kennengelernt (wo/wie)', inp('met', c.met)),
+    fld('E-Mail-Werbung', sel('mailConsent', c.mailConsent || '', Object.entries(CONSENT))),
+    fld('Nachweis (Datum, Quelle)', inp('mailConsentNote', c.mailConsentNote, { placeholder: 'z. B. 12.03.2026, Formular Erstgespräch' })),
     fld('Eigene Felder (je Zeile „Name: Wert“)', txa('custom', custom, { rows: 3, style: 'min-height:0', placeholder: 'LinkedIn: …\nHobby: Segeln' }), true),
     fld('Notizen', txa('notes', c.notes), true));
   const sync = () => { content.querySelector('.p-only').style.display = type.value === 'company' ? 'none' : ''; content.querySelector('[name=company]').previousSibling.textContent = type.value === 'company' ? 'Firmenname' : 'Firma'; };
@@ -1187,7 +1218,9 @@ async function editContact(c = {}) {
     emails: splitList(v.emails), phones: splitList(v.phones), tags: [...new Set(splitList(v.tags))], stars: +v.stars, cadence: +v.cadence || null, notes: v.notes,
     custom: v.custom.split('\n').map(l => { const i = l.indexOf(':'); return i > 0 ? { k: l.slice(0, i).trim(), v: l.slice(i + 1).trim() } : l.trim() ? { k: 'Info', v: l.trim() } : null; }).filter(Boolean),
   });
-  if (v.type === 'company') { o.company = v.company.trim(); o.firstName = ''; o.lastName = ''; o.companyId = null; }
+  if ((c.mailConsent || '') !== v.mailConsent) o.mailConsentAt = Date.now();
+  Object.assign(o, { salutation: v.salutation || '', du: !!v.du, mailConsent: v.mailConsent || '', mailConsentNote: (v.mailConsentNote || '').trim() });
+  if (v.type === 'company') { o.company = v.company.trim(); o.firstName = ''; o.lastName = ''; o.companyId = null; o.salutation = ''; o.du = false; }
   else {
     o.firstName = v.firstName.trim(); o.lastName = v.lastName.trim(); o.company = v.company.trim();
     const match = contacts().find(x => isCompany(x) && norm(x.company) === norm(o.company));
@@ -1396,6 +1429,7 @@ function viewSettings() {
         h('button', { class: 'btn', onclick: exportJSON }, icon('i-download'), 'Alles als JSON (ohne Medien)'))),
     syncCard(card, btns),
     appCard(card, btns),
+    mailSettingsCard(card, btns),
     card('Darstellung & Felder', 'i-gear',
       fld('Farbschema', th), pkRow, h('div', { class: 'fgrid' }, listEditor('statuses', 'Status'), listEditor('stages', 'Pipeline-Phasen'))),
     card('Speicher', 'i-image',
@@ -1555,14 +1589,15 @@ function parseCSV(text) {
   if (cell || row.length) { row.push(cell); rows.push(row); }
   const hd = rows.shift().map(x => norm(x).trim());
   const find = (...ks) => hd.findIndex(x => ks.some(k => x === k || x.includes(k)));
+  const findX = (ks, not) => hd.findIndex(x => ks.some(k => x === k || x.includes(k)) && !not.some(n => x.includes(n)));
   const ix = { fn: find('vorname', 'first name', 'given name'), ln: find('nachname', 'last name', 'family name', 'surname'), name: find('name', 'anzeigename', 'display name'),
     co: find('firma', 'company', 'organization', 'unternehmen'), role: find('position', 'title', 'job', 'funktion'), mail: find('e-mail', 'email', 'mail'), tel: find('telefon', 'phone', 'mobil', 'handy'),
-    adr: find('adresse', 'strasse', 'street', 'address'), city: find('ort', 'stadt', 'city'), web: find('website', 'web', 'url'), bday: find('geburtstag', 'birthday'), tags: find('tags', 'kategorie', 'categories', 'gruppe'), notes: find('notiz', 'notes', 'bemerkung'), status: find('status') };
+    adr: findX(['adresse', 'strasse', 'street', 'address'], ['mail', 'web', 'url']), city: findX(['ort', 'stadt', 'city'], ['geburt', 'sport', 'port', 'wort']), sal: findX(['anrede', 'salutation'], ['brief']), web: find('website', 'web', 'url'), bday: find('geburtstag', 'birthday'), tags: find('tags', 'kategorie', 'categories', 'gruppe'), notes: find('notiz', 'notes', 'bemerkung'), status: find('status') };
   return rows.filter(r => r.some(x => x.trim())).map(r => {
     const g = k => ix[k] >= 0 ? (r[ix[k]] || '').trim() : '';
     let fn = g('fn'), ln = g('ln'); if (!fn && !ln && g('name')) { const p = g('name').split(' '); ln = p.pop(); fn = p.join(' '); }
     let bd = g('bday'); const m = bd.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/); if (m) bd = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`; if (!/^\d{4}-\d{2}-\d{2}$/.test(bd)) bd = '';
-    const c = { kind: 'contact', type: !fn && !ln && g('co') ? 'company' : 'person', firstName: fn, lastName: ln, company: g('co'), role: g('role'), emails: splitList(g('mail')), phones: splitList(g('tel')), address: g('adr'), city: g('city'), website: g('web'), birthday: bd, tags: splitList(g('tags')), notes: g('notes'), status: SET.statuses.includes(g('status')) ? g('status') : '' };
+    const c = { kind: 'contact', type: !fn && !ln && g('co') ? 'company' : 'person', firstName: fn, lastName: ln, company: g('co'), role: g('role'), emails: splitList(g('mail')), phones: splitList(g('tel')), address: g('adr'), city: g('city'), website: g('web'), birthday: bd, tags: splitList(g('tags')), notes: g('notes'), status: SET.statuses.includes(g('status')) ? g('status') : '', salutation: /^frau/i.test(g('sal')) ? 'Frau' : /^herr/i.test(g('sal')) ? 'Herr' : '' };
     return c;
   }).filter(c => c.firstName || c.lastName || c.company);
 }
@@ -1589,6 +1624,385 @@ function importContacts() {
     toast(`${fresh.length} Kontakte importiert`); go('contacts');
   };
   inpEl.click();
+}
+
+/* =====================================================================
+   KAMPAGNEN (Rundmail)
+   Versand einzeln je Empfänger über Microsoft 365 (Graph, Mail.Send),
+   angemeldet als das Absender-Postfach. Ohne eingerichteten Zugang:
+   Vorschau, CSV-Export für Serienmails und Einzelversand per Mail-Programm.
+   Rechtlicher Rahmen (§ 7 UWG, DSGVO): nur Kontakte mit Einwilligung oder
+   als Bestandskunde markiert, Widerspruch sperrt immer, Abmeldehinweis und
+   Pflichtangaben in jeder Mail, jede Mail einzeln, Versand im Verlauf vermerkt.
+   ===================================================================== */
+const MAIL_DEFAULTS = {
+  from: 'Andreas@och-Finanzberatung.de', fromName: 'Andreas Och', tenant: '', clientId: '', perMinute: 20,
+  footer: 'Andreas Och · OCH Finanzberatung\n[Straße Nr.] · [PLZ Ort]\nTelefon [Telefonnummer] · Andreas@och-Finanzberatung.de\n[Pflichtangaben, z. B. Erlaubnis nach § 34d/§ 34f GewO, Vermittlerregister-Nr.]\nImpressum: [Link zum Impressum]'
+};
+const mailCfg = () => Object.assign({}, MAIL_DEFAULTS, SET.mail || {});
+const CONSENT = { '': 'ungeklärt', einwilligung: 'Einwilligung liegt vor', bestandskunde: 'Bestandskunde (§ 7 Abs. 3 UWG)', widerspruch: 'Widerspruch / abgemeldet' };
+const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+const firstMail = c => (c.emails || [])[0] || '';
+
+function mailReason(c) {
+  if (!firstMail(c)) return 'keine E-Mail-Adresse';
+  if (c.mailConsent === 'widerspruch') return 'Widerspruch / abgemeldet';
+  if (!['einwilligung', 'bestandskunde'].includes(c.mailConsent)) return 'Einwilligung ungeklärt';
+  return null;
+}
+function briefanrede(c) {
+  if (isCompany(c) || (!c.firstName && !c.lastName)) return 'Guten Tag';
+  if (c.du) return (c.salutation === 'Frau' ? 'Liebe ' : c.salutation === 'Herr' ? 'Lieber ' : 'Hallo ') + (c.firstName || c.lastName);
+  if (c.salutation === 'Frau' && c.lastName) return 'Sehr geehrte Frau ' + c.lastName;
+  if (c.salutation === 'Herr' && c.lastName) return 'Sehr geehrter Herr ' + c.lastName;
+  return 'Guten Tag ' + cname(c);
+}
+const PLACEHOLDERS = { Briefanrede: briefanrede, Vorname: c => c.firstName || '', Nachname: c => c.lastName || '', Name: c => cname(c), Firma: c => isCompany(c) ? c.company : companyName(c) };
+const fillText = (t, c) => String(t || '').replace(/\{\{\s*(\w+)\s*\}\}/g, (m, k) => PLACEHOLDERS[k] ? PLACEHOLDERS[k](c) : m);
+function mdToHtml(t) {
+  return String(t || '').trim().split(/\n{2,}/).filter(Boolean).map(par => '<p style="margin:0 0 14px">' + esc(par)
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/\[([^\]]+)\]\(((?:https?:\/\/|mailto:)[^\s)]+)\)/g, '<a href="$2" style="color:#7E6219">$1</a>')
+    .replace(/\n/g, '<br>') + '</p>').join('');
+}
+const mdToText = t => String(t || '').replace(/\*\*(.+?)\*\*/g, '$1').replace(/\[([^\]]+)\]\(([^\s)]+)\)/g, '$1 ($2)');
+function optOutText(c, cfg) {
+  return (c.du ? 'Du möchtest keine weiteren E-Mails dieser Art erhalten? Antworte einfach mit „Abmelden“.' : 'Sie möchten keine weiteren E-Mails dieser Art erhalten? Antworten Sie einfach mit „Abmelden“.') + ' Es entstehen dafür keine anderen als die Übermittlungskosten nach den Basistarifen.';
+}
+function emailHtml(camp, c) {
+  const cfg = mailCfg();
+  const foot = esc(cfg.footer).replace(/\n/g, '<br>');
+  return '<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#1D2433;max-width:620px">' +
+    mdToHtml(fillText(camp.body, c)) +
+    '<div style="border-top:1px solid #E2D8C3;margin:28px 0 14px"></div>' +
+    '<div style="font-size:12px;line-height:1.5;color:#6B7385">' + foot + '<br><br>' + esc(optOutText(c, cfg)) +
+    ' <a href="mailto:' + esc(cfg.from) + '?subject=Abmelden" style="color:#7E6219">Abmelden</a></div></div>';
+}
+const emailText = (camp, c) => mdToText(fillText(camp.body, c)) + '\n\n--\n' + mailCfg().footer + '\n\n' + optOutText(c, mailCfg());
+const footerIncomplete = () => /\[[^\]]+\]/.test(mailCfg().footer);
+
+function campaignRecipients(camp) {
+  const s = camp.sel || {};
+  let cs = contacts().filter(c => {
+    if (s.status?.length && !s.status.includes(c.status)) return false;
+    if (s.tagsAny?.length && !(c.tags || []).some(t => s.tagsAny.includes(t))) return false;
+    if (s.tagsNone?.length && (c.tags || []).some(t => s.tagsNone.includes(t))) return false;
+    if (s.ctype === 'person' && isCompany(c)) return false;
+    if (s.ctype === 'company' && !isCompany(c)) return false;
+    if (s.city && !norm(c.city).includes(norm(s.city))) return false;
+    if (s.minStars && (c.stars || 0) < s.minStars) return false;
+    return true;
+  });
+  const ids = new Set(cs.map(c => c.id));
+  for (const id of camp.add || []) if (get(id) && !ids.has(id)) { cs.push(get(id)); ids.add(id); }
+  const removed = cs.filter(c => (camp.remove || []).includes(c.id));
+  cs = cs.filter(c => !(camp.remove || []).includes(c.id));
+  const ok = [], out = [];
+  for (const c of cs) { const r = mailReason(c); r ? out.push({ c, r }) : ok.push(c); }
+  const by = (a, b) => cname(a.c || a).localeCompare(cname(b.c || b), 'de');
+  return { ok: ok.sort(by), out: out.sort(by), removed: removed.sort(by) };
+}
+function campaignState(camp) {
+  const sent = Object.values(camp.sent || {}), okN = sent.filter(x => x.ok).length, errN = sent.filter(x => !x.ok).length;
+  if (!sent.length) return { label: 'Entwurf', cls: '', okN, errN };
+  const open = campaignRecipients(camp).ok.filter(c => !camp.sent?.[c.id]?.ok).length;
+  return open ? { label: 'Teilweise versendet', cls: 'warn', okN, errN } : { label: 'Versendet', cls: 'ok', okN, errN };
+}
+
+/* ---------------- Microsoft 365: Anmeldung (OAuth, PKCE, Popup) ---------------- */
+const MS = { token: null, exp: 0, account: '' };
+const b64url = buf => b64(buf).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const msRedirect = () => location.origin + location.pathname;
+const msReady = () => !!(mailCfg().tenant && mailCfg().clientId);
+const msSignedIn = () => !!MS.token && Date.now() < MS.exp;
+async function msLogin() {
+  const cfg = mailCfg();
+  if (!msReady()) throw new Error('Zugang noch nicht eingerichtet (Mandant und Anwendungs-ID fehlen).');
+  const verifier = b64url(crypto.getRandomValues(new Uint8Array(32)));
+  const challenge = b64url(await crypto.subtle.digest('SHA-256', te.encode(verifier)));
+  const state = 'och-' + uid();
+  const scope = 'openid profile User.Read Mail.Send';
+  const url = `https://login.microsoftonline.com/${encodeURIComponent(cfg.tenant)}/oauth2/v2.0/authorize?` + new URLSearchParams({
+    client_id: cfg.clientId, response_type: 'code', redirect_uri: msRedirect(), response_mode: 'query', scope,
+    code_challenge: challenge, code_challenge_method: 'S256', state, login_hint: cfg.from, prompt: 'select_account'
+  });
+  const w = window.open(url, 'och-ms-login', 'width=520,height=700');
+  if (!w) throw new Error('Das Anmeldefenster wurde blockiert. Bitte Pop-ups für diese Seite erlauben.');
+  // Antwort kommt über localStorage (funktioniert auch, wenn der Browser die Fenster-Verbindung trennt)
+  const res = await new Promise((resolve, reject) => {
+    const t0 = Date.now();
+    const iv = setInterval(() => {
+      let raw = null; try { raw = localStorage.getItem('och-ms-auth'); } catch { }
+      if (raw) {
+        let d = null; try { d = JSON.parse(raw); } catch { }
+        if (d && d.state === state) { try { localStorage.removeItem('och-ms-auth'); } catch { } clearInterval(iv); try { w.close(); } catch { } return d.error ? reject(new Error(d.error)) : resolve(d); }
+      }
+      if (Date.now() - t0 > 5 * 60000) { clearInterval(iv); reject(new Error('Zeitüberschreitung bei der Anmeldung.')); }
+    }, 300);
+  });
+  const r = await fetch(`https://login.microsoftonline.com/${encodeURIComponent(cfg.tenant)}/oauth2/v2.0/token`, {
+    method: 'POST', body: new URLSearchParams({ client_id: cfg.clientId, grant_type: 'authorization_code', code: res.code, redirect_uri: msRedirect(), code_verifier: verifier, scope })
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j.access_token) throw new Error(j.error_description || j.error || 'Anmeldung fehlgeschlagen.');
+  MS.token = j.access_token; MS.exp = Date.now() + ((j.expires_in || 3600) - 120) * 1000;
+  const me = await graph('GET', '/me?$select=mail,userPrincipalName,displayName');
+  MS.account = me.mail || me.userPrincipalName || '';
+  if (norm(MS.account) !== norm(cfg.from)) {
+    const acc = MS.account; msLogout();
+    throw new Error(`Angemeldet als ${acc}. Für den Versand bitte mit ${cfg.from} anmelden.`);
+  }
+  return MS.account;
+}
+function msLogout() { MS.token = null; MS.exp = 0; MS.account = ''; }
+async function graph(method, path, body) {
+  if (!msSignedIn()) throw new Error('Nicht angemeldet.');
+  const r = await fetch('https://graph.microsoft.com/v1.0' + path, { method, headers: Object.assign({ Authorization: 'Bearer ' + MS.token }, body ? { 'Content-Type': 'application/json' } : {}), body: body ? JSON.stringify(body) : undefined });
+  if (r.status === 429 || r.status === 503) { const e = new Error('Microsoft bremst gerade (zu viele Anfragen).'); e.retry = +(r.headers.get('Retry-After') || 30); throw e; }
+  if (!r.ok) { let m = 'Fehler ' + r.status; try { const j = await r.json(); m = j.error?.message || m; } catch { } throw new Error(m); }
+  return r.status === 202 || r.status === 204 ? null : r.json();
+}
+async function sendCampaignMail(camp, c, to, test) {
+  const cfg = mailCfg();
+  await graph('POST', '/me/sendMail', {
+    message: {
+      subject: (test ? '[Test] ' : '') + fillText(camp.subject, c),
+      body: { contentType: 'HTML', content: emailHtml(camp, c) },
+      toRecipients: [{ emailAddress: { address: to, name: test ? cfg.fromName : cname(c) } }],
+    }, saveToSentItems: true
+  });
+}
+
+/* ---------------- Ansicht: Kampagnen ---------------- */
+let RUN = null; // laufender Versand
+async function newCampaign(from) {
+  const camp = await save(from ? {
+    kind: 'campaign', name: from.name + ' (Kopie)', subject: from.subject, body: from.body, sel: JSON.parse(JSON.stringify(from.sel || {})), add: [...(from.add || [])], remove: [...(from.remove || [])], sent: {}
+  } : {
+    kind: 'campaign', name: 'Neue Rundmail', subject: '', sent: {}, add: [], remove: [],
+    sel: { status: [], tagsAny: [], tagsNone: [], ctype: 'person', city: '', minStars: 0 },
+    body: '{{Briefanrede}},\n\n[Ihr Text]\n\nHerzliche Grüße\nAndreas Och'
+  });
+  UI.campId = camp.id; go('campaigns');
+}
+function viewCampaigns() {
+  if (UI.campId && get(UI.campId)) return campaignEditor(get(UI.campId));
+  UI.campId = null;
+  const camps = all('campaign').sort((a, b) => b.updatedAt - a.updatedAt);
+  const cfg = mailCfg();
+  const info = h('div', { class: 'card', style: 'margin-bottom:16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap' },
+    icon('i-mail'),
+    h('div', { style: 'flex:1;min-width:240px' }, h('div', null, 'Absender: ', h('strong', null, cfg.from)),
+      h('div', { class: 'muted', style: 'font-size:13px' }, msReady() ? (msSignedIn() ? 'Microsoft 365 verbunden als ' + MS.account : 'Microsoft-365-Zugang eingerichtet. Anmeldung erfolgt beim Versand.') : 'Microsoft-365-Zugang noch nicht eingerichtet. Vorschau, CSV-Export und Einzelversand per Mail-Programm sind trotzdem möglich.')),
+    h('button', { class: 'btn primary', onclick: () => newCampaign() }, icon('i-plus'), 'Neue Rundmail'));
+  if (!camps.length) return h('div', null, info, h('div', { class: 'card empty' }, 'Noch keine Rundmail. Lege eine an, wähle die Empfänger über Status und Tags und prüfe die Vorschau.'));
+  return h('div', null, info, h('div', { class: 'cgrid' }, camps.map(cp => {
+    const st = campaignState(cp), n = campaignRecipients(cp).ok.length;
+    return h('div', { class: 'ccard', tabindex: 0, onclick: () => { UI.campId = cp.id; render(); }, onkeydown: e => e.key === 'Enter' && (UI.campId = cp.id, render()) },
+      h('div', { class: 'nm' }, cp.name), h('div', { class: 'muted', style: 'font-size:13px' }, cp.subject || 'ohne Betreff'),
+      h('div', { class: 'chips' }, h('span', { class: 'chip ' + st.cls }, st.label), h('span', { class: 'chip' }, `${n} Empfänger`), st.okN ? h('span', { class: 'chip' }, `${st.okN} versendet`) : null, st.errN ? h('span', { class: 'chip bad' }, `${st.errN} Fehler`) : null),
+      h('div', { class: 'muted', style: 'font-size:12.5px' }, 'geändert ' + fmtDT(cp.updatedAt)));
+  })));
+}
+function campaignEditor(camp) {
+  const wrap = h('div', { class: 'camp' });
+  let t;
+  const persist = (rerender) => { clearTimeout(t); t = setTimeout(async () => { await save(camp); if (rerender) refreshRecipients(); }, 400); };
+  const sentAny = Object.values(camp.sent || {}).some(x => x.ok);
+  // Kopf
+  const name = inp('campName', camp.name, { 'aria-label': 'Name der Rundmail' }); name.addEventListener('input', () => { camp.name = name.value; persist(); });
+  const head = h('div', { class: 'toolbar' },
+    h('button', { class: 'btn ghost', onclick: () => { UI.campId = null; render(); } }, '← Alle Rundmails'),
+    h('div', { style: 'flex:1;min-width:200px' }, name),
+    h('button', { class: 'btn', onclick: () => newCampaign(camp) }, 'Duplizieren'),
+    h('button', { class: 'btn danger', onclick: async () => {
+      if (RUN) return toast('Bitte zuerst den laufenden Versand stoppen.', true);
+      if (!await confirmBox('Rundmail löschen?', `„${camp.name}“ wird gelöscht.` + (sentAny ? ' Die Einträge „Rundmail“ im Verlauf der Empfänger bleiben als Nachweis erhalten.' : ''))) return;
+      await del(camp.id); UI.campId = null; render(); toast('Gelöscht');
+    } }, icon('i-trash'), 'Löschen'));
+  // 1 Inhalt
+  const subj = inp('campSubject', camp.subject, { placeholder: 'Betreff, z. B. Ihr Jahresgespräch 2027' }); subj.addEventListener('input', () => { camp.subject = subj.value; persist(); updPreview(); });
+  const body = txa('campBody', camp.body, { style: 'min-height:260px;font-size:14.5px' }); body.addEventListener('input', () => { camp.body = body.value; persist(); updPreview(); });
+  const ins = k => { const s = body.selectionStart ?? body.value.length; body.setRangeText('{{' + k + '}}', s, body.selectionEnd ?? s, 'end'); body.focus(); body.dispatchEvent(new Event('input')); };
+  const content = h('div', { class: 'card' }, h('h3', null, '1 · Inhalt'),
+    sentAny ? h('p', { class: 'chip warn', style: 'white-space:normal;margin-bottom:12px' }, 'Bereits teilweise versendet. Änderungen gelten nur für die noch offenen Empfänger.') : null,
+    fld('Betreff', subj), fld('Text', body),
+    h('div', { class: 'chips', style: 'margin:-4px 0 8px' }, h('span', { class: 'muted', style: 'font-size:13px' }, 'Einfügen:'), Object.keys(PLACEHOLDERS).map(k => h('button', { class: 'btn sm', type: 'button', onclick: () => ins(k) }, '{{' + k + '}}'))),
+    h('p', { class: 'note' }, 'Formatierung: Leerzeile = neuer Absatz, **fett**, [Linktext](https://…). Pflichtangaben und Abmeldehinweis werden automatisch angehängt.'));
+  // 2 Empfänger
+  const s = camp.sel = Object.assign({ status: [], tagsAny: [], tagsNone: [], ctype: 'person', city: '', minStars: 0 }, camp.sel || {});
+  const toggles = (arr, values, neg) => h('div', { class: 'checks' }, values.length ? values.map(v => {
+    const b = h('button', { type: 'button', class: 'tgl' + (neg ? ' neg' : '') + (arr.includes(v) ? ' on' : '') }, v);
+    b.onclick = () => { const i = arr.indexOf(v); i < 0 ? arr.push(v) : arr.splice(i, 1); b.classList.toggle('on'); persist(true); };
+    return b;
+  }) : h('span', { class: 'muted', style: 'font-size:13px' }, 'noch keine vorhanden'));
+  const ctype = sel('campType', s.ctype, [['', 'Personen und Firmen'], ['person', 'nur Personen'], ['company', 'nur Firmen']]); ctype.onchange = () => { s.ctype = ctype.value; persist(true); };
+  const city = inp('campCity', s.city, { placeholder: 'z. B. Hamburg' }); city.oninput = () => { s.city = city.value; persist(true); };
+  const stars = sel('campStars', String(s.minStars || 0), [['0', 'alle'], ['1', 'ab ★'], ['2', 'ab ★★'], ['3', 'ab ★★★'], ['4', 'ab ★★★★'], ['5', '★★★★★']]); stars.onchange = () => { s.minStars = +stars.value; persist(true); };
+  const addInp = inp('campAdd', '', { list: 'campAddList', placeholder: 'Name eingeben …', autocomplete: 'off' });
+  const addList = h('datalist', { id: 'campAddList' }, contacts().map(c => h('option', { value: cname(c) + ' · ' + (firstMail(c) || 'ohne E-Mail') })));
+  addInp.addEventListener('change', () => { const c = contacts().find(x => addInp.value.startsWith(cname(x) + ' · ')); if (c) { camp.add = [...new Set([...(camp.add || []), c.id])]; camp.remove = (camp.remove || []).filter(x => x !== c.id); addInp.value = ''; persist(true); } });
+  const recBox = h('div');
+  const selection = h('div', { class: 'card' }, h('h3', null, '2 · Empfänger auswählen'),
+    h('div', { class: 'fgrid' },
+      fld('Status (keine Auswahl = alle)', toggles(s.status, SET.statuses), true),
+      fld('Mit einem dieser Tags', toggles(s.tagsAny, allTags())), fld('Ohne diese Tags', toggles(s.tagsNone, allTags(), true)),
+      fld('Art', ctype), fld('Ort enthält', city), fld('Wichtigkeit', stars), fld('Einzelnen Kontakt hinzufügen', addInp)),
+    addList, recBox);
+  function refreshRecipients() {
+    const { ok, out, removed } = campaignRecipients(camp);
+    const row = (c, right) => h('div', { class: 'rrow' }, h('div', { style: 'flex:1;min-width:0' }, h('div', null, cname(c)), h('div', { class: 'muted', style: 'font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' }, firstMail(c) || '–')), right);
+    const sentChip = c => camp.sent?.[c.id] ? h('span', { class: 'chip ' + (camp.sent[c.id].ok ? 'ok' : 'bad'), title: camp.sent[c.id].err || '' }, camp.sent[c.id].ok ? (camp.sent[c.id].manual ? 'manuell versendet' : 'versendet') : 'Fehler') : null;
+    recBox.replaceChildren(
+      h('div', { class: 'statline', style: 'margin:6px 0 10px' }, h('strong', null, `${ok.length} Empfänger`), out.length ? h('span', { class: 'muted' }, `${out.length} ausgeschlossen`) : null, removed.length ? h('span', { class: 'muted' }, `${removed.length} manuell entfernt`) : null),
+      ok.length ? h('div', { class: 'rlist' }, ok.map(c => row(c, h('div', { style: 'display:flex;gap:6px;align-items:center' }, sentChip(c), h('button', { class: 'btn sm ghost', type: 'button', title: 'Aus dieser Rundmail entfernen', onclick: () => { camp.remove = [...new Set([...(camp.remove || []), c.id])]; persist(true); } }, icon('i-x')))))) : h('div', { class: 'empty' }, 'Keine Empfänger. Passe die Auswahl an oder kläre bei den Kontakten den Status „E-Mail-Werbung“.'),
+      out.length ? h('details', { style: 'margin-top:12px' }, h('summary', { style: 'cursor:pointer;font-size:14px' }, `Ausgeschlossen (${out.length}): ohne E-Mail, ohne geklärte Einwilligung oder abgemeldet`),
+        h('div', { class: 'rlist', style: 'margin-top:8px' }, out.map(({ c, r }) => row(c, h('div', { style: 'display:flex;gap:6px;align-items:center' }, h('span', { class: 'chip ' + (r.startsWith('Widerspruch') ? 'bad' : 'warn') }, r), h('button', { class: 'btn sm', type: 'button', onclick: () => editContact(c) }, 'Kontakt öffnen'))))),
+        h('p', { class: 'note' }, 'Zulässig sind nur Kontakte mit dokumentierter Einwilligung oder als Bestandskunde markiert (nur für eigene ähnliche Produkte). Den Status pflegst du im Kontakt unter „E-Mail-Werbung“.')) : null,
+      removed.length ? h('details', { style: 'margin-top:8px' }, h('summary', { style: 'cursor:pointer;font-size:14px' }, `Manuell entfernt (${removed.length})`),
+        h('div', { class: 'rlist', style: 'margin-top:8px' }, removed.map(c => row(c, h('button', { class: 'btn sm', type: 'button', onclick: () => { camp.remove = camp.remove.filter(x => x !== c.id); persist(true); } }, 'Wieder aufnehmen'))))) : null);
+    updPreview(); updSend();
+  }
+  // 3 Vorschau
+  const prevSel = h('select', { class: 'input', style: 'max-width:340px', 'aria-label': 'Vorschau für' });
+  const prev = h('div', { class: 'mailprev' }), prevSubj = h('div', { style: 'font-weight:600;margin-bottom:10px' });
+  prevSel.onchange = () => updPreview();
+  const preview = h('div', { class: 'card' }, h('h3', null, '3 · Vorschau'), h('div', { class: 'toolbar', style: 'margin-bottom:10px' }, h('span', { class: 'muted', style: 'font-size:14px' }, 'So sieht die Mail aus für'), prevSel), prevSubj, prev);
+  function updPreview() {
+    const { ok } = campaignRecipients(camp);
+    const cur = prevSel.value;
+    const sample = { kind: 'contact', firstName: 'Max', lastName: 'Mustermann', salutation: 'Herr', company: 'Beispiel GmbH' };
+    const opts = ok.length ? ok : [sample];
+    prevSel.replaceChildren(...opts.map((c, i) => h('option', { value: c.id || 'sample', selected: (c.id || 'sample') === cur }, ok.length ? cname(c) : 'Beispiel: Max Mustermann')));
+    const c = opts.find(x => (x.id || 'sample') === prevSel.value) || opts[0];
+    prevSubj.textContent = 'Betreff: ' + (fillText(camp.subject, c) || '(kein Betreff)');
+    prev.innerHTML = emailHtml(camp, c); // nur maskierte Inhalte, siehe esc()
+  }
+  // 4 Versand
+  const sendBox = h('div');
+  const sendCard = h('div', { class: 'card' }, h('h3', null, '4 · Versand'), sendBox);
+  function problems(ok) {
+    const p = [];
+    if (!camp.subject?.trim()) p.push('Betreff fehlt.');
+    if (!camp.body?.trim() || /\[Ihr Text\]/.test(camp.body)) p.push('Text fehlt oder enthält noch „[Ihr Text]“.');
+    if (footerIncomplete()) p.push('Pflichtangaben im Fußtext sind noch nicht ausgefüllt (Einstellungen → E-Mail-Versand).');
+    if (!ok.length) p.push('Keine zulässigen Empfänger.');
+    return p;
+  }
+  function updSend() {
+    const { ok } = campaignRecipients(camp);
+    const open = ok.filter(c => !camp.sent?.[c.id]?.ok);
+    const p = problems(ok);
+    const prog = h('div', { class: 'progress', style: 'margin:12px 0 6px' }, h('i', { id: 'campProg' }));
+    const progTxt = h('div', { id: 'campProgTxt', class: 'muted', style: 'font-size:13px' });
+    const csvBtn = h('button', { class: 'btn', onclick: () => exportRecipients(camp) }, icon('i-download'), 'Empfänger als CSV (für Serienmail)');
+    const manualBtn = h('button', { class: 'btn', onclick: () => manualSendDialog(camp) }, icon('i-mail'), 'Einzeln per Mail-Programm');
+    const kids = [];
+    if (p.length) kids.push(h('div', { class: 'chip warn', style: 'white-space:normal;display:block;padding:10px 14px;border-radius:12px;margin-bottom:12px' }, h('strong', null, 'Vor dem Versand noch offen:'), h('ul', { style: 'margin:6px 0 0 18px' }, p.map(x => h('li', null, x)))));
+    kids.push(h('p', { style: 'font-size:14px' }, `${open.length} von ${ok.length} Empfängern noch offen. Jede Mail wird einzeln verschickt (keine sichtbare Verteilerliste), höchstens ${mailCfg().perMinute} pro Minute, und im Verlauf des Kontakts vermerkt.`));
+    if (!msReady()) {
+      kids.push(h('p', { class: 'note' }, 'Der Versand über Microsoft 365 ist noch nicht eingerichtet. Bis dahin kannst du die Empfänger exportieren oder einzeln über dein Mail-Programm schreiben.'),
+        h('div', { class: 'quick', style: 'margin-top:10px' }, h('button', { class: 'btn', onclick: () => go('settings') }, icon('i-gear'), 'Zugang einrichten'), csvBtn, manualBtn));
+    } else {
+      const testBtn = h('button', { class: 'btn', disabled: !!RUN || p.some(x => !x.startsWith('Keine')), onclick: () => doTest() }, 'Testmail an mich');
+      const sendBtn = h('button', { class: 'btn primary', disabled: !!RUN || p.length > 0 || !open.length, onclick: () => doSend() }, icon('i-mail'), open.length === ok.length ? `An ${open.length} Empfänger senden` : `An ${open.length} offene Empfänger senden`);
+      const stopBtn = RUN ? h('button', { class: 'btn danger', onclick: () => { RUN.stop = true; toast('Versand wird nach der aktuellen Mail angehalten'); } }, 'Anhalten') : null;
+      kids.push(h('div', { class: 'quick', style: 'margin-top:10px' }, testBtn, sendBtn, stopBtn, csvBtn, manualBtn), prog, progTxt);
+    }
+    sendBox.replaceChildren(...kids);
+  }
+  async function ensureLogin() { if (msSignedIn()) return true; try { await msLogin(); toast('Angemeldet als ' + MS.account); return true; } catch (e) { toast(e.message, true); return false; } }
+  async function doTest() {
+    if (!await ensureLogin()) return;
+    const { ok } = campaignRecipients(camp);
+    const c = ok[0] || { kind: 'contact', firstName: 'Andreas', lastName: 'Och', salutation: 'Herr' };
+    try { await sendCampaignMail(camp, c, mailCfg().from, true); toast('Testmail an ' + mailCfg().from + ' gesendet'); } catch (e) { toast('Testmail fehlgeschlagen: ' + e.message, true); }
+  }
+  async function doSend() {
+    const { ok } = campaignRecipients(camp);
+    const open = ok.filter(c => !camp.sent?.[c.id]?.ok);
+    const chk = h('input', { type: 'checkbox', name: 'confirm', required: true });
+    const f = await dialog('Rundmail senden?', h('div', null,
+      h('p', null, `„${camp.subject}“ wird an ${open.length} Empfänger einzeln gesendet, Absender ${mailCfg().from}.`),
+      h('p', { class: 'muted', style: 'font-size:14px;margin:10px 0' }, `Dauer etwa ${Math.max(1, Math.ceil(open.length / mailCfg().perMinute))} Minute(n). Lass das Fenster währenddessen geöffnet.`),
+      h('label', { style: 'display:flex;gap:10px;align-items:flex-start;font-size:14px' }, chk, 'Ich habe Text, Empfänger und die rechtliche Zulässigkeit (Einwilligung bzw. Bestandskunde) geprüft.')), 'Jetzt senden');
+    if (!f) return;
+    if (!await ensureLogin()) return;
+    RUN = { id: camp.id, stop: false }; updSend();
+    const gap = Math.ceil(60000 / Math.min(30, Math.max(1, mailCfg().perMinute)));
+    let n = 0, err = 0;
+    for (const c of open) {
+      if (RUN.stop) break;
+      lastAct = Date.now(); // Auto-Sperre während des Versands nicht auslösen
+      const to = firstMail(c);
+      let okSend = false, msg = '';
+      for (let attempt = 0; attempt < 3 && !okSend; attempt++) {
+        try { if (!msSignedIn()) await msLogin(); await sendCampaignMail(camp, c, to); okSend = true; }
+        catch (e) { msg = e.message; if (e.retry && attempt < 2) await new Promise(r => setTimeout(r, e.retry * 1000)); else break; }
+      }
+      camp.sent = camp.sent || {};
+      camp.sent[c.id] = { at: Date.now(), to, ok: okSend, err: okSend ? '' : msg };
+      await save(camp);
+      if (okSend) { n++; await save({ kind: 'activity', contactId: c.id, type: 'E-Mail', date: Date.now(), text: `Rundmail „${camp.name}“ gesendet an ${to}\nBetreff: ${fillText(camp.subject, c)}`, campaignId: camp.id, fileIds: [] }); }
+      else err++;
+      const bar = $('#campProg'), txt = $('#campProgTxt');
+      if (bar) bar.style.width = Math.round((n + err) / open.length * 100) + '%';
+      if (txt) txt.textContent = `${n} gesendet${err ? `, ${err} Fehler` : ''} · ${open.length - n - err} offen`;
+      if (!RUN.stop && n + err < open.length) await new Promise(r => setTimeout(r, gap));
+    }
+    const stopped = RUN.stop; RUN = null;
+    toast(stopped ? `Angehalten: ${n} gesendet` : `Fertig: ${n} gesendet${err ? `, ${err} Fehler` : ''}`, err > 0);
+    refreshRecipients();
+  }
+  wrap.append(head, h('div', { class: 'grid two' }, content, selection), h('div', { class: 'grid two', style: 'margin-top:16px' }, preview, sendCard));
+  refreshRecipients();
+  return wrap;
+}
+function exportRecipients(camp) {
+  const { ok } = campaignRecipients(camp);
+  const cols = [['Briefanrede', briefanrede], ['Anrede', c => c.salutation || ''], ['Vorname', c => c.firstName], ['Nachname', c => c.lastName], ['Firma', c => isCompany(c) ? c.company : companyName(c)], ['E-Mail', firstMail], ['Du', c => c.du ? 'ja' : 'nein'], ['E-Mail-Werbung', c => CONSENT[c.mailConsent || '']]];
+  const rows = [cols.map(c => c[0]).join(';'), ...ok.map(c => cols.map(([, f]) => csvCell(f(c))).join(';'))];
+  download(`och-crm_rundmail-${slug(camp.name)}_empfaenger_erstellt-${stamp()}.csv`, '﻿' + rows.join('\r\n'), 'text/csv;charset=utf-8');
+  toast(`${ok.length} Empfänger exportiert (unverschlüsselt)`);
+}
+async function manualSendDialog(camp) {
+  const { ok } = campaignRecipients(camp);
+  const list = h('div', { class: 'rlist', style: 'max-height:50dvh' }, ok.map(c => {
+    const to = firstMail(c);
+    const href = 'mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent(fillText(camp.subject, c)) + '&body=' + encodeURIComponent(emailText(camp, c));
+    const done = !!camp.sent?.[c.id]?.ok;
+    const cb = h('input', { type: 'checkbox', checked: done, 'aria-label': 'versendet' });
+    cb.onchange = async () => {
+      camp.sent = camp.sent || {};
+      if (cb.checked) { camp.sent[c.id] = { at: Date.now(), to, ok: true, manual: true }; await save({ kind: 'activity', contactId: c.id, type: 'E-Mail', date: Date.now(), text: `Rundmail „${camp.name}“ manuell gesendet an ${to}\nBetreff: ${fillText(camp.subject, c)}`, campaignId: camp.id, fileIds: [] }); }
+      else delete camp.sent[c.id];
+      await save(camp);
+    };
+    return h('div', { class: 'rrow' }, cb, h('div', { style: 'flex:1;min-width:0' }, h('div', null, cname(c)), h('div', { class: 'muted', style: 'font-size:12.5px' }, to)), h('a', { class: 'btn sm', href }, 'Öffnen'));
+  }));
+  await dialog('Einzeln per Mail-Programm', h('div', null, h('p', { style: 'font-size:14px;margin-bottom:10px' }, '„Öffnen“ legt die persönliche Mail in deinem Mail-Programm an (als einfacher Text). Nach dem Senden den Haken setzen, dann wird es im Verlauf vermerkt.'), list), null);
+  render();
+}
+function mailSettingsCard(card, btns) {
+  const cfg = mailCfg();
+  const set = async (k, v) => { SET.mail = Object.assign(mailCfg(), { [k]: v }); await save(SET); };
+  const f = (label, key, attrs = {}) => { const i = inp('mail_' + key, cfg[key], attrs); i.addEventListener('change', async () => { await set(key, attrs.type === 'number' ? Math.min(30, Math.max(1, +i.value || 20)) : i.value.trim()); toast('Gespeichert'); render(); }); return fld(label, i); };
+  const foot = txa('mail_footer', cfg.footer, { rows: 6, style: 'min-height:0;font-size:13.5px' });
+  foot.addEventListener('change', async () => { await set('footer', foot.value.trim()); toast('Fußtext gespeichert'); render(); });
+  const status = !msReady() ? h('span', { class: 'chip warn' }, 'noch nicht eingerichtet') : msSignedIn() ? h('span', { class: 'chip ok' }, 'angemeldet als ' + MS.account) : h('span', { class: 'chip' }, 'eingerichtet, nicht angemeldet');
+  const redirect = msRedirect();
+  return card('E-Mail-Versand (Microsoft 365)', 'i-mail',
+    h('p', { class: 'muted', style: 'font-size:14px;margin-bottom:12px' }, 'Rundmails gehen direkt aus diesem Browser über Microsoft 365 raus, angemeldet als Absender-Postfach (mit MFA). Kennwörter werden nie gespeichert, die Anmeldung gilt nur für diese Sitzung.'),
+    h('div', { class: 'statline', style: 'margin-bottom:12px' }, 'Status: ', status),
+    h('div', { class: 'fgrid' }, f('Absender-Adresse', 'from', { type: 'email' }), f('Absendername', 'fromName'),
+      f('Mandant (Tenant-ID oder Domain)', 'tenant', { placeholder: 'z. B. och-finanzberatung.de' }), f('Anwendungs-ID (Client-ID)', 'clientId', { placeholder: '00000000-0000-…' }),
+      f('Höchstens Mails pro Minute', 'perMinute', { type: 'number', min: 1, max: 30 })),
+    fld('Fußtext mit Pflichtangaben (Impressum)', foot),
+    footerIncomplete() ? h('p', { class: 'chip warn', style: 'white-space:normal;margin:4px 0 8px' }, 'Bitte die Platzhalter in [eckigen Klammern] ersetzen. Vorher ist kein Versand möglich.') : null,
+    h('p', { class: 'note' }, 'Für die App-Registrierung im Microsoft-Entra-Admin-Center: Plattform „Single-Page-Anwendung“, Umleitungs-URI ', h('strong', null, redirect), ', delegierte Berechtigungen „Mail.Send“ und „User.Read“.'),
+    btns(msReady() ? h('button', { class: 'btn primary', onclick: async () => { try { await msLogin(); toast('Angemeldet als ' + MS.account); } catch (e) { toast(e.message, true); } render(); } }, 'Anmelden und prüfen') : null,
+      msSignedIn() ? h('button', { class: 'btn', onclick: () => { msLogout(); render(); toast('Abgemeldet'); } }, 'Abmelden') : null,
+      h('button', { class: 'btn', onclick: () => { navigator.clipboard?.writeText(redirect).then(() => toast('Umleitungs-URI kopiert'), () => toast(redirect)); } }, 'Umleitungs-URI kopieren')));
 }
 
 /* =====================================================================
