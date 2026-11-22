@@ -58,6 +58,62 @@ Hinweise:
 - Die Uhrzeit der Geräte sollte stimmen (automatische Zeit an). Sie entscheidet, welche Änderung „jünger“ ist.
 - Eine Passphrase-Änderung gilt nur auf dem Gerät, auf dem du sie vornimmst. Der Sync funktioniert trotzdem weiter.
 
+## Kampagnen (Rundmail)
+
+Unter **Kampagnen** (am Handy: „Mails“) verschickst du Rundmails an eine Auswahl deiner Kontakte. Absender ist **Andreas@och-Finanzberatung.de**.
+
+### So geht's
+
+1. **Neue Rundmail** anlegen und einen Namen vergeben.
+2. **Inhalt:** Betreff und Text schreiben. Platzhalter: `{{Briefanrede}}`, `{{Vorname}}`, `{{Nachname}}`, `{{Name}}`, `{{Firma}}`. Formatierung: Leerzeile = neuer Absatz, `**fett**`, `[Linktext](https://…)`.
+3. **Empfänger auswählen:**
+   - nach Status, Tags (mit bzw. ohne), Art, Ort und Wichtigkeit,
+   - einzelne Kontakte hinzufügen oder entfernen,
+   - die Zahl der Empfänger aktualisiert sich sofort.
+4. **Vorschau** für jeden Empfänger ansehen.
+5. **Versand:** zuerst eine Testmail an dich, dann „An N Empfänger senden“ und die Prüfung bestätigen.
+   - Jede Mail geht einzeln raus, ohne sichtbare Verteilerliste.
+   - Es gehen höchstens 20 Mails pro Minute raus (einstellbar bis 30).
+   - Jeder Versand steht anschließend im Verlauf des Kontakts.
+   - Versand anhalten und später fortsetzen ist möglich. Bereits Angeschriebene werden nicht doppelt beschrieben.
+
+Ohne eingerichteten Microsoft-Zugang gibt es zwei andere Wege:
+- **Empfänger als CSV** (für eine Serien-E-Mail mit Word und Outlook),
+- **Einzeln per Mail-Programm** (jede Mail personalisiert öffnen, nach dem Senden abhaken).
+
+### Wer angeschrieben werden darf
+
+Im Kontakt gibt es das Feld **E-Mail-Werbung**:
+
+| Status | Rundmail |
+|---|---|
+| Einwilligung liegt vor | ja |
+| Bestandskunde (§ 7 Abs. 3 UWG) | ja, aber nur für eigene, ähnliche Produkte |
+| ungeklärt | nein (ausgeschlossen) |
+| Widerspruch / abgemeldet | nie |
+
+Trag im Feld **Nachweis** Datum und Quelle der Einwilligung ein, z. B. „12.03.2026, Formular Erstgespräch“. Jede Mail enthält automatisch deinen Fußtext mit Pflichtangaben und einen Abmeldehinweis („Antworten Sie mit ‚Abmelden‘“). Wer sich abmeldet, bekommt im Kontakt den Status **Widerspruch / abgemeldet** und ist ab dann gesperrt.
+
+Für die persönliche Ansprache gibt es im Kontakt außerdem **Anrede** (Frau/Herr) und **Wir duzen uns**. Daraus entsteht `{{Briefanrede}}`, z. B. „Sehr geehrte Frau Schmidt“ oder „Lieber Peter“.
+
+### Microsoft-365-Zugang einrichten (einmalig)
+
+Voraussetzung: Das Postfach Andreas@och-Finanzberatung.de liegt in deinem Microsoft-365-Tenant (*Vermutung*, bitte prüfen), und du hast Administratorrechte. Die Menünamen können sich bei Microsoft leicht ändern.
+
+1. **entra.microsoft.com** öffnen → *Identität* → *Anwendungen* → *App-Registrierungen* → **Neue Registrierung**.
+2. Name: `Och CRM`. Unterstützte Kontotypen: **Nur Konten in diesem Organisationsverzeichnis** (Einzelmandant).
+3. Umleitungs-URI: Plattform **Single-Page-Anwendung (SPA)**, Adresse `https://andreasoch.github.io/Och-BCA/crm/` → **Registrieren**.
+4. In der Übersicht zwei Werte kopieren: **Anwendungs-ID (Client)** und **Verzeichnis-ID (Mandant)**.
+5. *API-Berechtigungen* → *Berechtigung hinzufügen* → *Microsoft Graph* → *Delegierte Berechtigungen* → **Mail.Send** (User.Read ist meist schon da) → **Administratorzustimmung erteilen**.
+6. Im CRM: *Einstellungen → E-Mail-Versand* → Mandant (Verzeichnis-ID oder `och-finanzberatung.de`) und Anwendungs-ID eintragen.
+7. Den **Fußtext mit Pflichtangaben** ausfüllen. Solange dort noch `[Platzhalter]` stehen, ist der Versand gesperrt.
+8. **Anmelden und prüfen**: Es öffnet sich das Microsoft-Anmeldefenster (Pop-ups erlauben). Melde dich mit Andreas@och-Finanzberatung.de an.
+
+Hinweise:
+- **Kein Speichern von Zugangsdaten:** Die Anmeldung gilt nur für die laufende Sitzung. Kennwörter oder Schlüssel speichert das CRM nicht.
+- **Am besten vom Laptop senden** (Chrome oder Edge). *Vermutung:* In der installierten iPhone-App kehrt das Anmeldefenster nicht zuverlässig zur App zurück.
+- **Versandgrenzen:** Microsoft begrenzt den Versand. *Vermutung nach Stand meines Wissens:* etwa 10.000 Empfänger pro Tag und 30 Mails pro Minute je Postfach.
+
 ## Was das CRM kann
 
 | Bereich | Funktionen |
@@ -70,6 +126,7 @@ Hinweise:
 | Übersicht | Kennzahlen, „Melde dich mal bei …“, Geburtstage, Aktivität der letzten 12 Wochen, Pipeline nach Phase |
 | Suche | ⌘K / Strg+K durchsucht alles inkl. Befehle; `N` legt etwas Neues an |
 | Daten | verschlüsseltes Backup, Sync-Dateien, Import aus vCard/CSV, Export als CSV/vCard/JSON |
+| Kampagnen | Rundmails an Auswahl nach Status, Tags, Ort, Wichtigkeit; Platzhalter, Vorschau, Testmail, Einzelversand über Microsoft 365, Einwilligungsprüfung, Verlaufseintrag |
 
 ## Sicherheit
 
@@ -77,7 +134,7 @@ Hinweise:
 - Der Datenschlüssel ist mit **PBKDF2-SHA-256 (600.000 Runden)** an deine Passphrase gebunden.
 - Die Passphrase muss mindestens 12 Zeichen haben. Nach Inaktivität sperrt sich das CRM automatisch (Standard 10 Minuten).
 - Nach Fehlversuchen beim Entsperren wächst die Wartezeit.
-- Eine strenge Content-Security-Policy verbietet externe Skripte, Schriften und jegliche Netzwerkverbindung aus der App.
+- Eine strenge Content-Security-Policy verbietet externe Skripte und Schriften. Netzwerkverbindungen sind nur zu zwei Adressen erlaubt, und nur für den Rundmail-Versand: der Microsoft-Anmeldung (`login.microsoftonline.com`) und der Mail-Schnittstelle (`graph.microsoft.com`). Ohne eingerichteten Versand baut die App keine Verbindung auf.
 - Der Service Worker speichert nur die App-Dateien, nie deine Daten.
 - Backup- und Sync-Dateien enthalten den mit der Passphrase verpackten Schlüssel. Wer eine solche Datei erbeutet, kann nur durch Raten der Passphrase an die Daten kommen. Deshalb: **lange Passphrase** (ein Satz aus 4–5 Wörtern) und Cloud-Konto mit MFA.
 - **Es gibt kein „Passwort vergessen“.** Bewahre die Passphrase im Passwortmanager auf.
@@ -98,4 +155,10 @@ Da das CRM geschäftlich für OCH genutzt wird, gilt die DSGVO. Die Haushaltsaus
 - **Löschen (Art. 17):** Ein gelöschter Kontakt verschwindet mit allen Einträgen, Medien, Aufgaben und Chancen, auch auf den anderen Geräten. Ältere Backups enthalten ihn weiter, also Backups nur begrenzt aufbewahren.
 - **Auskunft und Übertragbarkeit (Art. 15/20):** vCard-Export je Kontakt, JSON-Export gesamt.
 - **Aufbewahrung (HGB/AO):** Geschäftsbriefe und Belege gehören in die Buchhaltung bzw. das Archiv, nicht nur ins CRM.
+- **E-Mail-Werbung (§ 7 UWG, Art. 6, 7, 21 DSGVO):**
+  - Rundmails nur an Kontakte mit dokumentierter Einwilligung oder als Bestandskunde, wobei die Bestandskundenausnahme nur für eigene, ähnliche Produkte gilt.
+  - Jede Mail enthält Pflichtangaben und einen Abmeldehinweis.
+  - Ein Widerspruch sperrt den Kontakt dauerhaft.
+  - Der Versand wird je Kontakt im Verlauf dokumentiert.
+  - Die Mails laufen über das OCH-Postfach bei Microsoft 365, Grundlage ist der Microsoft-Vertrag zur Auftragsverarbeitung.
 - **Sensible Daten:** Gesundheits- oder vergleichbare Daten (Art. 9) nur festhalten, wenn es wirklich nötig ist.
