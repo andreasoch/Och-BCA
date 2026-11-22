@@ -412,7 +412,7 @@ details summary{color:var(--ink2)}
    AES-256-GCM verschlüsselt. Datenschlüssel (DEK) wird mit einem
    aus der Passphrase per PBKDF2-SHA256 abgeleiteten Schlüssel verpackt.
    ===================================================================== */
-const VERSION = '1.5';
+const VERSION = '1.6';
 const DB_NAME = 'och-crm', DB_VER = 1;
 const PBKDF2_ITER = 600000;
 const te = new TextEncoder(), td = new TextDecoder();
@@ -1638,7 +1638,7 @@ async function restoreBackup() {
 /* ---------------- Import / Export Kontakte ---------------- */
 const csvCell = v => { let s = (v ?? '').toString(); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
 function exportCSV() {
-  const cols = [['Vorname', c => c.firstName], ['Nachname', c => c.lastName], ['Firma', c => isCompany(c) ? c.company : companyName(c)], ['Art', c => isCompany(c) ? 'Firma' : 'Person'], ['Position', c => c.role], ['Kategorie', c => c.status],
+  const cols = [['Anrede', c => c.salutation || ''], ['Vorname', c => c.firstName], ['Nachname', c => c.lastName], ['Firma', c => isCompany(c) ? c.company : companyName(c)], ['Art', c => isCompany(c) ? 'Firma' : 'Person'], ['Position', c => c.role], ['Kategorie', c => c.status],
     ['E-Mail', c => (c.emails || []).join(', ')], ['Telefon', c => (c.phones || []).join(', ')], ['Adresse', c => c.address], ['Ort', c => c.city], ['Website', c => c.website],
     ['Geburtstag', c => c.birthday], ['Tags', c => (c.tags || []).join(', ')], ['Wichtigkeit', c => c.stars || ''], ['Kontaktrhythmus (Tage)', c => c.cadence || ''], ['Zuletzt Kontakt', c => fmtDate(lastContact(c))], ['Notizen', c => c.notes]];
   const rows = [cols.map(c => c[0]).join(';'), ...contacts().sort((a, b) => cname(a).localeCompare(cname(b), 'de')).map(c => cols.map(([, f]) => csvCell(f(c))).join(';'))];
@@ -1699,17 +1699,42 @@ function parseCSV(text) {
     else cell += ch;
   }
   if (cell || row.length) { row.push(cell); rows.push(row); }
-  const hd = rows.shift().map(x => norm(x).trim());
-  const find = (...ks) => hd.findIndex(x => ks.some(k => x === k || x.includes(k)));
-  const findX = (ks, not) => hd.findIndex(x => ks.some(k => x === k || x.includes(k)) && !not.some(n => x.includes(n)));
-  const ix = { fn: find('vorname', 'first name', 'given name'), ln: find('nachname', 'last name', 'family name', 'surname'), name: find('name', 'anzeigename', 'display name'),
-    co: find('firma', 'company', 'organization', 'unternehmen'), role: find('position', 'title', 'job', 'funktion'), mail: find('e-mail', 'email', 'mail'), tel: find('telefon', 'phone', 'mobil', 'handy'),
-    adr: findX(['adresse', 'strasse', 'street', 'address'], ['mail', 'web', 'url']), city: findX(['ort', 'stadt', 'city'], ['geburt', 'sport', 'port', 'wort']), sal: findX(['anrede', 'salutation'], ['brief']), web: find('website', 'web', 'url'), bday: find('geburtstag', 'birthday'), tags: find('tags', 'categories', 'gruppe'), notes: find('notiz', 'notes', 'bemerkung'), status: find('status', 'kategorie') };
+  // Spaltenköpfe normalisieren (klein, ohne Akzente, ß -> ss); erkennt u. a. Outlook-, Google- und eigene CSV-Exporte
+  const hd = rows.shift().map(x => norm(x).trim().replace(/ß/g, 'ss'));
+  const has = (x, ...ks) => ks.some(k => x.includes(k));
+  const one = pred => hd.findIndex(pred);
+  const many = pred => hd.map((x, i) => pred(x) ? i : -1).filter(i => i >= 0);
+  const firstOf = (...preds) => { for (const p of preds) { const i = one(p); if (i >= 0) return i; } return -1; };
+  const ix = {
+    fn: firstOf(x => x === 'vorname', x => has(x, 'first name', 'given name') || (has(x, 'vorname') && !has(x, 'weitere'))),
+    ln: firstOf(x => x === 'nachname', x => has(x, 'nachname', 'last name', 'family name', 'surname')),
+    name: firstOf(x => x === 'name', x => has(x, 'anzeigename', 'display name', 'vollstandiger name', 'full name') && !has(x, 'mail')),
+    co: firstOf(x => x === 'firma', x => has(x, 'firma', 'company', 'organization', 'organisation', 'unternehmen') && !has(x, 'title', 'abteilung', 'department', 'telefon', 'strasse', 'ort', 'postleitzahl')),
+    role: firstOf(x => x === 'position', x => has(x, 'position', 'job title', 'funktion') || /(^| - )title$/.test(x)),
+    sal: firstOf(x => has(x, 'anrede', 'salutation') && !has(x, 'brief')),
+    web: firstOf(x => has(x, 'webseite', 'website', 'web page', 'homepage', 'url')),
+    bday: firstOf(x => has(x, 'geburtstag', 'birthday')),
+    tags: firstOf(x => has(x, 'tags', 'kategorien', 'categories', 'gruppe', 'labels')),
+    notes: firstOf(x => has(x, 'notiz', 'notes', 'bemerkung')),
+    status: firstOf(x => x === 'kategorie' || x === 'status'),
+  };
+  const mails = many(x => has(x, 'e-mail', 'email', 'mail') && !has(x, 'typ', 'type', 'angezeigt', 'display', 'anzeige', 'werbung'));
+  const phones = many(x => has(x, 'telefon', 'phone', 'mobil', 'handy') && !has(x, 'fax'));
+  const streets = many(x => has(x, 'strasse', 'street', 'adresse', 'address') && !has(x, 'mail', 'web', 'url') && !/ 2$| 3$/.test(x));
+  const cities = many(x => (x === 'ort' || x.startsWith('ort ') || has(x, 'stadt', 'city')) && !has(x, 'geburt'));
+  const zips = many(x => has(x, 'postleitzahl', 'plz', 'zip', 'postal'));
+  const suffix = x => x.replace(/^(strasse|street|adresse|address|ort|stadt|city|postleitzahl|plz|zip|postal code)\s*/, '');
   return rows.filter(r => r.some(x => x.trim())).map(r => {
     const g = k => ix[k] >= 0 ? (r[ix[k]] || '').trim() : '';
+    const vals = list => list.map(i => (r[i] || '').trim()).filter(Boolean);
     let fn = g('fn'), ln = g('ln'); if (!fn && !ln && g('name')) { const p = g('name').split(' '); ln = p.pop(); fn = p.join(' '); }
     let bd = g('bday'); const m = bd.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/); if (m) bd = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`; if (!/^\d{4}-\d{2}-\d{2}$/.test(bd)) bd = '';
-    const c = { kind: 'contact', type: !fn && !ln && g('co') ? 'company' : 'person', firstName: fn, lastName: ln, company: g('co'), role: g('role'), emails: splitList(g('mail')), phones: splitList(g('tel')), address: g('adr'), city: g('city'), website: g('web'), birthday: bd, tags: splitList(g('tags')), notes: g('notes'), status: SET.statuses.includes(g('status')) ? g('status') : '', salutation: /^frau/i.test(g('sal')) ? 'Frau' : /^herr/i.test(g('sal')) ? 'Herr' : '' };
+    // Anschrift: erste befüllte Straße, dazu Ort und PLZ derselben Gruppe (z. B. „geschäftlich“)
+    const si = streets.find(i => (r[i] || '').trim()); const grp = si >= 0 ? suffix(hd[si]) : null;
+    const pick = list => { const same = list.find(i => suffix(hd[i]) === grp && (r[i] || '').trim()); const any = list.find(i => (r[i] || '').trim()); return ((same ?? any) >= 0 ? (r[same ?? any] || '').trim() : ''); };
+    const city = [pick(zips), pick(cities)].filter(Boolean).join(' ');
+    const emails = [...new Set(vals(mails).flatMap(splitList).filter(x => x.includes('@')))];
+    const c = { kind: 'contact', type: !fn && !ln && g('co') ? 'company' : 'person', firstName: fn, lastName: ln, company: g('co'), role: g('role'), emails, phones: [...new Set(vals(phones).flatMap(splitList))], address: si >= 0 ? (r[si] || '').trim().replace(/\s*\n\s*/g, ', ') : '', city, website: g('web'), birthday: bd, tags: splitList(g('tags')), notes: g('notes'), status: SET.statuses.includes(g('status')) ? g('status') : '', salutation: /^frau/i.test(g('sal')) ? 'Frau' : /^herr/i.test(g('sal')) ? 'Herr' : '' };
     return c;
   }).filter(c => c.firstName || c.lastName || c.company);
 }
@@ -1717,7 +1742,9 @@ function importContacts() {
   const inpEl = $('#fileIn'); inpEl.value = ''; inpEl.multiple = false; inpEl.accept = '.vcf,.vcard,.csv,text/vcard,text/csv'; inpEl.removeAttribute('capture');
   inpEl.onchange = async () => {
     const file = inpEl.files[0]; if (!file) return;
-    const text = await file.text();
+    // Outlook speichert CSV oft in Windows-1252: erst streng als UTF-8 lesen, sonst als Windows-1252
+    const buf = await file.arrayBuffer(); let text;
+    try { text = new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch { text = new TextDecoder('windows-1252').decode(buf); }
     let list; try { list = /\.csv$/i.test(file.name) || !/BEGIN:VCARD/i.test(text) ? parseCSV(text) : parseVCF(text); } catch (e) { console.warn(e); return toast('Datei konnte nicht gelesen werden.', true); }
     if (!list.length) return toast('Keine Kontakte gefunden.', true);
     const existing = new Set(contacts().map(c => norm(cname(c)) + '|' + norm((c.emails || [])[0])));
