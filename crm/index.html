@@ -219,6 +219,7 @@ dialog::backdrop{background:rgba(5,10,20,.6);backdrop-filter:blur(3px)}
 dialog form{display:flex;flex-direction:column;max-height:calc(100dvh - 40px)}
 dialog .dh{padding:20px 22px 8px;font-family:var(--serif);font-size:24px;font-weight:500}
 dialog .db{padding:8px 22px;overflow:auto}
+dialog.wide{width:min(1100px,calc(100% - 24px))}
 dialog .df{padding:14px 22px 20px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--line2);margin-top:8px;flex-wrap:wrap}
 dialog .df .left{margin-right:auto}
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
@@ -412,7 +413,7 @@ details summary{color:var(--ink2)}
    AES-256-GCM verschlüsselt. Datenschlüssel (DEK) wird mit einem
    aus der Passphrase per PBKDF2-SHA256 abgeleiteten Schlüssel verpackt.
    ===================================================================== */
-const VERSION = '1.6';
+const VERSION = '1.7';
 const DB_NAME = 'och-crm', DB_VER = 1;
 const PBKDF2_ITER = 600000;
 const te = new TextEncoder(), td = new TextDecoder();
@@ -1747,22 +1748,101 @@ function importContacts() {
     try { text = new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch { text = new TextDecoder('windows-1252').decode(buf); }
     let list; try { list = /\.csv$/i.test(file.name) || !/BEGIN:VCARD/i.test(text) ? parseCSV(text) : parseVCF(text); } catch (e) { console.warn(e); return toast('Datei konnte nicht gelesen werden.', true); }
     if (!list.length) return toast('Keine Kontakte gefunden.', true);
-    const existing = new Set(contacts().map(c => norm(cname(c)) + '|' + norm((c.emails || [])[0])));
-    const fresh = list.filter(c => !existing.has(norm(cname(c)) + '|' + norm((c.emails || [])[0])));
-    const tag = inp('tag', 'import-' + stamp());
-    const content = h('div', null, h('p', null, `${list.length} Kontakte gefunden, davon ${list.length - fresh.length} bereits vorhanden (gleicher Name + E-Mail) und ${fresh.length} neu.`),
-      h('p', { class: 'muted', style: 'margin:8px 0 12px;font-size:14px' }, 'Vorschau: ' + fresh.slice(0, 6).map(cname).join(', ') + (fresh.length > 6 ? ' …' : '')),
-      fld('Tag für importierte Kontakte (optional)', tag));
-    const f = await dialog('Kontakte importieren', content, fresh.length ? `${fresh.length} importieren` : null); if (!f) return;
-    const t = tag.value.trim();
-    for (const c of fresh) {
-      if (t) c.tags = [...new Set([...(c.tags || []), t])];
-      if (c.type === 'person' && c.company) { const m = contacts().find(x => isCompany(x) && norm(x.company) === norm(c.company)); if (m) c.companyId = m.id; }
-      await save(c);
-    }
-    toast(`${fresh.length} Kontakte importiert`); go('contacts');
+    await importWizard(list);
   };
   inpEl.click();
+}
+/* ---------------- Import-Assistent ----------------
+   Zeigt alle Kategorien der Datei mit Anzahl und je einer Aktion, dazu eine
+   filterbare Liste mit Häkchen. Standardmäßig ist nichts ausgewählt. Die
+   Zuordnung der Kategorien wird für den nächsten Durchgang gespeichert. */
+const IMPORT_FIXED = [['exclude', 'Ausschließen (Kontakte nicht importieren)'], ['drop', 'Weglassen'], ['tag', 'Als Tag behalten']];
+function defaultCatAction(name) {
+  const n = norm(name).trim();
+  if (/\bbca\b/.test(n)) return 'exclude';                       // BCA-Daten gehören nicht ins CRM
+  if (/^(auto|radar)\s*:/.test(n)) return 'drop';                 // Eingangs-Sortierung, keine Kontakteigenschaft
+  const m = SET.statuses.find(s => norm(s) === n); if (m) return 'cat:' + m;
+  return 'tag';
+}
+const contactKey = c => norm(cname(c)) + '|' + norm((c.emails || [])[0]);
+async function importWizard(list) {
+  const map = Object.assign({}, SET.importMap || {});
+  const counts = new Map();
+  for (const c of list) for (const t of c.tags || []) counts.set(t, (counts.get(t) || 0) + 1);
+  const cats = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'de'));
+  for (const [n] of cats) if (!map[n]) map[n] = defaultCatAction(n);
+  const existing = new Set(contacts().map(contactKey));
+  const items = list.map((c, i) => ({ c, i, dup: existing.has(contactKey(c)), sel: false }));
+  const F = { q: '', mail: false, phone: false, cat: '' };
+  const excludedBy = it => (it.c.tags || []).find(t => map[t] === 'exclude');
+  const visible = () => items.filter(it => {
+    if (it.dup) return false;
+    if (F.mail && !(it.c.emails || []).length) return false;
+    if (F.phone && !(it.c.phones || []).length) return false;
+    if (F.cat === '(ohne)' && (it.c.tags || []).length) return false;
+    if (F.cat && F.cat !== '(ohne)' && !(it.c.tags || []).includes(F.cat)) return false;
+    if (F.q) { const t = norm([cname(it.c), it.c.company, (it.c.emails || []).join(' '), (it.c.tags || []).join(' '), it.c.city].join(' ')); if (!norm(F.q).split(/\s+/).every(w => t.includes(w))) return false; }
+    return true;
+  });
+  // Kategorien-Tabelle
+  const actionOpts = [...IMPORT_FIXED, ...SET.statuses.map(s => ['cat:' + s, '→ Kategorie: ' + s])];
+  const catRows = cats.length ? h('div', { class: 'rlist', style: 'max-height:240px' }, cats.map(([n, k]) => {
+    const s = h('select', { class: 'input', style: 'max-width:300px;padding:6px 8px', 'aria-label': 'Aktion für ' + n }, actionOpts.map(([v, l]) => h('option', { value: v, selected: map[n] === v }, l)));
+    s.onchange = () => { map[n] = s.value; upd(); };
+    return h('div', { class: 'rrow' }, h('div', { style: 'flex:1;min-width:0' }, h('div', null, n), h('div', { class: 'muted', style: 'font-size:12.5px' }, `${k} Kontakt${k === 1 ? '' : 'e'}`)), s);
+  })) : h('p', { class: 'muted', style: 'font-size:14px' }, 'Die Datei enthält keine Kategorien.');
+  // Filter
+  const q = h('input', { class: 'input', type: 'search', placeholder: 'Suchen nach Name, Firma, E-Mail, Ort …', style: 'flex:1;min-width:200px' });
+  let qt; q.oninput = () => { clearTimeout(qt); qt = setTimeout(() => { F.q = q.value; upd(); }, 150); };
+  const catSel = h('select', { class: 'input', style: 'width:auto', 'aria-label': 'Nach Kategorie filtern' }, h('option', { value: '' }, 'Alle Kategorien'), h('option', { value: '(ohne)' }, '(ohne Kategorie)'), cats.map(([n, k]) => h('option', { value: n }, `${n} (${k})`)));
+  catSel.onchange = () => { F.cat = catSel.value; upd(); };
+  const chk = (label, key) => { const b = h('input', { type: 'checkbox', style: 'width:18px;height:18px;accent-color:var(--gold)' }); b.onchange = () => { F[key] = b.checked; upd(); }; return h('label', { style: 'display:flex;gap:6px;align-items:center;font-size:14px;cursor:pointer;white-space:nowrap' }, b, label); };
+  const info = h('div', { class: 'statline', style: 'margin:10px 0' });
+  const listBox = h('div', { class: 'rlist', style: 'max-height:42dvh' });
+  const selAll = h('button', { class: 'btn sm', type: 'button', onclick: () => { visible().forEach(it => { if (!excludedBy(it)) it.sel = true; }); upd(); } }, 'Alle angezeigten auswählen');
+  const selNone = h('button', { class: 'btn sm', type: 'button', onclick: () => { items.forEach(it => it.sel = false); upd(); } }, 'Auswahl aufheben');
+  const tag = inp('tag', 'import-' + stamp());
+  const LIMIT = 300;
+  function upd() {
+    const vis = visible(), selN = items.filter(it => it.sel && !excludedBy(it)).length, dupN = items.filter(it => it.dup).length, exN = items.filter(it => !it.dup && excludedBy(it)).length;
+    info.replaceChildren(...[h('strong', null, `${selN} ausgewählt`), h('span', { class: 'muted' }, `${vis.length} angezeigt von ${items.length}`), dupN ? h('span', { class: 'muted' }, `${dupN} schon vorhanden (ausgeblendet)`) : null, exN ? h('span', { class: 'chip bad' }, `${exN} ausgeschlossen`) : null].filter(Boolean));
+    listBox.replaceChildren(...(vis.length ? vis.slice(0, LIMIT).map(it => {
+      const ex = excludedBy(it);
+      const b = h('input', { type: 'checkbox', checked: it.sel && !ex, disabled: !!ex, 'aria-label': 'Auswählen', style: 'width:18px;height:18px;accent-color:var(--gold);flex:none' });
+      b.onchange = () => { it.sel = b.checked; info.firstChild.textContent = `${items.filter(x => x.sel && !excludedBy(x)).length} ausgewählt`; };
+      return h('label', { class: 'rrow', style: 'cursor:' + (ex ? 'default' : 'pointer') + (ex ? ';opacity:.55' : '') }, b,
+        h('div', { style: 'flex:1;min-width:0' }, h('div', null, cname(it.c) + (it.c.company && it.c.type !== 'company' ? ' · ' + it.c.company : '')),
+          h('div', { class: 'muted', style: 'font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' }, [(it.c.emails || [])[0], (it.c.phones || [])[0], it.c.city].filter(Boolean).join(' · ') || 'ohne Kontaktdaten')),
+        h('div', { class: 'chips', style: 'justify-content:flex-end;max-width:45%' }, ex ? h('span', { class: 'chip bad' }, 'ausgeschlossen: ' + ex) : (it.c.tags || []).filter(t => map[t] !== 'drop').slice(0, 3).map(t => h('span', { class: 'chip' + (String(map[t]).startsWith('cat:') ? ' gold' : '') }, String(map[t]).startsWith('cat:') ? map[t].slice(4) : t))));
+    }) : [h('div', { class: 'empty' }, 'Keine Kontakte für diese Filter.')]));
+    if (vis.length > LIMIT) listBox.append(h('div', { class: 'empty' }, `Es werden die ersten ${LIMIT} angezeigt. „Alle angezeigten auswählen“ erfasst trotzdem alle ${vis.length} gefilterten. Grenze sonst die Suche weiter ein.`));
+  }
+  const content = h('div', null,
+    h('p', { class: 'muted', style: 'font-size:14px;margin-bottom:10px' }, 'Übernimm gezielt nur die Kontakte, die du im CRM pflegen willst. Der Rest bleibt in Outlook. Du kannst dieselbe Datei später erneut laden, schon übernommene Kontakte werden erkannt.'),
+    h('h3', { style: 'font-family:var(--serif);font-weight:500;font-size:20px;margin:6px 0 8px' }, '1 · Kategorien aus der Datei'),
+    catRows,
+    h('h3', { style: 'font-family:var(--serif);font-weight:500;font-size:20px;margin:18px 0 8px' }, '2 · Kontakte auswählen'),
+    h('div', { class: 'toolbar', style: 'margin-bottom:6px' }, q, catSel, chk('nur mit E-Mail', 'mail'), chk('nur mit Telefon', 'phone')),
+    h('div', { class: 'quick' }, selAll, selNone), info, listBox,
+    h('div', { style: 'margin-top:14px' }, fld('Zusätzlicher Tag für diesen Import (optional)', tag)));
+  upd();
+  const d = $('#dlg'); d.classList.add('wide');
+  const f = await dialog('Kontakte importieren', content, 'Ausgewählte importieren');
+  d.classList.remove('wide');
+  SET.importMap = map; await save(SET);
+  if (!f) return;
+  const chosen = items.filter(it => it.sel && !excludedBy(it) && !it.dup);
+  if (!chosen.length) return toast('Keine Kontakte ausgewählt. Die Zuordnung der Kategorien ist gespeichert.', true);
+  const t = tag.value.trim();
+  for (const { c } of chosen) {
+    const own = c.tags || [];
+    const catHit = own.map(x => map[x]).find(a => String(a).startsWith('cat:'));
+    if (catHit && !c.status) c.status = catHit.slice(4);
+    c.tags = [...new Set([...own.filter(x => map[x] === 'tag'), ...(t ? [t] : [])])];
+    if (c.type === 'person' && c.company) { const m = contacts().find(x => isCompany(x) && norm(x.company) === norm(c.company)); if (m) c.companyId = m.id; }
+    await save(c);
+  }
+  toast(`${chosen.length} Kontakte importiert`); go('contacts');
 }
 
 /* =====================================================================
