@@ -110,6 +110,14 @@ main{overflow:auto;position:relative}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
 .card h3{font-family:var(--serif);font-weight:500;font-size:20px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
 .card h3 .btn{margin-left:auto;font-family:var(--sans)}
+.clickable{cursor:pointer;transition:border-color .15s,transform .15s}
+.clickable:hover,.clickable:focus-visible{border-color:var(--gold);transform:translateY(-2px)}
+.kpi .kgo{float:right;color:var(--gold);opacity:.55;transition:opacity .15s}
+.kpi.clickable:hover .kgo{opacity:1}
+.kpi .sublink{color:inherit;text-decoration:none;border-bottom:1px dotted currentColor}
+.kpi .sublink:hover{color:var(--gold2)}
+.card h3 > .ttl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card h3 .ttl ~ .btn{margin-left:0;font-family:var(--sans);flex:none}
 .kpi .lbl{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .kpi .val{font-family:var(--serif);font-size:38px;line-height:1.1;margin-top:6px}
 .kpi .sub{font-size:13px;color:var(--muted)}
@@ -416,7 +424,7 @@ details summary{color:var(--ink2)}
    AES-256-GCM verschlüsselt. Datenschlüssel (DEK) wird mit einem
    aus der Passphrase per PBKDF2-SHA256 abgeleiteten Schlüssel verpackt.
    ===================================================================== */
-const VERSION = '1.8';
+const VERSION = '1.9';
 const DB_NAME = 'och-crm', DB_VER = 1;
 const PBKDF2_ITER = 600000;
 const te = new TextEncoder(), td = new TextDecoder();
@@ -934,6 +942,10 @@ addEventListener('keydown', e => {
 });
 
 /* ---------------- Übersicht ---------------- */
+function goContacts({ status = '', sort = 'name' } = {}) {
+  Object.assign(UI, { q: '', tag: '', ctype: '', status, sort });
+  go('contacts');
+}
 function viewDash() {
   const cs = contacts(), acts = all('activity'), tasks = all('task'), deals = all('deal');
   const open = deals.filter(d => !['Gewonnen', 'Verloren'].includes(d.stage));
@@ -943,12 +955,15 @@ function viewDash() {
   const due = tasks.filter(t => !t.done && t.due && startOfDay(new Date(t.due).getTime()) <= today);
   const a30 = acts.filter(a => a.date > Date.now() - 30 * DAY).length;
 
-  const kpi = (lbl, val, sub) => h('div', { class: 'card kpi' }, h('div', { class: 'lbl' }, lbl), h('div', { class: 'val' }, val), h('div', { class: 'sub' }, sub));
+  // Kacheln sind klickbar und führen zur passenden Liste
+  const kpi = (lbl, val, sub, go_) => h('div', { class: 'card kpi clickable', role: 'button', tabindex: 0, title: 'Öffnen', onclick: go_, onkeydown: e => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), go_()) },
+    h('div', { class: 'lbl' }, lbl, h('span', { class: 'kgo', 'aria-hidden': 'true' }, '→')), h('div', { class: 'val' }, val), h('div', { class: 'sub' }, sub));
+  const catLinks = SET.statuses.map(st => [st, cs.filter(c => c.status === st).length]).filter(x => x[1]).sort((a, b) => b[1] - a[1]).slice(0, 3);
   const k = h('div', { class: 'grid kpis' },
-    kpi('Kontakte', cs.length, SET.statuses.map(st => [st, cs.filter(c => c.status === st).length]).filter(x => x[1]).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([st, n]) => `${n} ${st}`).join(' · ') || `${cs.filter(isCompany).length} Firmen`),
-    kpi('Aktivitäten · 30 Tage', a30, `${acts.length} insgesamt`),
-    SET.pipeline && SET.pipelineKpis ? kpi('Offene Pipeline', fmtEUR(open.reduce((s, d) => s + (+d.value || 0), 0)), `gewichtet ${fmtEUR(weighted)}`) : null,
-    SET.pipeline && SET.pipelineKpis ? kpi('Gewonnen ' + new Date().getFullYear(), fmtEUR(won.reduce((s, d) => s + (+d.value || 0), 0)), `${won.length} Abschlüsse`) : null,
+    kpi('Kontakte', cs.length, catLinks.length ? catLinks.map(([st, n], i) => [i ? ' · ' : '', h('a', { href: '#', class: 'sublink', onclick: e => { e.preventDefault(); e.stopPropagation(); goContacts({ status: st }); } }, `${n} ${st}`)]) : `${cs.filter(isCompany).length} Firmen`, () => goContacts({})),
+    kpi('Aktivitäten · 30 Tage', a30, `${acts.length} insgesamt`, () => goContacts({ sort: 'recent' })),
+    SET.pipeline && SET.pipelineKpis ? kpi('Offene Pipeline', fmtEUR(open.reduce((s, d) => s + (+d.value || 0), 0)), `gewichtet ${fmtEUR(weighted)}`, () => go('pipeline')) : null,
+    SET.pipeline && SET.pipelineKpis ? kpi('Gewonnen ' + new Date().getFullYear(), fmtEUR(won.reduce((s, d) => s + (+d.value || 0), 0)), `${won.length} Abschlüsse`, () => go('pipeline')) : null,
   );
 
   // Fällig
@@ -956,16 +971,17 @@ function viewDash() {
   const bdays = upcomingEvents(30).slice(0, 8);
   const recent = acts.sort((a, b) => b.date - a.date).slice(0, 7);
 
-  const listCard = (title, ic, items, empty, act) => h('div', { class: 'card' }, h('h3', null, icon(ic), title, act || null), items.length ? items : h('div', { class: 'empty' }, empty));
+  const allLink = go_ => h('button', { class: 'btn sm ghost alllink', onclick: go_ }, 'Alle →');
+  const listCard = (title, ic, items, empty, act, go_) => h('div', { class: 'card' }, h('h3', null, icon(ic), h('span', { class: 'ttl', title }, title), act || null, go_ ? allLink(go_) : null), items.length ? items : h('div', { class: 'empty' }, empty));
   const crow = (c, sub, right) => h('div', { class: 'row', onclick: () => openDetail(c.id) }, avatar(c), h('div', { class: 'main' }, h('div', { class: 't' }, cname(c)), h('div', { class: 's' }, sub)), right || null);
 
   const g2 = h('div', { class: 'grid two', style: 'margin-top:16px' },
-    listCard('Heute zu tun', 'i-tasks', due.sort((a, b) => (a.due > b.due ? 1 : -1)).slice(0, 8).map(taskRow), 'Alles erledigt. Schön!', h('button', { class: 'btn sm ghost', onclick: () => editTask() }, icon('i-plus'), 'Aufgabe')),
-    listCard('Melde dich mal bei …', 'i-clock', touch.map(x => crow(x.c, 'Kontaktrhythmus ' + x.c.cadence + ' Tage · zuletzt ' + (rel(lastContact(x.c)) || 'nie'), h('span', { class: 'chip ' + (x.d < today ? 'bad' : 'warn') }, x.d < today ? 'überfällig' : rel(x.d)))), 'Lege bei Kontakten einen Kontaktrhythmus fest, dann erinnert dich das CRM hier.'),
-    h('div', { class: 'card' }, h('h3', null, icon('i-cal'), 'Aktivität · letzte 12 Wochen'), weekChart(acts)),
-    SET.pipeline ? h('div', { class: 'card' }, h('h3', null, icon('i-kanban'), 'Pipeline nach Phase'), stageBars(deals)) : null,
-    listCard('Geburtstage und Jahrestage · 30 Tage', 'i-gift', bdays.map(x => crow(x.c, `${x.label} · ${fmtDate(x.d, { day: '2-digit', month: 'long' })}` + (x.year ? (x.what === 'wird' ? ` · wird ${new Date(x.d).getFullYear() - x.year}` : ` · ${new Date(x.d).getFullYear() - x.year}. Jahrestag`) : ''), h('span', { class: 'chip gold' }, rel(x.d)))), 'Keine Geburtstage oder Jahrestage in den nächsten 30 Tagen.'),
-    listCard('Zuletzt', 'i-note', recent.map(a => { const c = get(a.contactId); return c ? crow(c, [a.type, a.type === 'Medien' && !a.text ? `${(a.fileIds || []).length} Datei(en)` : (a.text || '').slice(0, 70)].filter(Boolean).join(' · '), h('span', { class: 'muted', style: 'font-size:12px' }, rel(a.date))) : null; }).filter(Boolean), 'Noch keine Aktivitäten. Öffne einen Kontakt und halte fest, was passiert ist.'),
+    listCard('Heute zu tun', 'i-tasks', due.sort((a, b) => (a.due > b.due ? 1 : -1)).slice(0, 8).map(taskRow), 'Alles erledigt. Schön!', h('button', { class: 'btn sm ghost', onclick: () => editTask(), title: 'Neue Aufgabe', 'aria-label': 'Neue Aufgabe' }, icon('i-plus')), () => go('tasks')),
+    listCard('Melde dich mal bei …', 'i-clock', touch.map(x => crow(x.c, 'Kontaktrhythmus ' + x.c.cadence + ' Tage · zuletzt ' + (rel(lastContact(x.c)) || 'nie'), h('span', { class: 'chip ' + (x.d < today ? 'bad' : 'warn') }, x.d < today ? 'überfällig' : rel(x.d)))), 'Lege bei Kontakten einen Kontaktrhythmus fest, dann erinnert dich das CRM hier.', null, () => goContacts({ sort: 'stale' })),
+    h('div', { class: 'card' }, h('h3', null, icon('i-cal'), h('span', { class: 'ttl' }, 'Aktivität · 12 Wochen'), allLink(() => goContacts({ sort: 'recent' }))), weekChart(acts)),
+    SET.pipeline ? h('div', { class: 'card' }, h('h3', null, icon('i-kanban'), h('span', { class: 'ttl' }, 'Pipeline nach Phase'), allLink(() => go('pipeline'))), stageBars(deals)) : null,
+    listCard('Geburts- und Jahrestage', 'i-gift', bdays.map(x => crow(x.c, `${x.label} · ${fmtDate(x.d, { day: '2-digit', month: 'long' })}` + (x.year ? (x.what === 'wird' ? ` · wird ${new Date(x.d).getFullYear() - x.year}` : ` · ${new Date(x.d).getFullYear() - x.year}. Jahrestag`) : ''), h('span', { class: 'chip gold' }, rel(x.d)))), 'Keine Geburtstage oder Jahrestage in den nächsten 30 Tagen.', null, () => goContacts({})),
+    listCard('Zuletzt', 'i-note', recent.map(a => { const c = get(a.contactId); return c ? crow(c, [a.type, a.type === 'Medien' && !a.text ? `${(a.fileIds || []).length} Datei(en)` : (a.text || '').slice(0, 70)].filter(Boolean).join(' · '), h('span', { class: 'muted', style: 'font-size:12px' }, rel(a.date))) : null; }).filter(Boolean), 'Noch keine Aktivitäten. Öffne einen Kontakt und halte fest, was passiert ist.', null, () => goContacts({ sort: 'recent' })),
   );
   const wrap = h('div', null, k, g2);
   if (!cs.length) wrap.prepend(h('div', { class: 'card', style: 'margin-bottom:16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap' },
