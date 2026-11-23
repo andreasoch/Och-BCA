@@ -168,7 +168,7 @@ Hinweise:
 
 | Bereich | Funktionen |
 |---|---|
-| Kontakte | Personen und Firmen, Kategorien, Beziehungen, wichtige Daten, Geschenkideen, Tags, Wichtigkeit (★), Geburtstag, eigene Felder, Kontaktrhythmus, Karten- oder Tabellenansicht, Filter und Sortierung |
+| Kontakte | Personen und Firmen, Adresse mit „In Karten öffnen“ und Kartenausschnitt (OpenStreetMap), Kategorien, Beziehungen, wichtige Daten, Geschenkideen, Tags, Wichtigkeit (★), Geburtstag, eigene Felder, Kontaktrhythmus, Karten- oder Tabellenansicht, Filter und Sortierung |
 | Verlauf | Notiz, Anruf, Treffen, E-Mail, Nachricht, Termin, Sprachnotiz, Medien; mit Anhängen und optionaler Folgeaufgabe |
 | Multimedia | Fotos, Videos, Audio, PDFs und beliebige Dateien per Auswahl, Drag & Drop, Einfügen (⌘V) oder Kamera; Sprachnotizen aufnehmen; Vorschau, Profilbild, Mediathek |
 | Aufgaben | fällig, überfällig, heute, nächste 7 Tage, erledigt |
@@ -184,7 +184,10 @@ Hinweise:
 - Der Datenschlüssel ist mit **PBKDF2-SHA-256 (600.000 Runden)** an deine Passphrase gebunden.
 - Die Passphrase muss mindestens 12 Zeichen haben. Nach Inaktivität sperrt sich das CRM automatisch (Standard 10 Minuten).
 - Nach Fehlversuchen beim Entsperren wächst die Wartezeit.
-- Eine strenge Content-Security-Policy verbietet externe Skripte und Schriften. Netzwerkverbindungen sind nur zu zwei Adressen erlaubt, und nur für den Rundmail-Versand: der Microsoft-Anmeldung (`login.microsoftonline.com`) und der Mail-Schnittstelle (`graph.microsoft.com`). Ohne eingerichteten Versand baut die App keine Verbindung auf.
+- Eine strenge Content-Security-Policy verbietet externe Skripte und Schriften. Netzwerkverbindungen sind nur zu wenigen Adressen erlaubt, und nur auf deinen Klick:
+  - Microsoft-Anmeldung (`login.microsoftonline.com`) und Mail-Schnittstelle (`graph.microsoft.com`) für den Rundmail-Versand,
+  - OpenStreetMap (`nominatim.openstreetmap.org` für die Adresssuche, `www.openstreetmap.org` für den Kartenausschnitt), wenn du bei einem Kontakt „Karte anzeigen“ wählst,
+  - die eigene Seite für die Update-Prüfung.
 - Der Service Worker speichert nur die App-Dateien, nie deine Daten.
 - Backup- und Sync-Dateien enthalten den mit der Passphrase verpackten Schlüssel. Wer eine solche Datei erbeutet, kann nur durch Raten der Passphrase an die Daten kommen. Deshalb: **lange Passphrase** (ein Satz aus 4–5 Wörtern) und Cloud-Konto mit MFA.
 - **Es gibt kein „Passwort vergessen“.** Bewahre die Passphrase im Passwortmanager auf.
@@ -226,4 +229,5 @@ Das CRM ist gemischt genutzt:
   - Ein Widerspruch sperrt den Kontakt dauerhaft.
   - Der Versand wird je Kontakt im Verlauf dokumentiert.
   - Die Mails laufen über das OCH-Postfach bei Microsoft 365, Grundlage ist der Microsoft-Vertrag zur Auftragsverarbeitung.
+- **Karten:** „In Karten öffnen“ übergibt die Adresse erst beim Klick an Apple Karten bzw. Google Maps. „Karte anzeigen“ sendet die Adresse einmalig auf Klick an OpenStreetMap (Großbritannien, Angemessenheitsbeschluss der EU), um die Koordinaten zu finden. Die Koordinaten werden verschlüsselt im Kontakt gespeichert. Vor der ersten Nutzung erscheint ein Hinweis.
 - **Sensible Daten:** Gesundheits- oder vergleichbare Daten (Art. 9) nur festhalten, wenn es wirklich nötig ist.
