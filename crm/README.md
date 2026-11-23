@@ -169,7 +169,8 @@ Hinweise:
 | Bereich | Funktionen |
 |---|---|
 | Kontakte | Personen und Firmen, Adresse mit „In Karten öffnen“ und Kartenausschnitt (OpenStreetMap), Kategorien, Beziehungen, wichtige Daten, Geschenkideen, Tags, Wichtigkeit (★), Geburtstag, eigene Felder, Kontaktrhythmus, Karten- oder Tabellenansicht, Filter und Sortierung |
-| Verlauf | Notiz, Anruf, Treffen, E-Mail, Nachricht, Termin, Sprachnotiz, Medien; mit Anhängen und optionaler Folgeaufgabe |
+| Verlauf | Notiz, Anruf, Treffen, E-Mail, Nachricht, Termin, Sprachnotiz, Medien, Recherche; mit Quelle (Link), Anhängen und optionaler Folgeaufgabe |
+| Recherche | Such-Links zu Google, LinkedIn, XING, Northdata und Website; Ergebnis als Eintrag „Recherche“ mit Quelle festhalten |
 | Multimedia | Fotos, Videos, Audio, PDFs und beliebige Dateien per Auswahl, Drag & Drop, Einfügen (⌘V) oder Kamera; Sprachnotizen aufnehmen; Vorschau, Profilbild, Mediathek |
 | Aufgaben | fällig, überfällig, heute, nächste 7 Tage, erledigt |
 | Pipeline (optional) | Kanban mit Wert, Wahrscheinlichkeit und gewichteter Summe; Drag & Drop oder Phasenauswahl auf der Karte |
@@ -229,5 +230,6 @@ Das CRM ist gemischt genutzt:
   - Ein Widerspruch sperrt den Kontakt dauerhaft.
   - Der Versand wird je Kontakt im Verlauf dokumentiert.
   - Die Mails laufen über das OCH-Postfach bei Microsoft 365, Grundlage ist der Microsoft-Vertrag zur Auftragsverarbeitung.
+- **Recherche:** Der Knopf „Recherche“ am Kontakt öffnet Suchen bei Google, LinkedIn, XING und Northdata erst auf Klick, ohne KI. Gespeichert wird nur, was du als Eintrag „Recherche“ festhältst, mit Quelle. Nur öffentliche Quellen, nur Nötiges. Bei Geschäftskontakten die Informationspflicht (Art. 14 DSGVO) über die Datenschutzerklärung abdecken.
 - **Karten:** „In Karten öffnen“ übergibt die Adresse erst beim Klick an Apple Karten bzw. Google Maps. „Karte anzeigen“ sendet die Adresse einmalig auf Klick an OpenStreetMap (Großbritannien, Angemessenheitsbeschluss der EU), um die Koordinaten zu finden. Die Koordinaten werden verschlüsselt im Kontakt gespeichert. Vor der ersten Nutzung erscheint ein Hinweis.
 - **Sensible Daten:** Gesundheits- oder vergleichbare Daten (Art. 9) nur festhalten, wenn es wirklich nötig ist.

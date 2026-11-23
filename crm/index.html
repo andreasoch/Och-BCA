@@ -426,7 +426,7 @@ details summary{color:var(--ink2)}
    AES-256-GCM verschlüsselt. Datenschlüssel (DEK) wird mit einem
    aus der Passphrase per PBKDF2-SHA256 abgeleiteten Schlüssel verpackt.
    ===================================================================== */
-const VERSION = '1.10';
+const VERSION = '1.11';
 const DB_NAME = 'och-crm', DB_VER = 1;
 const PBKDF2_ITER = 600000;
 const te = new TextEncoder(), td = new TextDecoder();
@@ -447,7 +447,7 @@ const DEFAULT_SETTINGS = {
 };
 const KINDS = {
   'Notiz':'i-note','Anruf':'i-phone','Treffen':'i-users','E-Mail':'i-mail',
-  'Nachricht':'i-msg','Termin':'i-cal','Sprachnotiz':'i-mic','Medien':'i-image'
+  'Nachricht':'i-msg','Termin':'i-cal','Sprachnotiz':'i-mic','Medien':'i-image','Recherche':'i-search'
 };
 
 /* ---------------- Helfer ---------------- */
@@ -1173,6 +1173,7 @@ function renderDetail() {
     h('button', { class: 'btn sm', onclick: () => pickFiles({ contactId: c.id }, 'image/*', true) }, icon('i-cam'), 'Foto'),
     h('button', { class: 'btn sm', onclick: () => editTask({ contactId: c.id }) }, icon('i-tasks'), 'Aufgabe'),
     h('button', { class: 'btn sm', onclick: () => addRelation(c) }, icon('i-link'), 'Beziehung'),
+    h('button', { class: 'btn sm', onclick: () => researchDialog(c) }, icon('i-search'), 'Recherche'),
     SET.pipeline ? h('button', { class: 'btn sm', onclick: () => editDeal({ contactId: c.id }) }, icon('i-euro'), 'Chance') : null,
     tel ? h('a', { class: 'btn sm ghost', href: 'tel:' + tel.replace(/[^\d+]/g, '') }, icon('i-phone'), 'Anrufen') : null,
     mail ? h('a', { class: 'btn sm ghost', href: 'mailto:' + mail }, icon('i-mail'), 'E-Mail') : null);
@@ -1235,6 +1236,7 @@ function timeline(c) {
       h('div', { class: 'meta' }, h('strong', { style: 'color:var(--ink)' }, a.type), fmtDT(a.date), h('span', null, '· ' + rel(a.date)),
         h('span', { class: 'acts' }, h('button', { class: 'btn icon ghost sm', onclick: () => editActivity(a), 'aria-label': 'Bearbeiten' }, icon('i-edit')))),
       a.text ? h('div', { class: 'txt' }, a.text) : null,
+      /^https?:\/\//i.test(a.source || '') ? h('div', { style: 'font-size:13px;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' }, 'Quelle: ', h('a', { href: a.source, target: '_blank', rel: 'noopener noreferrer' }, a.source.replace(/^https?:\/\/(www\.)?/i, ''))) : null,
       fs.length ? mediaGrid(fs, true) : null);
   }));
 }
@@ -1289,6 +1291,34 @@ function addressBlock(c) {
     h('div', { class: 'quick', style: 'margin-top:6px' },
       h('a', { class: 'btn sm', href: mapsLink(q), target: '_blank', rel: 'noopener noreferrer' }, icon('i-pin'), 'In Karten öffnen'), btnMap),
     box);
+}
+
+/* ---------------- Recherche (ohne KI, nur auf Klick) ----------------
+   Öffnet Suchen bei Google, LinkedIn, XING und Northdata im Browser. Was davon
+   relevant ist, hält man als Eintrag „Recherche“ mit Quelle fest. */
+function researchLinks(c) {
+  const co = isCompany(c) ? c.company : companyName(c);
+  const person = isCompany(c) ? '' : cname(c);
+  const e = encodeURIComponent;
+  const q = isCompany(c) ? `"${co}"` : [`"${person}"`, co].filter(Boolean).join(' ');
+  const list = [
+    ['Google', 'https://www.google.com/search?q=' + e(q + (c.city && !co ? ' ' + c.city : ''))],
+    ['LinkedIn', isCompany(c) ? 'https://www.linkedin.com/search/results/companies/?keywords=' + e(co) : 'https://www.linkedin.com/search/results/people/?keywords=' + e([person, co].filter(Boolean).join(' '))],
+    ['XING', isCompany(c) ? 'https://www.xing.com/search/companies?keywords=' + e(co) : 'https://www.xing.com/search/members?keywords=' + e([person, co].filter(Boolean).join(' '))],
+    ['Northdata', 'https://www.northdata.de/' + e(isCompany(c) ? co : person) ],
+  ];
+  if (c.website) list.push(['Website', /^https?:/i.test(c.website) ? c.website : 'https://' + c.website]);
+  else if (!isCompany(c) && c.companyId && get(c.companyId)?.website) { const w = get(c.companyId).website; list.push(['Website der Firma', /^https?:/i.test(w) ? w : 'https://' + w]); }
+  return list;
+}
+async function researchDialog(c) {
+  const links = researchLinks(c);
+  const content = h('div', null,
+    h('p', { style: 'font-size:14px;margin-bottom:12px' }, `Suche zu ${cname(c)}${!isCompany(c) && companyName(c) ? ' (' + companyName(c) + ')' : ''}. Jeder Knopf öffnet die Suche in einem neuen Fenster. Dabei geht der Name an den jeweiligen Dienst.`),
+    h('div', { class: 'quick' }, links.map(([l, u]) => h('a', { class: 'btn', href: u, target: '_blank', rel: 'noopener noreferrer' }, icon(l.startsWith('Website') ? 'i-link' : 'i-search'), l))),
+    h('p', { class: 'note', style: 'margin-top:14px' }, 'Nur öffentliche Quellen nutzen und nur festhalten, was du für die Beziehung wirklich brauchst, mit Quelle. Bei Geschäftskontakten deckt ein Hinweis in deiner Datenschutzerklärung die Informationspflicht ab (Art. 14 DSGVO).'));
+  const keep = h('button', { class: 'btn primary', type: 'button', onclick: () => { $('#dlg').close(); editActivity({ contactId: c.id, type: 'Recherche' }); } }, icon('i-plus'), 'Recherche festhalten');
+  await dialog('Recherche', content, null, keep);
 }
 
 /* ---------------- Medien ---------------- */
@@ -1509,7 +1539,8 @@ async function editActivity(a = {}) {
     fld('Art', sel('type', a.type || 'Notiz', Object.keys(KINDS))),
     fld('Wann', inp('date', dtLocal(a.date || Date.now()), { type: 'datetime-local', required: true })),
     fld('Kontakt', sel('contactId', a.contactId, cs.map(c => [c.id, cname(c)]), { required: true }), true),
-    fld('Was ist passiert?', txa('text', a.text, { placeholder: 'Worum ging es, was wurde vereinbart, wie war die Stimmung …', style: 'min-height:140px' }), true),
+    fld(a.type === 'Recherche' ? 'Was hast du herausgefunden?' : 'Was ist passiert?', txa('text', a.text, { placeholder: a.type === 'Recherche' ? 'Kurz zusammengefasst, nur was du wirklich brauchst …' : 'Worum ging es, was wurde vereinbart, wie war die Stimmung …', style: 'min-height:140px' }), true),
+    fld('Quelle / Link (optional)', inp('source', a.source, { placeholder: 'https://… oder linkedin.com/in/…', inputmode: 'url', autocapitalize: 'off', spellcheck: 'false' }), true),
     fld('Anhänge hinzufügen', files, true),
     existing.length ? h('div', { class: 'full' }, h('span', { class: 'muted', style: 'font-size:12px' }, 'Vorhandene Anhänge'), mediaGrid(existing, true)) : null,
     h('label', { class: 'full', style: 'display:flex;gap:8px;align-items:center;font-size:14px;margin-bottom:8px' }, h('input', { type: 'checkbox', name: 'followup' }), 'Danach Folgeaufgabe anlegen'));
@@ -1522,7 +1553,7 @@ async function editActivity(a = {}) {
   const f = await dialog(isNew ? 'Neuer Eintrag' : 'Eintrag bearbeiten', content, 'Speichern', delBtn);
   if (!f) return;
   const v = Object.fromEntries(new FormData(f));
-  Object.assign(a, { kind: 'activity', type: v.type, date: new Date(v.date).getTime() || Date.now(), contactId: v.contactId, text: v.text.trim() });
+  Object.assign(a, { kind: 'activity', type: v.type, date: new Date(v.date).getTime() || Date.now(), contactId: v.contactId, text: v.text.trim(), source: (s => s && !/^https?:\/\//i.test(s) && /^[\w-]+(\.[\w-]+)+/.test(s) ? 'https://' + s : s)((v.source || '').trim()) });
   a.fileIds = a.fileIds || [];
   await save(a);
   if (files.files.length) {
@@ -1634,7 +1665,7 @@ function openPalette() {
     if (!q.length) items = cmds.map(([l, i, f]) => ({ l, i, s: 'Befehl', f }));
     else {
       contacts().forEach(c => m(searchText(c)) && items.push({ l: cname(c), s: [c.role, companyName(c), c.status].filter(Boolean).join(' · ') || 'Kontakt', c, f: () => openDetail(c.id) }));
-      all('activity').forEach(a => { const c = get(a.contactId); c && m(norm(a.text + ' ' + a.type)) && items.push({ l: (a.text || a.type).slice(0, 80), s: `${a.type} · ${cname(c)} · ${fmtDate(a.date)}`, i: KINDS[a.type], f: () => openDetail(c.id) }); });
+      all('activity').forEach(a => { const c = get(a.contactId); c && m(norm(a.text + ' ' + a.type + ' ' + (a.source || ''))) && items.push({ l: (a.text || a.type).slice(0, 80), s: `${a.type} · ${cname(c)} · ${fmtDate(a.date)}`, i: KINDS[a.type], f: () => openDetail(c.id) }); });
       all('task').forEach(t => m(norm(t.title + ' ' + t.note)) && items.push({ l: t.title, s: 'Aufgabe' + (t.done ? ' · erledigt' : ''), i: 'i-tasks', f: () => editTask(t) }));
       if (SET.pipeline) all('deal').forEach(d => m(norm(d.title + ' ' + d.product + ' ' + d.note)) && items.push({ l: d.title, s: `Chance · ${d.stage} · ${fmtEUR(d.value)}`, i: 'i-euro', f: () => editDeal(d) }));
       all('file').forEach(f => m(norm(f.name)) && items.push({ l: f.name, s: 'Datei · ' + fmtSize(f.size), i: FICON[ftype(f.type)], f: () => viewFile(f.id) }));
