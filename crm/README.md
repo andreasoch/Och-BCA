@@ -236,5 +236,6 @@ Das CRM ist gemischt genutzt:
   - Der Versand wird je Kontakt im Verlauf dokumentiert.
   - Die Mails laufen über das OCH-Postfach bei Microsoft 365, Grundlage ist der Microsoft-Vertrag zur Auftragsverarbeitung.
 - **Recherche:** Der Knopf „Recherche“ am Kontakt öffnet Suchen bei Google, LinkedIn, XING und Northdata erst auf Klick, ohne KI. Gespeichert wird nur, was du als Eintrag „Recherche“ festhältst, mit Quelle. Nur öffentliche Quellen, nur Nötiges. Bei Geschäftskontakten die Informationspflicht (Art. 14 DSGVO) über die Datenschutzerklärung abdecken.
+- **Adresssuche:** „Adresse suchen“ (im Kontakt ohne Straße und im Formular) sendet nur den Suchbegriff an OpenStreetMap, nur beim Klick auf „Suchen“. Bei Personen wird kein Name vorbelegt.
 - **Karten:** „In Karten öffnen“ übergibt die Adresse erst beim Klick an Apple Karten bzw. Google Maps. „Karte anzeigen“ sendet die Adresse einmalig auf Klick an OpenStreetMap (Großbritannien, Angemessenheitsbeschluss der EU), um die Koordinaten zu finden. Die Koordinaten werden verschlüsselt im Kontakt gespeichert. Vor der ersten Nutzung erscheint ein Hinweis.
 - **Sensible Daten:** Gesundheits- oder vergleichbare Daten (Art. 9) nur festhalten, wenn es wirklich nötig ist.
