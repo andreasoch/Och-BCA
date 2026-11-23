@@ -36,6 +36,11 @@ Wichtig: Die Daten gehören zu *Browser bzw. App + Adresse*. Für einen Wechsel 
 - **Wichtige Daten:** Im Kontakt je Zeile „Bezeichnung: TT.MM.JJJJ“ (oder ohne Jahr „TT.MM.“), z. B. Hochzeitstag oder Namenstag. Sie erscheinen mit Geburtstagen unter „Geburtstage und Jahrestage“ in der Übersicht, mit Angabe des Jahrestags.
 - **Geschenkideen:** freies Feld im Kontakt, durchsuchbar.
 - **Kontaktrhythmus:** Wöchentlich bis jährlich. Das CRM erinnert unter „Melde dich mal bei …“.
+- **Verstorbene Kontakte:** Im Kontakt „Verstorben ✝“ anhaken, optional mit Datum. Mehrere Kontakte auf einmal geht über die Mehrfachbearbeitung.
+  - Sichtbar: ✝ neben dem Namen, abgeblendetes Profilbild. Verlauf und Beziehungen bleiben erhalten.
+  - Ausgeschlossen aus allen Rundmails (auch persönlichen), aus „Melde dich mal bei …“ und aus den Geburtstagserinnerungen.
+  - Optional „Todestag als Gedenktag“: erscheint unter „Geburts- und Jahrestage“.
+  - Kontaktliste: Filter „inkl. / ohne / nur Verstorbene“.
 - **Pipeline:** Pipeline und Chancen (Vertrieb) sind ausgeblendet. Einschalten über *Einstellungen → Darstellung & Felder → „Pipeline und Chancen anzeigen“*, vorhandene Daten bleiben erhalten.
 
 Beim ersten Start von Version 1.4 wurden die alten Vertriebsstatus umgestellt: „Partner“ wurde zu „Geschäftspartner“, „Privat“ zu „Freunde“. Andere bereits verwendete Werte (z. B. „Kunde“) bleiben in der Liste, bis du sie umstellst.
