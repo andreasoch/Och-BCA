@@ -131,6 +131,7 @@ main{overflow:auto;position:relative}
 .empty{color:var(--muted);padding:18px 8px;text-align:center;font-size:14px}
 .av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex:none;font-family:var(--serif);font-size:17px;color:#0B1426;object-fit:cover;overflow:hidden}
 .av.lg{width:84px;height:84px;font-size:34px}
+.av.dead{filter:grayscale(1);opacity:.65}
 .av.sq{border-radius:12px}
 .chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:2px 9px;border-radius:20px;border:1px solid var(--line2);color:var(--ink2);white-space:nowrap}
 .chip.gold{border-color:var(--line);color:var(--gold2);background:var(--goldsoft)}
@@ -426,7 +427,7 @@ details summary{color:var(--ink2)}
    AES-256-GCM verschlüsselt. Datenschlüssel (DEK) wird mit einem
    aus der Passphrase per PBKDF2-SHA256 abgeleiteten Schlüssel verpackt.
    ===================================================================== */
-const VERSION = '1.11';
+const VERSION = '1.12';
 const DB_NAME = 'och-crm', DB_VER = 1;
 const PBKDF2_ITER = 600000;
 const te = new TextEncoder(), td = new TextDecoder();
@@ -660,6 +661,10 @@ function nextOccurrence(iso) {
 function upcomingEvents(days) {
   const lim = startOfDay() + days * DAY, out = [];
   for (const c of contacts()) {
+    if (c.deceased) {   // Verstorbene: keine Geburtstags- und Jahrestagserinnerung, optional Todestag als Gedenktag
+      if (c.memorial && /^\d{4}-\d{2}-\d{2}$/.test(c.deceasedDate || '')) { const t = nextOccurrence(c.deceasedDate); if (t && t <= lim) out.push({ c, d: t, label: 'Todestag', year: +c.deceasedDate.slice(0, 4), what: 'Jahrestag' }); }
+      continue;
+    }
     const b = nextBirthday(c); if (b && b <= lim) out.push({ c, d: b, label: 'Geburtstag', year: c.birthday.slice(0, 4) > '1900' ? +c.birthday.slice(0, 4) : null, what: 'wird' });
     for (const x of c.dates || []) { const t = nextOccurrence(x.date); if (t && t <= lim) out.push({ c, d: t, label: x.label, year: x.date.startsWith('----') ? null : +x.date.slice(0, 4), what: 'Jahrestag' }); }
   }
@@ -746,14 +751,16 @@ function nextBirthday(c) {
   return t;
 }
 function dueKeepInTouch(c) {
-  if (!c.cadence) return null;
+  if (!c.cadence || c.deceased) return null;
   const lc = lastContact(c) || c.createdAt;
   return lc + c.cadence * DAY;
 }
 function members(company) { return contacts().filter(c => c.companyId === company.id); }
 
 /* ---------------- Avatar ---------------- */
+const dname = c => cname(c) + (c && c.deceased ? ' ✝' : '');
 function avatar(c, cls = '') {
+  if (c.deceased) cls += ' dead';
   const initials = isCompany(c) ? (c.company || '?').slice(0, 2) : ((c.firstName || '')[0] || '') + ((c.lastName || '')[0] || '') || (c.company || '?')[0];
   const el = h('div', { class: 'av ' + cls + (isCompany(c) ? ' sq' : ''), style: `background:hsl(${hue(cname(c))} 45% 72%)`, 'aria-hidden': 'true' }, initials.toUpperCase());
   if (c.avatarId && get(c.avatarId)) fileURL(c.avatarId, get(c.avatarId).thumb).then(u => {
@@ -975,7 +982,7 @@ function viewDash() {
 
   const allLink = go_ => h('button', { class: 'btn sm ghost alllink', onclick: go_ }, 'Alle →');
   const listCard = (title, ic, items, empty, act, go_) => h('div', { class: 'card' }, h('h3', null, icon(ic), h('span', { class: 'ttl', title }, title), act || null, go_ ? allLink(go_) : null), items.length ? items : h('div', { class: 'empty' }, empty));
-  const crow = (c, sub, right) => h('div', { class: 'row', onclick: () => openDetail(c.id) }, avatar(c), h('div', { class: 'main' }, h('div', { class: 't' }, cname(c)), h('div', { class: 's' }, sub)), right || null);
+  const crow = (c, sub, right) => h('div', { class: 'row', onclick: () => openDetail(c.id) }, avatar(c), h('div', { class: 'main' }, h('div', { class: 't' }, dname(c)), h('div', { class: 's' }, sub)), right || null);
 
   const g2 = h('div', { class: 'grid two', style: 'margin-top:16px' },
     listCard('Heute zu tun', 'i-tasks', due.sort((a, b) => (a.due > b.due ? 1 : -1)).slice(0, 8).map(taskRow), 'Alles erledigt. Schön!', h('button', { class: 'btn sm ghost', onclick: () => editTask(), title: 'Neue Aufgabe', 'aria-label': 'Neue Aufgabe' }, icon('i-plus')), () => go('tasks')),
@@ -1029,13 +1036,14 @@ function untip() { $('#tip').style.opacity = 0; }
 
 /* ---------------- Kontakte ---------------- */
 function allTags() { const s = new Set(); contacts().forEach(c => (c.tags || []).forEach(t => s.add(t))); return [...s].sort((a, b) => a.localeCompare(b, 'de')); }
-function searchText(c) { return norm([cname(c), c.company, c.role, (c.emails || []).join(' '), (c.phones || []).join(' '), c.city, c.address, (c.tags || []).join(' '), c.notes, c.status, (c.custom || []).map(x => x.k + ' ' + x.v).join(' '), (c.dates || []).map(x => x.label).join(' '), c.gifts, (c.links || []).map(l => l.rel + ' ' + cname(get(l.id))).join(' ')].join(' ')); }
+function searchText(c) { return norm([cname(c), c.deceased ? 'verstorben' : '', c.company, c.role, (c.emails || []).join(' '), (c.phones || []).join(' '), c.city, c.address, (c.tags || []).join(' '), c.notes, c.status, (c.custom || []).map(x => x.k + ' ' + x.v).join(' '), (c.dates || []).map(x => x.label).join(' '), c.gifts, (c.links || []).map(l => l.rel + ' ' + cname(get(l.id))).join(' ')].join(' ')); }
 function viewContacts() {
   const statuses = SET.statuses, tags = allTags();
   const sel = (val, opts, ph, on) => h('select', { class: 'input', onchange: e => { on(e.target.value); refreshContacts(); }, 'aria-label': ph }, h('option', { value: '' }, ph), opts.map(o => h('option', { value: o, selected: o === val }, o)));
   const q = h('input', { class: 'input grow', type: 'search', placeholder: 'Filtern nach Name, Firma, Tag, Notiz …', value: UI.q, oninput: e => { UI.q = e.target.value; refreshContacts(); } });
   const tb = h('div', { class: 'toolbar' }, q,
     sel(UI.ctype, ['Personen', 'Firmen'], 'Alle Arten', v => UI.ctype = v),
+    contacts().some(c => c.deceased) ? h('select', { class: 'input', 'aria-label': 'Verstorbene', onchange: e => { UI.dead = e.target.value; refreshContacts(); } }, [['', 'inkl. Verstorbene'], ['ohne', 'ohne Verstorbene'], ['nur', 'nur Verstorbene ✝']].map(([v, l]) => h('option', { value: v, selected: (UI.dead || '') === v }, l))) : null,
     sel(UI.status, statuses, 'Alle Kategorien', v => UI.status = v),
     tags.length ? sel(UI.tag, tags, 'Alle Tags', v => UI.tag = v) : null,
     h('select', { class: 'input', 'aria-label': 'Sortierung', onchange: e => { UI.sort = e.target.value; refreshContacts(); } },
@@ -1081,7 +1089,8 @@ async function bulkEdit() {
     fld('E-Mail-Werbung', sel('bConsent', '__keep', [['__keep', '— unverändert —'], ...Object.entries(CONSENT)])),
     fld('Nachweis (nur wenn E-Mail-Werbung geändert wird)', inp('bConsentNote', '', { placeholder: 'z. B. 22.11.2026, Bestandskunde laut DIVA' })),
     fld('Kontaktrhythmus', sel('bCadence', '__keep', [['__keep', '— unverändert —'], ['', 'keiner'], ['7', 'wöchentlich'], ['14', 'alle 2 Wochen'], ['30', 'monatlich'], ['90', 'vierteljährlich'], ['180', 'halbjährlich'], ['365', 'jährlich']])),
-    fld('Wichtigkeit', sel('bStars', '__keep', [['__keep', '— unverändert —'], ['0', '—'], ['1', '★'], ['2', '★★'], ['3', '★★★'], ['4', '★★★★'], ['5', '★★★★★']])));
+    fld('Wichtigkeit', sel('bStars', '__keep', [['__keep', '— unverändert —'], ['0', '—'], ['1', '★'], ['2', '★★'], ['3', '★★★'], ['4', '★★★★'], ['5', '★★★★★']])),
+    fld('Verstorben', sel('bDead', '__keep', [['__keep', '— unverändert —'], ['ja', 'als verstorben kennzeichnen ✝'], ['nein', 'Kennzeichnung entfernen']])));
   const f = await dialog('Ausgewählte Kontakte bearbeiten', content, `${ids.length} Kontakte ändern`);
   if (!f) return;
   const v = Object.fromEntries(new FormData(f));
@@ -1102,6 +1111,7 @@ async function bulkEdit() {
     else if (v.bConsent !== '__keep' && v.bConsentNote.trim()) c.mailConsentNote = v.bConsentNote.trim();
     if (v.bCadence !== '__keep') c.cadence = +v.bCadence || null;
     if (v.bStars !== '__keep') c.stars = +v.bStars;
+    if (v.bDead === 'ja' && !isCompany(c)) c.deceased = true; else if (v.bDead === 'nein') { c.deceased = false; c.deceasedDate = ''; c.memorial = false; }
     await save(c); n++;
   }
   toast(`${n} Kontakte geändert` + (newCat ? ` · Kategorie „${cat}“ angelegt` : ''));
@@ -1125,6 +1135,7 @@ function filteredContacts() {
   if (UI.status) cs = cs.filter(c => c.status === UI.status);
   if (UI.tag) cs = cs.filter(c => (c.tags || []).includes(UI.tag));
   if (UI.ctype) cs = cs.filter(c => UI.ctype === 'Firmen' ? isCompany(c) : !isCompany(c));
+  if (UI.dead === 'ohne') cs = cs.filter(c => !c.deceased); else if (UI.dead === 'nur') cs = cs.filter(c => c.deceased);
   const lc = new Map(cs.map(c => [c.id, lastContact(c) || 0]));
   const by = { name: (a, b) => cname(a).localeCompare(cname(b), 'de'), recent: (a, b) => lc.get(b.id) - lc.get(a.id), stale: (a, b) => lc.get(a.id) - lc.get(b.id), stars: (a, b) => (b.stars || 0) - (a.stars || 0), new: (a, b) => b.createdAt - a.createdAt };
   return cs.sort(by[UI.sort] || by.name);
@@ -1135,13 +1146,13 @@ function contactList() {
   if (SET.view === 'table') return h('div', { class: 'card', style: 'padding:6px;overflow-x:auto' }, h('table', { class: 'list' },
     h('thead', null, h('tr', null, ['', 'Name', 'Firma / Position', 'Kategorie', 'Kontakt', 'Zuletzt'].map(t => h('th', null, t)))),
     h('tbody', null, cs.map(c => h('tr', { class: 'click' + (UI.bulk && UI.picked.has(c.id) ? ' picked' : ''), onclick: e => UI.bulk ? togglePick(c.id, e.currentTarget) : openDetail(c.id) },
-      h('td', { style: 'width:52px' }, UI.bulk ? h('input', { type: 'checkbox', checked: UI.picked.has(c.id), 'aria-label': 'Auswählen', style: 'width:18px;height:18px;accent-color:var(--gold);pointer-events:none' }) : avatar(c)), h('td', null, cname(c), c.stars ? h('div', { class: 'stars' }, '★'.repeat(c.stars)) : null),
+      h('td', { style: 'width:52px' }, UI.bulk ? h('input', { type: 'checkbox', checked: UI.picked.has(c.id), 'aria-label': 'Auswählen', style: 'width:18px;height:18px;accent-color:var(--gold);pointer-events:none' }) : avatar(c)), h('td', null, dname(c), c.stars ? h('div', { class: 'stars' }, '★'.repeat(c.stars)) : null),
       h('td', { class: 'muted' }, isCompany(c) ? `${members(c).length} Personen` : [companyName(c), c.role].filter(Boolean).join(' · ')),
       h('td', null, c.status ? h('span', { class: 'chip gold' }, c.status) : ''),
       h('td', { class: 'muted' }, (c.emails || [])[0] || (c.phones || [])[0] || ''),
       h('td', { class: 'muted' }, rel(lastContact(c)) || '—'))))));
   return h('div', { class: 'cgrid' }, cs.map(c => h('div', { class: 'ccard' + (UI.bulk && UI.picked.has(c.id) ? ' picked' : ''), tabindex: 0, onclick: e => UI.bulk ? togglePick(c.id, e.currentTarget) : openDetail(c.id), onkeydown: e => e.key === 'Enter' && (UI.bulk ? togglePick(c.id, e.currentTarget) : openDetail(c.id)) },
-    h('div', { class: 'hd' }, UI.bulk ? h('input', { type: 'checkbox', checked: UI.picked.has(c.id), 'aria-label': 'Auswählen', style: 'width:20px;height:20px;accent-color:var(--gold);flex:none;pointer-events:none' }) : null, avatar(c), h('div', { style: 'min-width:0' }, h('div', { class: 'nm' }, cname(c)), h('div', { class: 'muted', style: 'font-size:13px' }, isCompany(c) ? `Firma · ${members(c).length} Personen` : [c.role, companyName(c)].filter(Boolean).join(' · ') || '—'))),
+    h('div', { class: 'hd' }, UI.bulk ? h('input', { type: 'checkbox', checked: UI.picked.has(c.id), 'aria-label': 'Auswählen', style: 'width:20px;height:20px;accent-color:var(--gold);flex:none;pointer-events:none' }) : null, avatar(c), h('div', { style: 'min-width:0' }, h('div', { class: 'nm' }, dname(c)), h('div', { class: 'muted', style: 'font-size:13px' }, isCompany(c) ? `Firma · ${members(c).length} Personen` : [c.role, companyName(c)].filter(Boolean).join(' · ') || '—'))),
     h('div', { class: 'chips' }, c.status ? h('span', { class: 'chip gold' }, c.status) : null, (c.tags || []).slice(0, 3).map(t => h('span', { class: 'chip' }, '#' + t)), c.stars ? h('span', { class: 'stars' }, '★'.repeat(c.stars)) : null),
     h('div', { class: 'muted', style: 'font-size:12.5px;display:flex;justify-content:space-between' }, h('span', null, 'zuletzt: ' + (rel(lastContact(c)) || '—')), h('span', null, (n => n + (n === 1 ? ' Eintrag' : ' Einträge'))(actsOf(c.id).length) + ' · ' + filesOf(c.id).length + ' Medien')))));
 }
@@ -1163,7 +1174,7 @@ function renderDetail() {
   const lc = lastContact(c), tel = (c.phones || [])[0], mail = (c.emails || [])[0];
   const head = h('div', { class: 'dhead' }, avatar(c, 'lg'),
     h('div', { style: 'min-width:0;flex:1' },
-      h('h2', null, cname(c)),
+      h('h2', null, dname(c)),
       h('div', { class: 'muted' }, isCompany(c) ? 'Firma' : [c.role, companyName(c)].filter(Boolean).join(' · ')),
       h('div', { class: 'chips', style: 'margin-top:8px' }, c.status ? h('span', { class: 'chip gold' }, c.status) : null, c.stars ? h('span', { class: 'stars' }, '★'.repeat(c.stars) + '☆'.repeat(5 - c.stars)) : null, (c.tags || []).map(t => h('span', { class: 'chip' }, '#' + t)))));
   const quick = h('div', { class: 'quick' },
@@ -1187,12 +1198,13 @@ function renderDetail() {
   if (isCompany(c)) { const m = members(c); if (m.length) fact('Personen', h('div', { class: 'chips' }, m.map(p => h('a', { href: '#', class: 'chip', onclick: e => { e.preventDefault(); openDetail(p.id); } }, cname(p))))); }
   const rels = relationsOf(c);
   if (rels.length) fact('Beziehungen', h('div', { class: 'chips' }, rels.map(r => h('span', { class: 'chip', style: 'gap:6px' },
-    h('a', { href: '#', onclick: e => { e.preventDefault(); openDetail(r.other.id); } }, r.rel + ': ' + cname(r.other)),
+    h('a', { href: '#', onclick: e => { e.preventDefault(); openDetail(r.other.id); } }, r.rel + ': ' + dname(r.other)),
     h('button', { class: 'btn ghost sm', style: 'padding:0 2px;line-height:1', title: 'Beziehung entfernen', 'aria-label': 'Beziehung entfernen', onclick: async () => {
       const owner = get(r.owner); owner.links = (owner.links || []).filter(l => !(l.id === (r.owner === c.id ? r.other.id : c.id)));
       await save(owner); refresh(); toast('Beziehung entfernt');
     } }, '×')))));
-  fact('Geburtstag', c.birthday ? fmtDate(c.birthday + 'T12:00') + (nextBirthday(c) ? ` (${rel(nextBirthday(c))})` : '') : null);
+  if (c.deceased) fact('Verstorben', '✝ ' + (/^\d{4}-\d{2}-\d{2}$/.test(c.deceasedDate || '') ? fmtDate(c.deceasedDate + 'T12:00') : 'Datum unbekannt') + (c.memorial ? ' · Todestag als Gedenktag' : ''));
+  fact('Geburtstag', c.birthday ? fmtDate(c.birthday + 'T12:00') + (nextBirthday(c) && !c.deceased ? ` (${rel(nextBirthday(c))})` : '') : null);
   fact('Kennengelernt', c.met);
   if ((c.dates || []).length) fact('Wichtige Daten', h('div', null, c.dates.map(x => { const t = nextOccurrence(x.date); const y = x.date.startsWith('----') ? null : +x.date.slice(0, 4); return h('div', null, `${x.label}: ${fmtImpDate(x)}` + (t ? ` (${rel(t)}${y ? `, ${new Date(t).getFullYear() - y}. Jahrestag` : ''})` : '')); })));
   fact('Geschenkideen', c.gifts ? h('div', { style: 'white-space:pre-wrap' }, c.gifts) : null);
@@ -1470,7 +1482,10 @@ async function editContact(c = {}) {
     fld('Kategorie', sel('status', c.status || '', [['', '—'], ...SET.statuses, ...(c.status && !SET.statuses.includes(c.status) ? [c.status] : [])])),
     h('div', { class: 'full p-only fgrid', style: 'padding:0' }, fld('Vorname', inp('firstName', c.firstName, { autocomplete: 'off' })), fld('Nachname', inp('lastName', c.lastName, { autocomplete: 'off' })),
       fld('Anrede', sel('salutation', c.salutation || '', [['', '—'], ['Frau', 'Frau'], ['Herr', 'Herr']])),
-      h('label', { class: 'field', style: 'flex-direction:row;align-items:center;gap:10px;margin-top:22px' }, h('input', { type: 'checkbox', name: 'du', checked: !!c.du, style: 'width:18px;height:18px;accent-color:var(--gold)' }), h('span', { style: 'text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink)' }, 'Wir duzen uns'))),
+      h('label', { class: 'field', style: 'flex-direction:row;align-items:center;gap:10px;margin-top:22px' }, h('input', { type: 'checkbox', name: 'du', checked: !!c.du, style: 'width:18px;height:18px;accent-color:var(--gold)' }), h('span', { style: 'text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink)' }, 'Wir duzen uns')),
+      h('label', { class: 'field', style: 'flex-direction:row;align-items:center;gap:10px;margin-top:22px' }, h('input', { type: 'checkbox', name: 'deceased', checked: !!c.deceased, style: 'width:18px;height:18px;accent-color:var(--gold)' }), h('span', { style: 'text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink)' }, 'Verstorben ✝')),
+      fld('Verstorben am (optional)', inp('deceasedDate', c.deceasedDate, { type: 'date' })),
+      h('label', { class: 'field full', style: 'flex-direction:row;align-items:center;gap:10px' }, h('input', { type: 'checkbox', name: 'memorial', checked: !!c.memorial, style: 'width:18px;height:18px;accent-color:var(--gold)' }), h('span', { style: 'text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink)' }, 'Todestag als Gedenktag in der Übersicht anzeigen'))),
     fld('Firma', inp('company', isCompany(c) ? c.company : companyName(c), { list: 'companyList', autocomplete: 'off' })),
     h('datalist', { id: 'companyList' }, companies.map(x => h('option', { value: cname(x) }))),
     fld('Position', inp('role', c.role)),
@@ -1505,8 +1520,9 @@ async function editContact(c = {}) {
   if ((c.mailConsent || '') !== v.mailConsent) o.mailConsentAt = Date.now();
   const pd = parseDates(v.dates); o.dates = pd.ok; o.gifts = (v.gifts || '').trim();
   if (pd.bad.length) toast('Nicht erkannt und nicht gespeichert: ' + pd.bad.join(', ') + '. Format: „Bezeichnung: TT.MM.JJJJ“', true);
+  Object.assign(o, { deceased: !!v.deceased || !!v.deceasedDate, deceasedDate: v.deceasedDate || '', memorial: !!v.memorial && (!!v.deceased || !!v.deceasedDate) });
   Object.assign(o, { salutation: v.salutation || '', du: !!v.du, mailConsent: v.mailConsent || '', mailConsentNote: (v.mailConsentNote || '').trim() });
-  if (v.type === 'company') { o.company = v.company.trim(); o.firstName = ''; o.lastName = ''; o.companyId = null; o.salutation = ''; o.du = false; }
+  if (v.type === 'company') { o.company = v.company.trim(); o.firstName = ''; o.lastName = ''; o.companyId = null; o.salutation = ''; o.du = false; o.deceased = false; o.deceasedDate = ''; o.memorial = false; }
   else {
     o.firstName = v.firstName.trim(); o.lastName = v.lastName.trim(); o.company = v.company.trim();
     const match = contacts().find(x => isCompany(x) && norm(x.company) === norm(o.company));
@@ -1664,7 +1680,7 @@ function openPalette() {
     const m = t => q.every(w => t.includes(w));
     if (!q.length) items = cmds.map(([l, i, f]) => ({ l, i, s: 'Befehl', f }));
     else {
-      contacts().forEach(c => m(searchText(c)) && items.push({ l: cname(c), s: [c.role, companyName(c), c.status].filter(Boolean).join(' · ') || 'Kontakt', c, f: () => openDetail(c.id) }));
+      contacts().forEach(c => m(searchText(c)) && items.push({ l: dname(c), s: [c.role, companyName(c), c.status].filter(Boolean).join(' · ') || 'Kontakt', c, f: () => openDetail(c.id) }));
       all('activity').forEach(a => { const c = get(a.contactId); c && m(norm(a.text + ' ' + a.type + ' ' + (a.source || ''))) && items.push({ l: (a.text || a.type).slice(0, 80), s: `${a.type} · ${cname(c)} · ${fmtDate(a.date)}`, i: KINDS[a.type], f: () => openDetail(c.id) }); });
       all('task').forEach(t => m(norm(t.title + ' ' + t.note)) && items.push({ l: t.title, s: 'Aufgabe' + (t.done ? ' · erledigt' : ''), i: 'i-tasks', f: () => editTask(t) }));
       if (SET.pipeline) all('deal').forEach(d => m(norm(d.title + ' ' + d.product + ' ' + d.note)) && items.push({ l: d.title, s: `Chance · ${d.stage} · ${fmtEUR(d.value)}`, i: 'i-euro', f: () => editDeal(d) }));
@@ -1823,7 +1839,7 @@ const csvCell = v => { let s = (v ?? '').toString(); if (/^[=+\-@\t\r]/.test(s))
 function exportCSV() {
   const cols = [['Anrede', c => c.salutation || ''], ['Vorname', c => c.firstName], ['Nachname', c => c.lastName], ['Firma', c => isCompany(c) ? c.company : companyName(c)], ['Art', c => isCompany(c) ? 'Firma' : 'Person'], ['Position', c => c.role], ['Kategorie', c => c.status],
     ['E-Mail', c => (c.emails || []).join(', ')], ['Telefon', c => (c.phones || []).join(', ')], ['Adresse', c => c.address], ['Ort', c => c.city], ['Website', c => c.website],
-    ['Geburtstag', c => c.birthday], ['Tags', c => (c.tags || []).join(', ')], ['Wichtigkeit', c => c.stars || ''], ['Kontaktrhythmus (Tage)', c => c.cadence || ''], ['Zuletzt Kontakt', c => fmtDate(lastContact(c))], ['Notizen', c => c.notes]];
+    ['Geburtstag', c => c.birthday], ['Tags', c => (c.tags || []).join(', ')], ['Wichtigkeit', c => c.stars || ''], ['Kontaktrhythmus (Tage)', c => c.cadence || ''], ['Zuletzt Kontakt', c => fmtDate(lastContact(c))], ['Verstorben', c => c.deceased ? (c.deceasedDate ? fmtDate(c.deceasedDate + 'T12:00') : 'ja') : ''], ['Notizen', c => c.notes]];
   const rows = [cols.map(c => c[0]).join(';'), ...contacts().sort((a, b) => cname(a).localeCompare(cname(b), 'de')).map(c => cols.map(([, f]) => csvCell(f(c))).join(';'))];
   download(`och-crm-kontakte-${stamp()}.csv`, '\ufeff' + rows.join('\r\n'), 'text/csv;charset=utf-8');
   toast(`${contacts().length} Kontakte exportiert (unverschlüsselt)`);
@@ -1899,6 +1915,7 @@ function parseCSV(text) {
     bday: firstOf(x => has(x, 'geburtstag', 'birthday')),
     tags: firstOf(x => has(x, 'tags', 'kategorien', 'categories', 'gruppe', 'labels')),
     notes: firstOf(x => has(x, 'notiz', 'notes', 'bemerkung')),
+    dead: firstOf(x => has(x, 'verstorben', 'deceased')),
     status: firstOf(x => x === 'kategorie' || x === 'status'),
   };
   const mails = many(x => has(x, 'e-mail', 'email', 'mail') && !has(x, 'typ', 'type', 'angezeigt', 'display', 'anzeige', 'werbung'));
@@ -1917,7 +1934,7 @@ function parseCSV(text) {
     const pick = list => { const same = list.find(i => suffix(hd[i]) === grp && (r[i] || '').trim()); const any = list.find(i => (r[i] || '').trim()); return ((same ?? any) >= 0 ? (r[same ?? any] || '').trim() : ''); };
     const city = [pick(zips), pick(cities)].filter(Boolean).join(' ');
     const emails = [...new Set(vals(mails).flatMap(splitList).filter(x => x.includes('@')))];
-    const c = { kind: 'contact', type: !fn && !ln && g('co') ? 'company' : 'person', firstName: fn, lastName: ln, company: g('co'), role: g('role'), emails, phones: [...new Set(vals(phones).flatMap(splitList))], address: si >= 0 ? (r[si] || '').trim().replace(/\s*\n\s*/g, ', ') : '', city, website: g('web'), birthday: bd, tags: splitList(g('tags')), notes: g('notes'), status: SET.statuses.includes(g('status')) ? g('status') : '', salutation: /^frau/i.test(g('sal')) ? 'Frau' : /^herr/i.test(g('sal')) ? 'Herr' : '' };
+    const c = { kind: 'contact', type: !fn && !ln && g('co') ? 'company' : 'person', firstName: fn, lastName: ln, company: g('co'), role: g('role'), emails, phones: [...new Set(vals(phones).flatMap(splitList))], address: si >= 0 ? (r[si] || '').trim().replace(/\s*\n\s*/g, ', ') : '', city, website: g('web'), birthday: bd, tags: splitList(g('tags')), notes: g('notes'), ...(dv => { if (!dv || /^(nein|no|0|false)$/i.test(dv)) return {}; const dm = dv.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/); return { deceased: true, deceasedDate: dm ? `${dm[3]}-${dm[2].padStart(2, '0')}-${dm[1].padStart(2, '0')}` : (/^\d{4}-\d{2}-\d{2}$/.test(dv) ? dv : '') }; })(g('dead')), status: SET.statuses.includes(g('status')) ? g('status') : '', salutation: /^frau/i.test(g('sal')) ? 'Frau' : /^herr/i.test(g('sal')) ? 'Herr' : '' };
     return c;
   }).filter(c => c.firstName || c.lastName || c.company);
 }
@@ -2047,6 +2064,7 @@ const firstMail = c => (c.emails || [])[0] || '';
 
 const isPersonal = camp => camp?.type === 'personal';
 function mailReason(c, camp) {
+  if (c.deceased) return 'verstorben';
   if (!firstMail(c)) return 'keine E-Mail-Adresse';
   if (c.mailConsent === 'widerspruch') return 'Widerspruch / abgemeldet';
   if (isPersonal(camp)) return null;
