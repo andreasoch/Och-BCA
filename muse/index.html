@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://generativelanguage.googleapis.com https://api.openai.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="theme-color" content="#F6F1EA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14110F" media="(prefers-color-scheme: dark)">
+<title>Bildmuse</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Bildmuse">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F6F1EA;--surface:#FFFCF7;--surface2:#EEE5D8;--ink:#221C17;--muted:#6B6058;--line:rgba(34,28,23,.12);
+  --accent:#A8452E;--accent-soft:rgba(168,69,46,.12);--accent-ink:#fff;--ok:#2F7A4F;--err:#B3261E;
+  --radius:16px;--shadow:0 6px 24px rgba(34,28,23,.08);
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14110F;--surface:#1E1A17;--surface2:#2A2420;--ink:#F2EAE0;--muted:#B3A79C;--line:rgba(242,234,224,.13);
+  --accent:#E07A5F;--accent-soft:rgba(224,122,95,.16);--accent-ink:#1A0F0B;--shadow:0 6px 24px rgba(0,0,0,.35);
+}}
+html,body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--sans);-webkit-text-size-adjust:100%}
+body{min-height:100vh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.wrap{max-width:720px;margin:0 auto;padding:16px}
+h1{font:600 28px/1.15 var(--serif);letter-spacing:-.01em}
+h2{font:600 20px/1.25 var(--serif);margin-bottom:8px}
+p.muted,.muted{color:var(--muted)}
+small{font-size:13px}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:16px}
+header.top .brand{display:flex;align-items:center;gap:10px}
+header.top img{width:36px;height:36px;border-radius:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-bottom:16px}
+.btn{appearance:none;border:1px solid var(--line);background:var(--surface2);color:var(--ink);font:600 15px/1 var(--sans);padding:12px 16px;border-radius:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent}
+.btn.block{width:100%}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.sm{padding:8px 12px;min-height:36px;font-size:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>.btn{flex:1 1 auto}
+label{display:block;font-weight:600;font-size:14px;margin:12px 0 6px}
+.input,select.input,textarea.input{width:100%;font:16px var(--sans);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px}
+textarea.input{min-height:72px;resize:vertical}
+.hint{font-size:13px;color:var(--muted);margin-top:6px}
+.err{color:var(--err);font-size:14px;margin-top:8px;min-height:1em}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:8px 14px;font:600 14px var(--sans);cursor:pointer;min-height:40px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.drop{display:block;border:2px dashed var(--line);border-radius:var(--radius);padding:28px 16px;text-align:center;cursor:pointer;background:var(--bg)}
+.drop strong{display:block;font:600 18px var(--serif);margin-bottom:4px}
+.preview{width:100%;border-radius:12px;display:block;background:var(--surface2)}
+.muse{background:var(--accent-soft);border-radius:12px;padding:12px 14px;margin-top:12px}
+.muse dl{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:14px}
+.muse dt{color:var(--muted)}
+.compare{position:relative;border-radius:12px;overflow:hidden;user-select:none;touch-action:pan-y;background:var(--surface2)}
+.compare img{display:block;width:100%}
+.compare .before{position:absolute;inset:0;overflow:hidden;width:50%}
+.compare .before img{max-width:none;object-fit:cover}
+.compare .bar{position:absolute;top:0;bottom:0;width:2px;background:#fff;left:50%;box-shadow:0 0 6px rgba(0,0,0,.4)}
+.compare .tag{position:absolute;top:8px;font:600 12px var(--sans);background:rgba(0,0,0,.55);color:#fff;padding:3px 8px;border-radius:6px}
+.spinner{width:40px;height:40px;border:4px solid var(--accent-soft);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:16px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spinner{animation-duration:3s}}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px}
+.grid button{border:0;padding:0;background:var(--surface2);border-radius:10px;overflow:hidden;aspect-ratio:1;cursor:pointer}
+.grid img{width:100%;height:100%;object-fit:cover;display:block}
+nav.tabs{display:flex;gap:4px;background:var(--surface2);border-radius:12px;padding:4px;margin-bottom:16px}
+nav.tabs button{flex:1;border:0;background:transparent;color:var(--ink);font:600 14px var(--sans);padding:10px;border-radius:9px;cursor:pointer}
+nav.tabs button[aria-selected="true"]{background:var(--surface);box-shadow:var(--shadow)}
+.hidden{display:none!important}
+.check{display:flex;gap:10px;align-items:flex-start;font-weight:400;font-size:14px}
+.check input{margin-top:3px;width:18px;height:18px;flex:none}
+.notice{font-size:13px;color:var(--muted);border-left:3px solid var(--accent);padding-left:10px;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- Sperrbildschirm -->
+<section id="vLock" class="hidden">
+  <header class="top"><div class="brand"><img src="icon-192.png" alt=""><h1>Bildmuse</h1></div></header>
+  <div class="card">
+    <h2 id="lockTitle">Entsperren</h2>
+    <p class="muted" id="lockIntro">Gib deine Passphrase ein.</p>
+    <form id="lockForm" autocomplete="on">
+      <input type="text" name="username" value="Bildmuse" autocomplete="username" class="hidden" aria-hidden="true" tabindex="-1">
+      <label for="pw1">Passphrase</label>
+      <input class="input" type="password" id="pw1" autocomplete="current-password" required minlength="12">
+      <div id="pw2Box" class="hidden">
+        <label for="pw2">Passphrase wiederholen</label>
+        <input class="input" type="password" id="pw2" autocomplete="new-password" minlength="12">
+        <p class="hint">Mindestens 12 Zeichen, am besten ein Satz aus 4–5 Wörtern. Es gibt kein „Passwort vergessen“: Ohne Passphrase sind Galerie und API-Schlüssel nicht mehr lesbar.</p>
+      </div>
+      <p class="err" id="lockErr" role="alert"></p>
+      <button class="btn primary block" id="lockBtn" type="submit">Entsperren</button>
+    </form>
+  </div>
+  <p class="muted"><small>Alle Daten liegen verschlüsselt (AES-256) nur auf diesem Gerät.</small></p>
+</section>
+
+<!-- App -->
+<section id="vApp" class="hidden">
+  <header class="top">
+    <div class="brand"><img src="icon-192.png" alt=""><h1>Bildmuse</h1></div>
+    <button class="btn sm ghost" id="btnLock" type="button">Sperren</button>
+  </header>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="create" aria-selected="true">Neues Bild</button>
+    <button role="tab" data-tab="gallery" aria-selected="false">Galerie</button>
+    <button role="tab" data-tab="settings" aria-selected="false">Einstellungen</button>
+  </nav>
+
+  <!-- Neues Bild -->
+  <div id="tCreate">
+    <div class="card" id="needKey" hidden>
+      <h2>Noch kein KI-Zugang</h2>
+      <p class="muted">Für die Bildbearbeitung brauchst du einen eigenen API-Schlüssel (Google Gemini oder OpenAI). Trage ihn unter „Einstellungen“ ein.</p>
+    </div>
+    <div class="card">
+      <h2>1 · Foto</h2>
+      <label class="drop" for="file">
+        <strong>Foto aufnehmen oder auswählen</strong>
+        <span class="muted">Landschaft, Objekt, Fahrzeug oder Raum</span>
+      </label>
+      <input type="file" id="file" accept="image/*" capture="environment" class="hidden">
+      <div class="row" style="margin-top:8px"><button class="btn sm ghost" id="btnPick" type="button">Aus der Mediathek wählen</button></div>
+      <input type="file" id="file2" accept="image/*" class="hidden">
+      <img id="srcPrev" class="preview hidden" alt="Dein Foto" style="margin-top:12px">
+    </div>
+
+    <div class="card">
+      <h2>2 · Motiv</h2>
+      <div class="chips" id="scenes" role="group" aria-label="Motiv"></div>
+      <div class="muse" id="museBox">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px">
+          <strong>Zufällige Muse</strong>
+          <button class="btn sm" id="btnDice" type="button" aria-label="Neue Muse auswürfeln">🎲 Neu würfeln</button>
+        </div>
+        <dl id="museDl"></dl>
+      </div>
+      <label for="extra">Zusatzwunsch (optional)</label>
+      <textarea class="input" id="extra" placeholder="z. B. lehnt am Geländer, Blick in die Ferne"></textarea>
+    </div>
+
+    <div class="card">
+      <button class="btn primary block" id="btnGo" type="button" disabled>Muse ins Bild setzen</button>
+      <div id="busy" class="hidden" aria-live="polite"><div class="spinner"></div><p class="muted" style="text-align:center">Die KI arbeitet – das dauert meist 10–40 Sekunden.</p></div>
+      <p class="err" id="goErr" role="alert"></p>
+    </div>
+
+    <div class="card hidden" id="resultCard">
+      <h2>Ergebnis</h2>
+      <div class="compare" id="cmp">
+        <img id="cmpAfter" alt="Bild mit Muse">
+        <div class="before" id="cmpBeforeWrap"><img id="cmpBefore" alt="Original"></div>
+        <div class="bar" id="cmpBar"></div>
+        <span class="tag" style="left:8px">Vorher</span><span class="tag" style="right:8px">Nachher</span>
+      </div>
+      <p class="hint">Zum Vergleichen über das Bild wischen.</p>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="btnAgain" type="button">Nochmal (neue Muse)</button>
+        <button class="btn primary" id="btnShare" type="button">Teilen / Sichern</button>
+      </div>
+      <p class="notice">Das Bild ist KI-generiert. Die Person ist fiktiv. Wenn du es veröffentlichst, kennzeichne es als KI-Bild.</p>
+    </div>
+  </div>
+
+  <!-- Galerie -->
+  <div id="tGallery" class="hidden">
+    <div class="card">
+      <h2>Galerie</h2>
+      <p class="muted" id="galEmpty">Noch keine Bilder.</p>
+      <div class="grid" id="gal"></div>
+    </div>
+    <div class="card hidden" id="galDetail">
+      <img id="galImg" class="preview" alt="">
+      <p class="muted" id="galMeta" style="margin-top:8px"></p>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="galShare" type="button">Teilen / Sichern</button>
+        <button class="btn" id="galDel" type="button">Löschen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Einstellungen -->
+  <div id="tSettings" class="hidden">
+    <div class="card">
+      <h2>KI-Dienst</h2>
+      <label for="sProv">Anbieter</label>
+      <select class="input" id="sProv">
+        <option value="gemini">Google Gemini (empfohlen)</option>
+        <option value="openai">OpenAI</option>
+      </select>
+      <label for="sKey">API-Schlüssel</label>
+      <input class="input" type="password" id="sKey" autocomplete="off" spellcheck="false">
+      <p class="hint" id="keyHint"></p>
+      <label for="sModel">Modell</label>
+      <input class="input" id="sModel" autocomplete="off" spellcheck="false">
+      <p class="hint">Nur ändern, wenn der Anbieter ein neueres Bildmodell anbietet.</p>
+      <label class="check" style="margin-top:16px"><input type="checkbox" id="sMark"> Kleines „KI“-Zeichen in gespeicherte und geteilte Bilder setzen</label>
+      <label class="check"><input type="checkbox" id="sKeepOrig"> Original in der Galerie mitspeichern (Vorher/Nachher)</label>
+      <label for="sLock">Automatisch sperren nach</label>
+      <select class="input" id="sLock">
+        <option value="1">1 Minute</option><option value="5">5 Minuten</option><option value="15">15 Minuten</option>
+      </select>
+      <p class="err" id="setErr" role="alert"></p>
+      <button class="btn primary block" id="btnSave" type="button" style="margin-top:12px">Speichern</button>
+    </div>
+    <div class="card">
+      <h2>Datenschutz</h2>
+      <p class="muted">Dein Foto wird zur Bearbeitung an den gewählten KI-Anbieter gesendet (Google bzw. OpenAI, Server u. a. in den USA). Fotografiere keine fremden Personen, Kennzeichen oder vertrauliche Unterlagen. Galerie und Schlüssel bleiben verschlüsselt auf diesem Gerät.</p>
+    </div>
+    <div class="card">
+      <h2>Sicherheit</h2>
+      <button class="btn block" id="btnChangePw" type="button">Passphrase ändern</button>
+      <div id="chgBox" class="hidden">
+        <label for="c0">Bisherige Passphrase</label><input class="input" type="password" id="c0" autocomplete="current-password">
+        <label for="c1">Neue Passphrase</label><input class="input" type="password" id="c1" autocomplete="new-password" minlength="12">
+        <label for="c2">Neue Passphrase wiederholen</label><input class="input" type="password" id="c2" autocomplete="new-password" minlength="12">
+        <p class="err" id="chgErr" role="alert"></p>
+        <button class="btn primary block" id="btnChgDo" type="button">Ändern</button>
+      </div>
+      <button class="btn block" id="btnWipe" type="button" style="margin-top:8px">Alles löschen (App zurücksetzen)</button>
+      <p class="hint" id="ver"></p>
+    </div>
+  </div>
+</section>
+</div>
+
+<script>
+'use strict';
+const VERSION = '1.0';
+const $ = s => document.querySelector(s);
+const te = new TextEncoder(), td = new TextDecoder();
+const b64 = buf => { const u = new Uint8Array(buf); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
+const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+
+/* ---------- Speicher: IndexedDB, alles außer dem Tresor-Kopf verschlüsselt ---------- */
+const DB_NAME = 'och-muse', DB_VER = 1;
+let db;
+function openDb() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, DB_VER);
+    r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('meta'); d.createObjectStore('img', { keyPath: 'id' }); };
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+}
+const tx = (store, mode, fn) => new Promise((res, rej) => { const t = db.transaction(store, mode); const s = t.objectStore(store); const q = fn(s); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); });
+const metaGet = k => tx('meta', 'readonly', s => s.get(k));
+const metaPut = (k, v) => tx('meta', 'readwrite', s => s.put(v, k));
+
+/* ---------- Kryptografie: PBKDF2-SHA256 (600.000) -> AES-KW verpackt einen zufälligen AES-GCM-Schlüssel ---------- */
+const PBKDF2_ITER = 600000;
+let KEY = null;
+async function kek(pass, salt, iter) {
+  const base = await crypto.subtle.importKey('raw', te.encode(pass), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' }, base, { name: 'AES-KW', length: 256 }, false, ['wrapKey', 'unwrapKey']);
+}
+async function createVault(pass) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const dek = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+  const wrapped = await crypto.subtle.wrapKey('raw', dek, await kek(pass, salt, PBKDF2_ITER), 'AES-KW');
+  await metaPut('vault', { v: 1, salt, iter: PBKDF2_ITER, wrapped, created: Date.now() });
+  return crypto.subtle.unwrapKey('raw', wrapped, await kek(pass, salt, PBKDF2_ITER), 'AES-KW', 'AES-GCM', false, ['encrypt', 'decrypt']);
+}
+async function openVault(pass, extractable = false) {
+  const v = await metaGet('vault');
+  return crypto.subtle.unwrapKey('raw', v.wrapped, await kek(pass, v.salt, v.iter), 'AES-KW', 'AES-GCM', extractable, ['encrypt', 'decrypt']);
+}
+async function enc(bytes) { const iv = crypto.getRandomValues(new Uint8Array(12)); return { iv, ct: await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, KEY, bytes) }; }
+const dec = o => crypto.subtle.decrypt({ name: 'AES-GCM', iv: o.iv }, KEY, o.ct);
+const encJson = o => enc(te.encode(JSON.stringify(o)));
+const decJson = async o => JSON.parse(td.decode(await dec(o)));
+
+/* ---------- Einstellungen ---------- */
+const MODELS = { gemini: 'gemini-2.5-flash-image', openai: 'gpt-image-1' };
+let SET = { provider: 'gemini', key: '', model: MODELS.gemini, mark: true, keepOrig: true, autolock: 5 };
+async function loadSettings() { const o = await metaGet('settings'); if (o) SET = { ...SET, ...(await decJson(o)) }; }
+async function saveSettings() { await metaPut('settings', await encJson(SET)); }
+
+/* ---------- Sperre ---------- */
+let hasVault = false;
+async function showLock() {
+  KEY = null; $('#vApp').classList.add('hidden'); $('#vLock').classList.remove('hidden');
+  hasVault = !!(await metaGet('vault'));
+  $('#lockTitle').textContent = hasVault ? 'Entsperren' : 'Passphrase festlegen';
+  $('#lockIntro').textContent = hasVault ? 'Gib deine Passphrase ein.' : 'Willkommen! Lege eine Passphrase fest. Sie verschlüsselt deinen API-Schlüssel und deine Galerie.';
+  $('#pw2Box').classList.toggle('hidden', hasVault);
+  $('#pw1').autocomplete = hasVault ? 'current-password' : 'new-password';
+  $('#lockBtn').textContent = hasVault ? 'Entsperren' : 'Einrichten';
+  $('#pw1').value = ''; $('#pw2').value = ''; $('#lockErr').textContent = '';
+  setTimeout(() => $('#pw1').focus(), 50);
+}
+// Fehlversuche: wachsende Wartezeit, auch über Neustarts hinweg
+function failInfo() { try { return JSON.parse(localStorage.getItem('och-muse-fail')) || { n: 0, until: 0 }; } catch { return { n: 0, until: 0 }; } }
+function setFail(f) { try { localStorage.setItem('och-muse-fail', JSON.stringify(f)); } catch { } }
+$('#lockForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const p1 = $('#pw1').value, err = $('#lockErr'); err.textContent = '';
+  const f = failInfo();
+  if (hasVault && Date.now() < f.until) { err.textContent = `Bitte warte noch ${Math.ceil((f.until - Date.now()) / 1000)} Sekunden.`; return; }
+  $('#lockBtn').disabled = true;
+  try {
+    if (!hasVault) {
+      if (p1.length < 12) throw new Error('Mindestens 12 Zeichen.');
+      if (p1 !== $('#pw2').value) throw new Error('Die beiden Eingaben stimmen nicht überein.');
+      KEY = await createVault(p1);
+      await saveSettings();
+    } else {
+      try { KEY = await openVault(p1); } catch {
+        f.n++; f.until = f.n >= 3 ? Date.now() + Math.min(300, 2 ** (f.n - 2) * 5) * 1000 : 0; setFail(f);
+        throw new Error('Passphrase falsch.');
+      }
+      setFail({ n: 0, until: 0 });
+      await loadSettings();
+    }
+    $('#pw1').value = ''; $('#pw2').value = '';
+    enterApp();
+  } catch (x) { err.textContent = x.message; }
+  finally { $('#lockBtn').disabled = false; }
+});
+let lastAct = Date.now(), hiddenAt = 0;
+['pointerdown', 'keydown'].forEach(ev => addEventListener(ev, () => lastAct = Date.now(), { passive: true }));
+function lock() { KEY = null; SET.key = ''; srcBlob = null; resultBlob = null; showLock(); }
+setInterval(() => { if (KEY && !busy && Date.now() - lastAct > SET.autolock * 60000) lock(); }, 15000);
+document.addEventListener('visibilitychange', () => { if (document.hidden) hiddenAt = Date.now(); else if (KEY && !busy && Date.now() - hiddenAt > SET.autolock * 60000) lock(); });
+$('#btnLock').onclick = lock;
+
+/* ---------- Tabs ---------- */
+function tab(name) {
+  document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name));
+  $('#tCreate').classList.toggle('hidden', name !== 'create');
+  $('#tGallery').classList.toggle('hidden', name !== 'gallery');
+  $('#tSettings').classList.toggle('hidden', name !== 'settings');
+  if (name === 'gallery') renderGallery();
+  if (name === 'settings') fillSettings();
+}
+document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => tab(b.dataset.tab));
+function enterApp() { $('#vLock').classList.add('hidden'); $('#vApp').classList.remove('hidden'); lastAct = Date.now(); $('#needKey').hidden = !!SET.key; tab('create'); updateGo(); }
+
+/* ---------- Zufällige Muse ---------- */
+const SCENES = {
+  auto: { label: 'Automatisch', en: 'Decide from the photo what the setting is and choose a fitting, natural activity.' },
+  landscape: { label: 'Landschaft', en: 'The photo is a landscape.' },
+  object: { label: 'Objekt', en: 'The photo shows an object; the woman should interact with or present it naturally, without hiding it.' },
+  vehicle: { label: 'Fahrzeug', en: 'The photo shows a vehicle; the woman should stand, lean or sit next to it naturally, without covering the vehicle.' },
+  room: { label: 'Raum', en: 'The photo shows a room; the woman should be placed naturally inside the room with correct floor contact.' },
+};
+const POOL = {
+  age: [['Mitte 20', 'in her mid twenties'], ['Ende 20', 'in her late twenties'], ['Anfang 30', 'in her early thirties'], ['Mitte 30', 'in her mid thirties'], ['Ende 30', 'in her late thirties'], ['Anfang 40', 'in her early forties'], ['Mitte 40', 'in her mid forties']],
+  look: [['mitteleuropäisch', 'Central European'], ['skandinavisch', 'Scandinavian'], ['mediterran', 'Mediterranean'], ['osteuropäisch', 'Eastern European'], ['lateinamerikanisch', 'Latin American'], ['ostasiatisch', 'East Asian'], ['südasiatisch', 'South Asian'], ['nahöstlich', 'Middle Eastern'], ['afrikanisch', 'African'], ['afroamerikanisch', 'African American']],
+  hair: [['lange dunkelbraune Wellen', 'long dark brown wavy hair'], ['blonder Bob', 'a blonde bob'], ['roter Zopf', 'red hair in a loose braid'], ['schwarze, glatte lange Haare', 'long straight black hair'], ['hellbrauner Pferdeschwanz', 'light brown hair in a ponytail'], ['kurze dunkle Locken', 'short dark curls'], ['schulterlanges Kastanienbraun', 'shoulder-length chestnut hair'], ['hochgesteckter Dutt', 'hair in an elegant updo'], ['lange blonde Haare', 'long blonde hair'], ['grau-silberner Kurzhaarschnitt', 'a chic silver-grey pixie cut']],
+  style: [['elegant', 'elegant'], ['sportlich', 'sporty'], ['lässig', 'casual'], ['klassisch', 'classic'], ['Business', 'business'], ['Boho', 'bohemian']],
+  mood: [['lächelnd', 'with a warm natural smile'], ['nachdenklich', 'with a thoughtful expression'], ['fröhlich lachend', 'laughing joyfully'], ['entspannt', 'relaxed and calm'], ['selbstbewusst', 'confident'], ['verträumt', 'with a dreamy gaze into the distance']],
+};
+const OUTFIT = {
+  landscape: { elegant: 'a flowing midi summer dress', sporty: 'stylish hiking clothes', casual: 'jeans, a light knit sweater and sneakers', classic: 'a trench coat over a blouse and trousers', business: 'a tailored blazer and trousers', bohemian: 'a long patterned boho dress' },
+  object: { elegant: 'a chic knee-length dress', sporty: 'a sporty athleisure outfit', casual: 'a casual shirt and jeans', classic: 'a silk blouse and wide trousers', business: 'a smart business suit', bohemian: 'a relaxed linen outfit' },
+  vehicle: { elegant: 'an elegant cocktail-length dress and heels', sporty: 'a fitted leather jacket and jeans', casual: 'a denim jacket, t-shirt and jeans', classic: 'a camel coat and scarf', business: 'a sleek pantsuit', bohemian: 'a flowing maxi skirt and blouse' },
+  room: { elegant: 'an elegant evening dress', sporty: 'a cosy sporty loungewear set', casual: 'a soft oversized sweater and jeans', classic: 'a classic blouse and pencil skirt', business: 'a modern business outfit', bohemian: 'a bohemian kimono over a dress' },
+};
+const POSE = {
+  auto: ['in a natural, candid pose that fits the setting'],
+  landscape: ['walking along a path, looking back over her shoulder', 'sitting on a rock admiring the view', 'standing and looking into the distance, wind in her hair', 'leaning against a tree or railing'],
+  object: ['holding or presenting the object with one hand', 'standing beside the object, looking at it with interest', 'leaning slightly towards the object, touching it gently'],
+  vehicle: ['leaning casually against the vehicle', 'standing next to the open driver door', 'sitting on the edge of the vehicle', 'walking past the vehicle, looking at the camera'],
+  room: ['sitting relaxed on a chair or sofa', 'standing by the window', 'leaning in a doorway', 'walking through the room with a cup of coffee'],
+};
+const pick = a => a[crypto.getRandomValues(new Uint32Array(1))[0] % a.length];
+let scene = 'auto', muse = null;
+function rollMuse() {
+  const age = pick(POOL.age), look = pick(POOL.look), hair = pick(POOL.hair), style = pick(POOL.style), mood = pick(POOL.mood);
+  const sc = scene === 'auto' ? 'landscape' : scene;
+  muse = { age, look, hair, style, mood, outfit: OUTFIT[sc][style[1]], pose: pick(POSE[scene]) };
+  renderMuse();
+}
+function renderMuse() {
+  const dl = $('#museDl'); dl.textContent = '';
+  [['Alter', muse.age[0]], ['Typ', muse.look[0]], ['Haare', muse.hair[0]], ['Stil', muse.style[0]], ['Ausdruck', muse.mood[0]]].forEach(([k, v]) => {
+    const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; dl.append(dt, dd);
+  });
+}
+function buildPrompt() {
+  const extra = $('#extra').value.trim().slice(0, 300);
+  return [
+    'Edit this photograph: add exactly one fictional adult woman so that the image becomes more aesthetically pleasing, like a professional lifestyle photo.',
+    SCENES[scene].en,
+    `She is ${muse.age[1]}, of ${muse.look[1]} appearance, with ${muse.hair[1]}, ${muse.mood[1]}. She is attractive in a natural, tasteful way and wears ${muse.outfit} in a ${muse.style[1]} style. Pose: ${muse.pose}.`,
+    extra ? `Additional wish of the photographer: ${extra}` : '',
+    'Requirements: keep the original photo (composition, background, objects, colours, perspective) unchanged except for adding her. Match lighting direction, colour temperature, grain, depth of field and shadows exactly so she looks photographed in the same moment. Use realistic scale and perspective. Fully clothed, non-sexual, respectful. She must be a fictional person and must not resemble any real or famous person. Do not add text, logos or watermarks. Keep the original aspect ratio.',
+  ].filter(Boolean).join('\n');
+}
+Object.entries(SCENES).forEach(([k, v]) => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = v.label; b.dataset.k = k;
+  b.setAttribute('aria-pressed', k === scene);
+  b.onclick = () => { scene = k; document.querySelectorAll('#scenes .chip').forEach(c => c.setAttribute('aria-pressed', c.dataset.k === k)); rollMuse(); };
+  $('#scenes').append(b);
+});
+$('#btnDice').onclick = rollMuse;
+rollMuse();
+
+/* ---------- Foto laden & verkleinern ---------- */
+let srcBlob = null, resultBlob = null, busy = false;
+async function toJpeg(blob, max = 1536, q = .9) {
+  const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+  const s = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height); bmp.close?.();
+  return new Promise(r => c.toBlob(r, 'image/jpeg', q));
+}
+async function onFile(f) {
+  if (!f) return;
+  $('#goErr').textContent = '';
+  try { srcBlob = await toJpeg(f); } catch { $('#goErr').textContent = 'Dieses Bild kann der Browser nicht lesen (z. B. HEIC). Bitte als JPEG aufnehmen.'; return; }
+  const img = $('#srcPrev'); URL.revokeObjectURL(img.src); img.src = URL.createObjectURL(srcBlob); img.classList.remove('hidden');
+  $('#resultCard').classList.add('hidden'); updateGo();
+}
+$('#file').onchange = e => { onFile(e.target.files[0]); e.target.value = ''; };
+$('#file2').onchange = e => { onFile(e.target.files[0]); e.target.value = ''; };
+$('#btnPick').onclick = () => $('#file2').click();
+function updateGo() { $('#btnGo').disabled = !srcBlob || !SET.key || busy; $('#btnDice').disabled = busy; $('#btnAgain').disabled = busy; $('#needKey').hidden = !!SET.key; }
+
+/* ---------- KI-Aufruf ---------- */
+async function callGemini(jpeg, prompt) {
+  const data = b64(await jpeg.arrayBuffer());
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(SET.model)}:generateContent`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': SET.key },
+    body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }, { inline_data: { mime_type: 'image/jpeg', data } }] }], generationConfig: { responseModalities: ['IMAGE', 'TEXT'] } }),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(apiErr(r.status, j?.error?.message));
+  const parts = j?.candidates?.[0]?.content?.parts || [];
+  const img = parts.find(p => p.inlineData || p.inline_data);
+  if (!img) {
+    const why = j?.candidates?.[0]?.finishReason || j?.promptFeedback?.blockReason;
+    throw new Error('Die KI hat kein Bild geliefert' + (why ? ` (${why})` : '') + '. Versuch es mit einer neuen Muse oder einem anderen Foto.');
+  }
+  const d = img.inlineData || img.inline_data;
+  return new Blob([unb64(d.data)], { type: d.mimeType || d.mime_type || 'image/png' });
+}
+async function callOpenAI(jpeg, prompt) {
+  const fd = new FormData();
+  fd.append('model', SET.model); fd.append('prompt', prompt); fd.append('image', jpeg, 'photo.jpg'); fd.append('size', 'auto'); fd.append('quality', 'high');
+  const r = await fetch('https://api.openai.com/v1/images/edits', { method: 'POST', headers: { Authorization: 'Bearer ' + SET.key }, body: fd });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(apiErr(r.status, j?.error?.message));
+  const d = j?.data?.[0]?.b64_json; if (!d) throw new Error('Die KI hat kein Bild geliefert.');
+  return new Blob([unb64(d)], { type: 'image/png' });
+}
+function apiErr(status, msg) {
+  if (status === 401 || status === 403) return 'API-Schlüssel ungültig oder ohne Berechtigung. Bitte in den Einstellungen prüfen.';
+  if (status === 429) return 'Kontingent erschöpft oder zu viele Anfragen. Bitte später erneut versuchen oder Abrechnung beim Anbieter prüfen.';
+  if (status === 404) return 'Modell nicht gefunden. Bitte den Modellnamen in den Einstellungen prüfen.';
+  return `Fehler vom KI-Dienst (${status})` + (msg ? ': ' + String(msg).slice(0, 200) : '');
+}
+async function addMark(blob) {
+  const bmp = await createImageBitmap(blob);
+  const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+  const g = c.getContext('2d'); g.drawImage(bmp, 0, 0);
+  if (SET.mark) {
+    const s = Math.max(14, Math.round(c.width / 45)); g.font = `600 ${s}px sans-serif`;
+    const t = 'KI', w = g.measureText(t).width, p = s * .45;
+    g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(c.width - w - p * 3, c.height - s - p * 3, w + p * 2, s + p * 2);
+    g.fillStyle = 'rgba(255,255,255,.9)'; g.textBaseline = 'top'; g.fillText(t, c.width - w - p * 2, c.height - s - p * 2);
+  }
+  return new Promise(r => c.toBlob(r, 'image/jpeg', .92));
+}
+async function generate() {
+  if (!srcBlob || !SET.key || busy) return;
+  busy = true; updateGo(); $('#goErr').textContent = ''; $('#busy').classList.remove('hidden'); $('#resultCard').classList.add('hidden');
+  try {
+    const prompt = buildPrompt(), meta = { created: Date.now(), scene: SCENES[scene].label, muse: [muse.age[0], muse.look[0], muse.hair[0], muse.style[0]].join(' · '), provider: SET.provider };
+    const raw = await (SET.provider === 'openai' ? callOpenAI : callGemini)(srcBlob, prompt);
+    resultBlob = await addMark(raw);
+    showCompare(srcBlob, resultBlob);
+    await saveToGallery(resultBlob, SET.keepOrig ? srcBlob : null, meta);
+  } catch (x) {
+    $('#goErr').textContent = x instanceof TypeError ? 'Keine Verbindung zum KI-Dienst. Bitte Internet prüfen.' : x.message;
+  } finally { busy = false; $('#busy').classList.add('hidden'); updateGo(); }
+}
+$('#btnGo').onclick = generate;
+$('#btnAgain').onclick = () => { rollMuse(); generate(); };
+
+/* ---------- Vorher/Nachher ---------- */
+function showCompare(before, after) {
+  const a = $('#cmpAfter'), b = $('#cmpBefore');
+  URL.revokeObjectURL(a.src); URL.revokeObjectURL(b.src);
+  a.src = URL.createObjectURL(after); b.src = URL.createObjectURL(before);
+  a.onload = () => { b.style.width = a.clientWidth + 'px'; b.style.height = a.clientHeight + 'px'; setSplit(.5); };
+  $('#resultCard').classList.remove('hidden');
+  $('#resultCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function setSplit(f) { f = Math.max(0, Math.min(1, f)); $('#cmpBeforeWrap').style.width = f * 100 + '%'; $('#cmpBar').style.left = f * 100 + '%'; }
+(() => {
+  const el = $('#cmp'); let down = false;
+  const mv = e => { const r = el.getBoundingClientRect(); setSplit((e.clientX - r.left) / r.width); };
+  el.addEventListener('pointerdown', e => { down = true; mv(e); });
+  el.addEventListener('pointermove', e => { if (down) mv(e); });
+  addEventListener('pointerup', () => down = false);
+  addEventListener('resize', () => { const a = $('#cmpAfter'), b = $('#cmpBefore'); b.style.width = a.clientWidth + 'px'; b.style.height = a.clientHeight + 'px'; });
+})();
+
+/* ---------- Teilen / Sichern ---------- */
+async function shareBlob(blob, name) {
+  const file = new File([blob], name, { type: 'image/jpeg' });
+  if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file] }); return; } catch (e) { if (e.name === 'AbortError') return; } }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+const fname = () => 'bildmuse-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.jpg';
+$('#btnShare').onclick = () => resultBlob && shareBlob(resultBlob, fname());
+
+/* ---------- Galerie (verschlüsselt) ---------- */
+async function thumb(blob) { return toJpeg(blob, 320, .8); }
+async function saveToGallery(img, orig, meta) {
+  const id = Date.now() + '-' + crypto.getRandomValues(new Uint32Array(1))[0].toString(36);
+  const rec = { id, meta: await encJson(meta), img: await enc(await img.arrayBuffer()), th: await enc(await (await thumb(img)).arrayBuffer()) };
+  if (orig) rec.orig = await enc(await orig.arrayBuffer());
+  await tx('img', 'readwrite', s => s.put(rec));
+}
+const thumbUrls = [];
+async function renderGallery() {
+  thumbUrls.splice(0).forEach(URL.revokeObjectURL);
+  const all = (await tx('img', 'readonly', s => s.getAll())) || [];
+  all.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
+  const g = $('#gal'); g.textContent = ''; $('#galEmpty').hidden = all.length > 0; $('#galDetail').classList.add('hidden');
+  for (const rec of all) {
+    const u = URL.createObjectURL(new Blob([await dec(rec.th)], { type: 'image/jpeg' })); thumbUrls.push(u);
+    const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', 'Bild öffnen');
+    const i = document.createElement('img'); i.src = u; i.alt = ''; b.append(i); b.onclick = () => openItem(rec.id); g.append(b);
+  }
+}
+let galBlob = null, galId = null;
+async function openItem(id) {
+  const rec = await tx('img', 'readonly', s => s.get(id)); if (!rec) return;
+  const m = await decJson(rec.meta);
+  galBlob = new Blob([await dec(rec.img)], { type: 'image/jpeg' }); galId = id;
+  const im = $('#galImg'); URL.revokeObjectURL(im.src); im.src = URL.createObjectURL(galBlob);
+  $('#galMeta').textContent = `${new Date(m.created).toLocaleString('de-DE')} · ${m.scene} · ${m.muse}`;
+  $('#galDetail').classList.remove('hidden'); $('#galDetail').scrollIntoView({ behavior: 'smooth' });
+}
+$('#galShare').onclick = () => galBlob && shareBlob(galBlob, fname());
+$('#galDel').onclick = async () => { if (!galId || !confirm('Bild endgültig löschen?')) return; await tx('img', 'readwrite', s => s.delete(galId)); galBlob = galId = null; renderGallery(); };
+
+/* ---------- Einstellungen ---------- */
+function keyHint() {
+  $('#keyHint').textContent = $('#sProv').value === 'gemini'
+    ? 'Schlüssel erstellen unter aistudio.google.com → „Get API key“. Für Bildbearbeitung ist meist ein Abrechnungskonto nötig.'
+    : 'Schlüssel erstellen unter platform.openai.com → API keys. Für Bildmodelle ist ggf. eine Organisations-Verifizierung nötig.';
+}
+function fillSettings() {
+  $('#sProv').value = SET.provider; $('#sKey').value = SET.key; $('#sModel').value = SET.model;
+  $('#sMark').checked = SET.mark; $('#sKeepOrig').checked = SET.keepOrig; $('#sLock').value = String(SET.autolock);
+  $('#setErr').textContent = ''; $('#ver').textContent = 'Version ' + VERSION; keyHint();
+}
+$('#sProv').onchange = () => { $('#sModel').value = MODELS[$('#sProv').value]; keyHint(); };
+$('#btnSave').onclick = async () => {
+  const key = $('#sKey').value.trim(), model = $('#sModel').value.trim();
+  if (!/^[\w.\-]+$/.test(model)) { $('#setErr').textContent = 'Ungültiger Modellname.'; return; }
+  SET = { ...SET, provider: $('#sProv').value, key, model, mark: $('#sMark').checked, keepOrig: $('#sKeepOrig').checked, autolock: +$('#sLock').value };
+  await saveSettings(); $('#setErr').textContent = ''; updateGo(); $('#btnSave').textContent = 'Gespeichert ✓';
+  setTimeout(() => $('#btnSave').textContent = 'Speichern', 1500);
+};
+$('#btnChangePw').onclick = () => $('#chgBox').classList.toggle('hidden');
+$('#btnChgDo').onclick = async () => {
+  const e = $('#chgErr'); e.textContent = '';
+  const [o, n1, n2] = ['#c0', '#c1', '#c2'].map(s => $(s).value);
+  if (n1.length < 12) { e.textContent = 'Mindestens 12 Zeichen.'; return; }
+  if (n1 !== n2) { e.textContent = 'Die neuen Eingaben stimmen nicht überein.'; return; }
+  try {
+    const dek = await openVault(o, true);
+    const v = await metaGet('vault'), salt = crypto.getRandomValues(new Uint8Array(16));
+    const wrapped = await crypto.subtle.wrapKey('raw', dek, await kek(n1, salt, PBKDF2_ITER), 'AES-KW');
+    await metaPut('vault', { ...v, salt, iter: PBKDF2_ITER, wrapped, changed: Date.now() });
+    ['#c0', '#c1', '#c2'].forEach(s => $(s).value = ''); $('#chgBox').classList.add('hidden'); alert('Passphrase geändert.');
+  } catch { e.textContent = 'Bisherige Passphrase falsch.'; }
+};
+$('#btnWipe').onclick = async () => {
+  if (!confirm('Wirklich alles löschen? Galerie, Einstellungen und API-Schlüssel sind danach weg.')) return;
+  db.close(); await new Promise(r => { const q = indexedDB.deleteDatabase(DB_NAME); q.onsuccess = q.onerror = q.onblocked = r; });
+  try { localStorage.removeItem('och-muse-fail'); } catch { }
+  location.reload();
+};
+
+/* ---------- Start ---------- */
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname)))
+  navigator.serviceWorker.register('sw.js').catch(e => console.warn('Service Worker', e));
+(async () => {
+  if (!window.crypto?.subtle || !window.indexedDB) { document.body.innerHTML = '<div class="wrap"><div class="card">Dieser Browser unterstützt keine sichere Verschlüsselung. Bitte über HTTPS in einem aktuellen Browser öffnen.</div></div>'; return; }
+  db = await openDb();
+  showLock();
+})();
+</script>
+</body>
+</html>
