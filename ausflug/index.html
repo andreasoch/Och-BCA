@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: https://upload.wikimedia.org; connect-src 'self' https://overpass-api.de https://overpass.private.coffee https://maps.mail.ru https://www.wikidata.org https://de.wikipedia.org https://nominatim.openstreetmap.org; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="theme-color" content="#F4F1EA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#11181F" media="(prefers-color-scheme: dark)">
+<title>Ausflugsziele</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Ausflug">
+<style>
+:root{
+  --bg:#F4F1EA; --card:#FFFFFF; --ink:#1D2329; --muted:#66707A; --line:#E3DED3;
+  --accent:#1F7A5C; --accent-ink:#FFFFFF; --soft:#E6F1EC; --warn:#A6422B; --chip:#ECE7DC;
+  --shadow:0 1px 2px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#11181F; --card:#1A232C; --ink:#E9EDF0; --muted:#97A3AE; --line:#2A3540;
+    --accent:#3FB68B; --accent-ink:#0B1410; --soft:#1C3229; --warn:#E5876F; --chip:#243039;
+    --shadow:0 1px 2px rgba(0,0,0,.4);
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+button,input{font:inherit;color:inherit}
+a{color:var(--accent)}
+.wrap{max-width:720px;margin:0 auto;padding:12px 16px 40px}
+header h1{font-size:26px;margin:6px 0 10px;letter-spacing:-.02em}
+.panel{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
+.locrow{display:flex;align-items:center;gap:10px}
+.locrow .pin{font-size:22px}
+.locrow .txt{flex:1;min-width:0}
+.locrow .lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.locrow .name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:12px;padding:10px 14px;background:var(--chip);color:var(--ink);text-decoration:none;cursor:pointer;min-height:44px;font-weight:500}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.sm{min-height:36px;padding:7px 11px;font-size:14px;border-radius:10px}
+.btn:active{transform:scale(.97)}
+.btn[disabled]{opacity:.5}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--chip);border-radius:12px;padding:3px;gap:3px;margin-top:12px}
+.seg button{border:0;background:transparent;border-radius:9px;min-height:40px;font-weight:600;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--card);box-shadow:var(--shadow);color:var(--accent)}
+.radius{margin-top:14px}
+.radius .top{display:flex;justify-content:space-between;font-size:14px;color:var(--muted)}
+.radius .top b{color:var(--ink);font-size:16px}
+input[type=range]{width:100%;accent-color:var(--accent);height:32px;margin:4px 0 0}
+.ticks{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);padding:0 4px}
+.tools{display:flex;gap:8px;align-items:center;margin:4px 0 10px;flex-wrap:wrap}
+.tools .seg{margin:0;flex:0 0 auto;grid-template-columns:auto auto}
+.tools .seg button{padding:0 14px;min-height:34px;font-size:14px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none;margin:0 -16px;padding-left:16px;padding-right:16px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:14px;cursor:pointer;white-space:nowrap}
+.chip[aria-pressed="false"]{opacity:.45;text-decoration:line-through}
+.status{font-size:14px;color:var(--muted);margin:6px 2px 10px;min-height:20px}
+.status.err{color:var(--warn)}
+.list{display:flex;flex-direction:column;gap:10px}
+.card{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:12px;display:grid;grid-template-columns:72px 1fr;gap:12px}
+.thumb{width:72px;height:72px;border-radius:12px;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:34px;overflow:hidden;position:relative}
+.thumb img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.rank{position:absolute;left:4px;top:4px;background:var(--accent);color:var(--accent-ink);font-size:11px;font-weight:700;border-radius:6px;padding:1px 5px;z-index:1}
+.card h3{margin:0;font-size:17px;line-height:1.25}
+.card h3 a{color:inherit;text-decoration:none}
+.meta{font-size:13px;color:var(--muted);margin-top:2px}
+.desc{font-size:14px;margin-top:4px}
+.hours{font-size:12px;color:var(--muted);margin-top:4px;overflow-wrap:anywhere}
+.links{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.empty{text-align:center;color:var(--muted);padding:28px 12px}
+.more{display:flex;justify-content:center;margin-top:12px}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:flex-end;justify-content:center;z-index:10}
+.sheet.open{display:flex}
+.sheet .box{background:var(--bg);width:100%;max-width:720px;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));max-height:85vh;overflow:auto}
+.sheet h2{margin:0 0 10px;font-size:20px}
+.searchrow{display:flex;gap:8px}
+.searchrow input{flex:1;min-width:0;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 12px;min-height:44px}
+.results{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.results button{text-align:left;border:0;background:var(--card);border-radius:12px;padding:10px 12px;cursor:pointer}
+.results small{display:block;color:var(--muted)}
+.welcome{text-align:center;padding:22px 14px}
+.welcome .big{font-size:44px}
+.welcome .btns{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+details.info{margin-top:22px;font-size:14px;color:var(--muted)}
+details.info summary{cursor:pointer;color:var(--ink);font-weight:600}
+details.info table{border-collapse:collapse;width:100%;margin:8px 0}
+details.info td{border-top:1px solid var(--line);padding:6px 4px;vertical-align:top}
+footer{font-size:12px;color:var(--muted);margin-top:18px;text-align:center}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 0.8s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.spin{animation:none}.btn:active{transform:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>Ausflugsziele</h1></header>
+
+  <section class="panel" aria-label="Einstellungen">
+    <div class="locrow">
+      <span class="pin" aria-hidden="true">📍</span>
+      <div class="txt"><div class="lbl" id="locLbl">Standort</div><div class="name" id="locName">noch nicht gewählt</div></div>
+      <button class="btn sm" id="btnGps" aria-label="Aktuellen Standort verwenden">⌖ GPS</button>
+      <button class="btn sm" id="btnEdit">Ort ändern</button>
+    </div>
+    <div class="seg" role="group" aria-label="Zielgruppe">
+      <button id="modeA" aria-pressed="true">🧑 Erwachsene</button>
+      <button id="modeK" aria-pressed="false">🧒 Kinder</button>
+    </div>
+    <div class="radius">
+      <div class="top"><label for="rad">Umkreis</label><b id="radVal">20 km</b></div>
+      <input type="range" id="rad" min="0" max="7" step="1" value="3" aria-describedby="radVal">
+      <div class="ticks" aria-hidden="true"><span>5</span><span>10</span><span>15</span><span>20</span><span>30</span><span>50</span><span>75</span><span>100 km</span></div>
+    </div>
+  </section>
+
+  <div class="tools">
+    <div class="seg" role="group" aria-label="Sortierung">
+      <button id="sortTop" aria-pressed="true">★ Top</button>
+      <button id="sortNear" aria-pressed="false">Nächste zuerst</button>
+    </div>
+    <button class="btn sm" id="btnReload" aria-label="Neu laden">↻ Aktualisieren</button>
+  </div>
+  <div class="chips" id="chips" role="group" aria-label="Kategorien"></div>
+  <div class="status" id="status" role="status" aria-live="polite"></div>
+  <div class="list" id="list"></div>
+  <div class="more" id="more"></div>
+
+  <details class="info">
+    <summary>Info, Datenquellen &amp; Datenschutz</summary>
+    <p>Die App sucht im gewählten Umkreis nach bekannten Ausflugszielen aus OpenStreetMap. „Herausragend“ heißt hier: Ziele, zu denen es Einträge in Wikidata/Wikipedia gibt, werden nach ihrer Bekanntheit (Zahl der Wikipedia-Sprachversionen), ihrer Art und der Entfernung gewichtet. Die Reihenfolge ist eine automatische Schätzung, keine redaktionelle Bewertung.</p>
+    <table>
+      <tr><td><b>Ziele</b></td><td>OpenStreetMap über die Overpass-API (overpass-api.de, Ausweichserver: overpass.private.coffee, maps.mail.ru). Übertragen werden Koordinaten und Umkreis.</td></tr>
+      <tr><td><b>Bekanntheit, Beschreibung</b></td><td>Wikidata (wikidata.org). Übertragen werden nur die Kennungen der gefundenen Ziele.</td></tr>
+      <tr><td><b>Bilder</b></td><td>Deutsche Wikipedia / Wikimedia Commons.</td></tr>
+      <tr><td><b>Ortssuche, Ortsname</b></td><td>Nominatim (nominatim.openstreetmap.org). Übertragen werden Suchbegriff bzw. Koordinaten.</td></tr>
+      <tr><td><b>Route</b></td><td>Apple Karten bzw. Google Maps, erst wenn du den Knopf antippst.</td></tr>
+    </table>
+    <p>Technisch bedingt sieht jeder angefragte Dienst deine IP-Adresse. Es gibt kein Konto, keinen eigenen Server und keine Tracker. Einstellungen und die zuletzt geladenen Ergebnisse liegen nur im Speicher dieses Browsers.</p>
+    <p>Öffnungszeiten und Preise bitte vor dem Besuch auf der Website prüfen. Die Daten sind von Freiwilligen gepflegt und können lückenhaft sein.</p>
+    <p><button class="btn sm" id="btnReset">Alle gespeicherten Daten löschen</button></p>
+    <p>Version 1.0</p>
+  </details>
+  <footer>Daten © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap-Mitwirkende</a> (ODbL) · Wikidata (CC0) · Wikipedia (CC BY-SA)</footer>
+</div>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="box">
+    <h2 id="sheetTitle">Ort wählen</h2>
+    <div class="searchrow">
+      <input id="q" type="search" placeholder="z. B. Bad Homburg, Lemmer, 50.11, 8.68" autocomplete="off" enterkeyhint="search" aria-label="Ort suchen">
+      <button class="btn primary" id="btnSearch">Suchen</button>
+    </div>
+    <div class="results" id="results"></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn" id="btnSheetGps" style="flex:1">⌖ Aktueller Standort</button>
+      <button class="btn" id="btnClose" style="flex:1">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ---------- Hilfsfunktionen ---------- */
+const $ = s => document.querySelector(s);
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') e.className = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of kids.flat()) if (c != null && c !== false) e.append(c instanceof Node ? c : document.createTextNode(String(c)));
+  return e;
+}
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* Speicher voll oder gesperrt */ } },
+  clear() { try { Object.keys(localStorage).filter(k => k.startsWith('ausflug.')).forEach(k => localStorage.removeItem(k)); } catch {} }
+};
+function distM(a, b) {
+  const R = 6371000, r = x => x * Math.PI / 180;
+  const dLa = r(b.lat - a.lat), dLo = r(b.lon - a.lon);
+  const s = Math.sin(dLa / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLo / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+const fmtKm = m => m < 1000 ? Math.round(m / 10) * 10 + ' m' : (m / 1000).toLocaleString('de-DE', { maximumFractionDigits: m < 10000 ? 1 : 0 }) + ' km';
+async function fetchJson(url, opts = {}, ms = 20000) {
+  const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), ms);
+  try {
+    const r = await fetch(url, { ...opts, signal: ctl.signal });
+    if (!r.ok) { const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
+    return await r.json();
+  } finally { clearTimeout(to); }
+}
+function safeUrl(u) {
+  if (!u) return null;
+  u = String(u).split(';')[0].trim();
+  if (/^https?:\/\//i.test(u)) return u;
+  if (/^[\w-]+(\.[\w-]+)+(\/.*)?$/.test(u)) return 'https://' + u;
+  return null;
+}
+function telUrl(p) {
+  if (!p) return null;
+  const n = String(p).split(';')[0].replace(/[^\d+]/g, '');
+  return n.length >= 5 ? 'tel:' + n : null;
+}
+
+/* ---------- Kategorien ---------- */
+// aud: a = Erwachsene, k = Kinder. w = Gewicht Erwachsene, wk = Gewicht Kinder.
+const KIDSMUS = /^(children|technology|science|natural_history|railway|transport|nature|toy)$/;
+const CATS = [
+  { id: 'theme', label: 'Freizeitparks', ico: '🎢', aud: 'ak', w: 18, wk: 34, q: ['nwr["tourism"="theme_park"]["name"]'], m: t => t.tourism === 'theme_park' },
+  { id: 'zoo', label: 'Zoos & Tierparks', ico: '🦁', aud: 'ak', w: 16, wk: 30, q: ['nwr["tourism"="zoo"]["name"]'], m: t => t.tourism === 'zoo' },
+  { id: 'aqua', label: 'Aquarien', ico: '🐠', aud: 'ak', w: 14, wk: 24, q: ['nwr["tourism"="aquarium"]["name"]'], m: t => t.tourism === 'aquarium' },
+  { id: 'water', label: 'Erlebnisbäder', ico: '🌊', aud: 'k', w: 0, wk: 22, q: ['nwr["leisure"="water_park"]["name"]'], m: t => t.leisure === 'water_park' },
+  { id: 'action', label: 'Rodeln & Klettern', ico: '🧗', aud: 'k', w: 0, wk: 20, q: ['nwr["attraction"="summer_toboggan"]["name"]', 'nwr["sport"="climbing_adventure"]["name"]'], m: t => t.attraction === 'summer_toboggan' || t.sport === 'climbing_adventure' },
+  { id: 'kidsmus', label: 'Mitmach- & Technikmuseen', ico: '🚂', aud: 'k', w: 0, wk: 18, q: ['nwr["tourism"="museum"]["museum"~"^(children|technology|science|natural_history|railway|transport|nature|toy)$"]["name"]'], m: t => t.tourism === 'museum' && KIDSMUS.test(t.museum || '') },
+  { id: 'planet', label: 'Planetarien & Sternwarten', ico: '🪐', aud: 'ak', w: 10, wk: 14, q: ['nwr["amenity"="planetarium"]["name"]', 'nwr["man_made"="observatory"]["wikidata"]'], m: t => t.amenity === 'planetarium' || t.man_made === 'observatory' },
+  { id: 'museum', label: 'Museen', ico: '🏛️', aud: 'a', w: 12, wk: 0, q: ['nwr["tourism"="museum"]["wikidata"]'], m: t => t.tourism === 'museum' },
+  { id: 'castle', label: 'Burgen & Schlösser', ico: '🏰', aud: 'ak', w: 16, wk: 14, q: ['nwr["historic"~"^(castle|palace|fort)$"]["wikidata"]'], m: t => /^(castle|palace|fort)$/.test(t.historic || '') },
+  { id: 'sacred', label: 'Klöster & Dome', ico: '⛪', aud: 'a', w: 10, wk: 0, q: ['nwr["historic"="monastery"]["wikidata"]', 'nwr["amenity"="monastery"]["wikidata"]', 'nwr["building"~"^(cathedral|basilica)$"]["wikidata"]'], m: t => t.historic === 'monastery' || t.amenity === 'monastery' || /^(cathedral|basilica)$/.test(t.building || '') },
+  { id: 'ruins', label: 'Ruinen & Ausgrabungen', ico: '🏺', aud: 'a', w: 7, wk: 0, q: ['nwr["historic"~"^(ruins|archaeological_site)$"]["wikidata"]'], m: t => /^(ruins|archaeological_site)$/.test(t.historic || '') },
+  { id: 'nature', label: 'Natur & Gärten', ico: '🌲', aud: 'ak', w: 10, wk: 10, q: ['nwr["boundary"="national_park"]["name"]', 'nwr["natural"~"^(waterfall|cave_entrance|gorge|arch)$"]["wikidata"]', 'nwr["leisure"="garden"]["garden:type"="botanical"]["name"]', 'nwr["leisure"="park"]["wikidata"]'], m: t => t.boundary === 'national_park' || /^(waterfall|cave_entrance|gorge|arch)$/.test(t.natural || '') || t.leisure === 'garden' || t.leisure === 'park' },
+  { id: 'view', label: 'Aussicht & Türme', ico: '⛰️', aud: 'ak', w: 9, wk: 8, q: ['nwr["tourism"="viewpoint"]["wikidata"]', 'nwr["tower:type"="observation"]["wikidata"]'], m: t => t.tourism === 'viewpoint' || t['tower:type'] === 'observation' },
+  { id: 'attr', label: 'Sehenswürdigkeiten', ico: '⭐', aud: 'ak', w: 9, wk: 6, q: ['nwr["tourism"="attraction"]["wikidata"]'], m: t => t.tourism === 'attraction' },
+  { id: 'monument', label: 'Denkmäler', ico: '🗿', aud: 'a', w: 5, wk: 0, q: ['nwr["historic"="monument"]["wikidata"]'], m: t => t.historic === 'monument' },
+  { id: 'minigolf', label: 'Minigolf', ico: '⛳', aud: 'k', w: 0, wk: 5, q: ['nwr["leisure"="miniature_golf"]["name"]'], m: t => t.leisure === 'miniature_golf' }
+];
+const CAT = Object.fromEntries(CATS.map(c => [c.id, c]));
+const RADII = [5, 10, 15, 20, 30, 50, 75, 100];
+const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
+const KEEP = ['website', 'contact:website', 'url', 'phone', 'contact:phone', 'opening_hours', 'wikipedia', 'wikidata', 'fee', 'addr:city', 'addr:place'];
+const CACHE_MS = 7 * 24 * 3600 * 1000;
+const PAGE = 30;
+
+/* ---------- Zustand ---------- */
+const S = Object.assign({ mode: 'a', ri: 3, sort: 'top', loc: null, off: [] }, store.get('ausflug.settings') || {});
+if (!(S.ri >= 0 && S.ri < RADII.length)) S.ri = 3;
+if (!Array.isArray(S.off)) S.off = [];
+let DATA = store.get('ausflug.data');   // {lat, lon, r, ts, items}
+let shown = PAGE, seq = 0, loading = false;
+const saveSettings = () => store.set('ausflug.settings', S);
+
+/* ---------- Standort ---------- */
+function setLoc(loc) {
+  S.loc = loc; saveSettings(); shown = PAGE; renderHeader(); search(false);
+}
+function useGps() {
+  if (!('geolocation' in navigator)) { status('Dieses Gerät bietet keine Ortung an. Bitte Ort eingeben.', true); openSheet(); return; }
+  status(h('span', null, h('span', { class: 'spin' }), 'Standort wird ermittelt …'));
+  navigator.geolocation.getCurrentPosition(async p => {
+    const loc = { lat: +p.coords.latitude.toFixed(5), lon: +p.coords.longitude.toFixed(5), name: 'Aktueller Standort', gps: true };
+    const keepName = S.loc && S.loc.gps && distM(S.loc, loc) < 1500 ? S.loc.name : null;
+    if (keepName) loc.name = keepName;
+    setLoc(loc);
+    if (!keepName) {
+      const n = await reverseName(loc);
+      if (n && S.loc === loc) { loc.name = n; saveSettings(); renderHeader(); }
+    }
+  }, err => {
+    const msg = err.code === 1
+      ? 'Ortung nicht erlaubt. iPhone: Einstellungen › Datenschutz & Sicherheit › Ortungsdienste › Safari-Websites (bzw. „Ausflug“) › „Beim Verwenden“. Oder Ort von Hand eingeben.'
+      : 'Standort konnte nicht ermittelt werden. Bitte erneut versuchen oder Ort eingeben. Falls das immer wieder passiert: iPhone-Einstellungen › Datenschutz & Sicherheit › Ortungsdienste prüfen.';
+    if (!S.loc) renderWelcome();
+    status(msg, true);
+  }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 });
+}
+async function reverseName(loc) {
+  try {
+    const j = await fetchJson('https://nominatim.openstreetmap.org/reverse?' + new URLSearchParams({ format: 'jsonv2', lat: loc.lat, lon: loc.lon, zoom: '12', 'accept-language': 'de' }), {}, 10000);
+    const a = j.address || {};
+    return a.city || a.town || a.village || a.municipality || a.suburb || a.county || (j.display_name || '').split(',')[0] || null;
+  } catch { return null; }
+}
+async function geoSearch() {
+  const term = $('#q').value.trim(); const box = $('#results');
+  if (!term) return;
+  // Koordinaten erlauben: „50.11, 8.68“ oder mit Dezimalkomma „50,11 8,68“ / „50,11; 8,68“
+  const de = term.match(/^\s*(-?\d{1,2},\d+)\s*[; ]\s*(-?\d{1,3},\d+)\s*$/);
+  const m = de ? [null, de[1].replace(',', '.'), de[2].replace(',', '.')] : term.match(/^\s*(-?\d{1,2}(?:\.\d+)?)\s*[,; ]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/);
+  if (m && Math.abs(+m[1]) <= 90 && Math.abs(+m[2]) <= 180) {
+    closeSheet(); setLoc({ lat: +m[1], lon: +m[2], name: (+m[1]).toFixed(4) + ', ' + (+m[2]).toFixed(4), gps: false }); return;
+  }
+  box.replaceChildren(h('div', { class: 'status' }, h('span', { class: 'spin' }), 'Suche …'));
+  try {
+    const res = await fetchJson('https://nominatim.openstreetmap.org/search?' + new URLSearchParams({ format: 'jsonv2', limit: '6', 'accept-language': 'de', addressdetails: '1', q: term }), {}, 12000);
+    if (!res.length) { box.replaceChildren(h('div', { class: 'status' }, 'Nichts gefunden. Anders schreiben oder Region ergänzen.')); return; }
+    box.replaceChildren(...res.map(r => {
+      const a = r.address || {};
+      const name = r.name || a.city || a.town || a.village || r.display_name.split(',')[0];
+      return h('button', { onclick: () => { closeSheet(); setLoc({ lat: +(+r.lat).toFixed(5), lon: +(+r.lon).toFixed(5), name, gps: false }); } },
+        name, h('small', null, r.display_name));
+    }));
+  } catch (e) {
+    box.replaceChildren(h('div', { class: 'status err' }, 'Ortssuche gerade nicht erreichbar. Bitte später erneut versuchen.'));
+  }
+}
+function openSheet() { $('#sheet').classList.add('open'); $('#results').replaceChildren(); setTimeout(() => $('#q').focus(), 50); }
+function closeSheet() { $('#sheet').classList.remove('open'); }
+
+/* ---------- Daten laden ---------- */
+function buildQuery(loc, rKm) {
+  const around = `(around:${Math.round(rKm * 1000)},${loc.lat},${loc.lon});`;
+  const parts = CATS.flatMap(c => c.q.map(s => s + around));
+  return `[out:json][timeout:90];(${parts.join('')});out center tags;`;
+}
+async function overpass(query) {
+  let last;
+  for (const ep of OVERPASS) {
+    try {
+      return await fetchJson(ep, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'data=' + encodeURIComponent(query) }, 100000);
+    } catch (e) { last = e; }
+  }
+  throw last || new Error('Overpass nicht erreichbar');
+}
+function classify(json) {
+  const out = [], seen = new Map();
+  for (const el of json.elements || []) {
+    const t = el.tags || {}; if (!t.name) continue;
+    if (t.access === 'private' || t.access === 'no') continue;
+    const lat = el.lat ?? el.center?.lat, lon = el.lon ?? el.center?.lon;
+    if (lat == null || lon == null) continue;
+    const ca = CATS.find(c => c.aud.includes('a') && c.m(t)), ck = CATS.find(c => c.aud.includes('k') && c.m(t));
+    const c = ca || ck; if (!c) continue;
+    const wd = /^Q\d+$/.test(t.wikidata || '') ? t.wikidata : null;
+    // Doppelte Einträge (z. B. Zoo als Fläche und als Punkt) über Wikidata-Kennung oder Name + Kategorie erkennen
+    const keys = [wd, c.id + '|' + t.name.toLowerCase()].filter(Boolean);
+    const tags = {}; for (const k of KEEP) if (t[k]) tags[k] = t[k];
+    const item = { id: el.type[0] + el.id, name: t.name, lat, lon, ca: ca ? ca.id : null, ck: ck ? ck.id : null, wd, t: tags };
+    const prev = keys.map(k => seen.get(k)).find(p => p && distM(p, item) < 3000);
+    if (prev) {
+      const area = el.type !== 'node' && prev.id[0] === 'n';
+      Object.assign(prev, area ? { lat, lon, id: item.id } : {}, { wd: prev.wd || wd, t: area ? { ...prev.t, ...item.t } : { ...item.t, ...prev.t } });
+      keys.forEach(k => seen.set(k, prev)); continue;
+    }
+    keys.forEach(k => seen.set(k, item)); out.push(item);
+  }
+  return out;
+}
+async function enrich(items, my) {
+  const byWd = new Map();
+  for (const i of items) if (i.wd && i.sl == null) { if (!byWd.has(i.wd)) byWd.set(i.wd, []); byWd.get(i.wd).push(i); }
+  const ids = [...byWd.keys()].sort((a, b) => baseOf(byWd.get(b)[0]) - baseOf(byWd.get(a)[0])).slice(0, 400);
+  const chunks = []; for (let i = 0; i < ids.length; i += 50) chunks.push(ids.slice(i, i + 50));
+  const run = async ch => {
+    try {
+      const j = await fetchJson('https://www.wikidata.org/w/api.php?' + new URLSearchParams({ action: 'wbgetentities', format: 'json', origin: '*', props: 'sitelinks|descriptions', languages: 'de|en', ids: ch.join('|') }), {}, 20000);
+      for (const [id, e] of Object.entries(j.entities || {})) {
+        const sl = e.sitelinks || {};
+        for (const it of byWd.get(id) || []) {
+          it.sl = Object.keys(sl).filter(k => /wiki$/.test(k) && k !== 'commonswiki' && k !== 'specieswiki').length;
+          it.desc = e.descriptions?.de?.value || e.descriptions?.en?.value || null;
+          it.dew = sl.dewiki?.title || null;
+          it.enw = sl.enwiki?.title || null;
+        }
+      }
+    } catch { /* ohne Bekanntheitswert weiter */ }
+  };
+  for (let i = 0; i < chunks.length; i += 3) {
+    await Promise.all(chunks.slice(i, i + 3).map(run));
+    if (my !== seq) return;
+  }
+}
+async function search(force) {
+  if (!S.loc) { renderList(); return; }
+  const r = RADII[S.ri];
+  if (!force && DATA && distM(DATA, S.loc) < 500 && DATA.r >= r && Date.now() - DATA.ts < CACHE_MS) { renderList(); return; }
+  const my = ++seq; loading = true;
+  const hint = r >= 50 ? ' Bei großem Umkreis kann das bis zu einer Minute dauern.' : '';
+  status(h('span', null, h('span', { class: 'spin' }), 'Suche Ausflugsziele im Umkreis von ' + r + ' km …' + hint));
+  if (!DATA || distM(DATA, S.loc) >= 500) $('#list').replaceChildren();
+  try {
+    const json = await overpass(buildQuery(S.loc, r));
+    if (my !== seq) return;
+    const items = classify(json);
+    DATA = { lat: S.loc.lat, lon: S.loc.lon, r, ts: Date.now(), items };
+    shown = PAGE; renderList(true);
+    await enrich(items, my);
+    if (my !== seq) return;
+    loading = false;
+    store.set('ausflug.data', DATA);
+    renderList();
+  } catch (e) {
+    if (my !== seq) return;
+    loading = false;
+    const old = DATA && distM(DATA, S.loc) < 500;
+    status(old ? 'Keine Verbindung zum Datendienst. Angezeigt werden die zuletzt geladenen Ergebnisse vom ' + new Date(DATA.ts).toLocaleDateString('de-DE') + '.'
+      : 'Die Ausflugsziele konnten nicht geladen werden (keine Verbindung oder Server ausgelastet). Bitte gleich noch einmal mit „Aktualisieren“ versuchen.', true);
+    if (old) renderList(false, true); else $('#list').replaceChildren();
+  }
+}
+
+/* ---------- Bewertung ---------- */
+const catOf = i => S.mode === 'k' ? i.ck : i.ca;
+function weight(i) { const c = CAT[catOf(i)]; return S.mode === 'k' ? c.wk : c.w; }
+function baseOf(i) { return Math.max(i.ca ? CAT[i.ca].w : 0, i.ck ? CAT[i.ck].wk : 0); }
+function score(i, rM) {
+  let s = weight(i) + (i.wd ? 6 : 0) + Math.min(i.sl || 0, 80) * 0.8 + (i.t.website || i.t['contact:website'] ? 2 : 0) + (i.t.opening_hours ? 1 : 0);
+  return s * (1 - 0.35 * Math.min(i.d / rM, 1));
+}
+
+/* ---------- Anzeige ---------- */
+function status(content, err) {
+  const el = $('#status'); el.className = 'status' + (err ? ' err' : '');
+  el.replaceChildren(content || '');
+}
+function renderHeader() {
+  $('#locLbl').textContent = S.loc ? (S.loc.gps ? 'Aktueller Standort' : 'Gewählter Ort') : 'Standort';
+  $('#locName').textContent = S.loc ? S.loc.name : 'noch nicht gewählt';
+  $('#modeA').setAttribute('aria-pressed', S.mode === 'a'); $('#modeK').setAttribute('aria-pressed', S.mode === 'k');
+  $('#sortTop').setAttribute('aria-pressed', S.sort === 'top'); $('#sortNear').setAttribute('aria-pressed', S.sort === 'near');
+  $('#rad').value = S.ri; $('#radVal').textContent = RADII[S.ri] + ' km';
+  $('#rad').setAttribute('aria-valuetext', RADII[S.ri] + ' Kilometer');
+}
+function visibleItems() {
+  const rM = RADII[S.ri] * 1000;
+  const inMode = CATS.filter(c => c.aud.includes(S.mode)).map(c => c.id);
+  const all = DATA.items.filter(i => catOf(i)).map(i => (i.d = distM(S.loc, i), i)).filter(i => i.d <= rM);
+  all.forEach(i => i.sc = score(i, rM));
+  const counts = {}; all.forEach(i => counts[catOf(i)] = (counts[catOf(i)] || 0) + 1);
+  const list = all.filter(i => !S.off.includes(catOf(i)));
+  list.sort(S.sort === 'near' ? (a, b) => a.d - b.d : (a, b) => b.sc - a.sc);
+  return { list, counts, inMode, all };
+}
+function renderChips(counts, inMode) {
+  const box = $('#chips');
+  box.replaceChildren(...inMode.filter(id => counts[id]).map(id => {
+    const c = CAT[id], on = !S.off.includes(id);
+    return h('button', { class: 'chip', 'aria-pressed': on, onclick: () => {
+      S.off = on ? [...S.off, id] : S.off.filter(x => x !== id); saveSettings(); shown = PAGE; renderList();
+    } }, c.ico + ' ' + c.label + ' ' + counts[id]);
+  }));
+}
+function wikiUrl(i) {
+  if (i.dew) return 'https://de.wikipedia.org/wiki/' + encodeURIComponent(i.dew.replace(/ /g, '_'));
+  const m = (i.t.wikipedia || '').match(/^([a-z-]{2,12}):(.+)$/);
+  if (m) return `https://${m[1]}.wikipedia.org/wiki/` + encodeURIComponent(m[2].replace(/ /g, '_'));
+  if (i.enw) return 'https://en.wikipedia.org/wiki/' + encodeURIComponent(i.enw.replace(/ /g, '_'));
+  return null;
+}
+function card(i, n) {
+  const c = CAT[catOf(i)];
+  const apple = `https://maps.apple.com/?daddr=${i.lat},${i.lon}`;
+  const place = `https://maps.apple.com/?ll=${i.lat},${i.lon}&q=${encodeURIComponent(i.name)}`;
+  const google = `https://www.google.com/maps/dir/?api=1&destination=${i.lat},${i.lon}`;
+  const web = safeUrl(i.t.website || i.t['contact:website'] || i.t.url);
+  const tel = telUrl(i.t.phone || i.t['contact:phone']);
+  const wiki = wikiUrl(i);
+  const thumb = h('div', { class: 'thumb', 'aria-hidden': 'true' }, S.sort === 'top' && n < 10 ? h('span', { class: 'rank' }, n + 1) : null, c.ico);
+  if (i.thumb) thumb.append(h('img', { src: i.thumb, alt: '', loading: 'lazy', onerror: e => e.target.remove() }));
+  thumb.dataset.id = i.id;
+  const ext = { target: '_blank', rel: 'noopener noreferrer', class: 'btn sm' };
+  const shareBtn = h('button', { class: 'btn sm', onclick: () => share(i, place) }, '↗ Teilen');
+  const city = i.t['addr:city'] || i.t['addr:place'];
+  return h('article', { class: 'card' },
+    thumb,
+    h('div', null,
+      h('h3', null, h('a', { href: place, target: '_blank', rel: 'noopener noreferrer' }, i.name)),
+      h('div', { class: 'meta' }, c.label + ' · ' + fmtKm(i.d) + (city ? ' · ' + city : '') + (i.t.fee === 'no' ? ' · Eintritt frei' : '')),
+      i.desc ? h('div', { class: 'desc' }, i.desc) : null,
+      i.t.opening_hours ? h('div', { class: 'hours' }, '🕒 ' + i.t.opening_hours) : null
+    ),
+    h('div', { class: 'links' },
+      h('a', { ...ext, class: 'btn sm primary', href: apple }, '🧭 Route'),
+      h('a', { ...ext, href: google }, 'Google Maps'),
+      web ? h('a', { ...ext, href: web }, '🌐 Website') : null,
+      tel ? h('a', { class: 'btn sm', href: tel }, '📞 Anrufen') : null,
+      wiki ? h('a', { ...ext, href: wiki }, 'Ⓦ Wikipedia') : null,
+      shareBtn)
+  );
+}
+async function share(i, url) {
+  const data = { title: i.name, text: i.name + ' – ' + CAT[catOf(i)].label, url };
+  try {
+    if (navigator.share) await navigator.share(data);
+    else { await navigator.clipboard.writeText(i.name + ' ' + url); status('Link kopiert.'); }
+  } catch { /* abgebrochen */ }
+}
+function renderWelcome() {
+  $('#chips').replaceChildren(); $('#more').replaceChildren();
+  $('#list').replaceChildren(h('div', { class: 'panel welcome' },
+    h('div', { class: 'big', 'aria-hidden': 'true' }, '🗺️'),
+    h('p', null, 'Finde herausragende Ausflugsziele in deiner Nähe. Wo soll gesucht werden?'),
+    h('div', { class: 'btns' },
+      h('button', { class: 'btn primary', onclick: useGps }, '⌖ Aktuellen Standort verwenden'),
+      h('button', { class: 'btn', onclick: openSheet }, 'Ort eingeben'))));
+}
+function renderList(partial, stale) {
+  if (!S.loc) { status(''); renderWelcome(); return; }
+  if (!DATA || distM(DATA, S.loc) >= 500) return;
+  const { list, counts, inMode, all } = visibleItems();
+  renderChips(counts, inMode);
+  const box = $('#list'), more = $('#more');
+  if (!stale) {
+    if (partial) status(h('span', null, h('span', { class: 'spin' }), 'Bewerte Bekanntheit …'));
+    else status(all.length ? list.length + ' Ziele im Umkreis von ' + RADII[S.ri] + ' km' + (S.mode === 'k' ? ' (für Kinder)' : '') + '.' : '');
+  }
+  if (!list.length) {
+    box.replaceChildren(h('div', { class: 'empty' }, all.length ? 'Alle Kategorien ausgeblendet. Tippe oben auf eine Kategorie.' : 'Keine passenden Ziele gefunden. Vergrößere den Umkreis oder wähle einen anderen Ort.'));
+    more.replaceChildren(); return;
+  }
+  const page = list.slice(0, shown);
+  box.replaceChildren(...page.map(card));
+  more.replaceChildren(list.length > shown ? h('button', { class: 'btn', onclick: () => { shown += PAGE; renderList(); } }, 'Weitere anzeigen (' + (list.length - shown) + ')') : '');
+  if (!partial) loadThumbs(page);
+}
+async function loadThumbs(page) {
+  const need = page.filter(i => i.dew && i.thumb === undefined).slice(0, 50);
+  if (!need.length) return;
+  need.forEach(i => i.thumb = null);
+  try {
+    const j = await fetchJson('https://de.wikipedia.org/w/api.php?' + new URLSearchParams({ action: 'query', format: 'json', origin: '*', prop: 'pageimages', piprop: 'thumbnail', pithumbsize: '200', redirects: '1', titles: need.map(i => i.dew).join('|') }), {}, 15000);
+    const map = {}; for (const x of [...(j.query?.normalized || []), ...(j.query?.redirects || [])]) map[x.from] = x.to;
+    const thumbs = {}; for (const p of Object.values(j.query?.pages || {})) if (p.thumbnail?.source) thumbs[p.title] = p.thumbnail.source;
+    for (const i of need) {
+      let t = i.dew; for (let k = 0; k < 3 && map[t]; k++) t = map[t];
+      const src = thumbs[t];
+      if (src && /^https:\/\/upload\.wikimedia\.org\//.test(src)) {
+        i.thumb = src;
+        const el = document.querySelector(`.thumb[data-id="${i.id}"]`);
+        if (el && !el.querySelector('img')) el.append(h('img', { src, alt: '', loading: 'lazy', onerror: e => e.target.remove() }));
+      }
+    }
+    if (DATA && !loading) store.set('ausflug.data', DATA);
+  } catch { /* ohne Bilder weiter */ }
+}
+
+/* ---------- Bedienung ---------- */
+$('#btnGps').onclick = useGps;
+$('#btnSheetGps').onclick = () => { closeSheet(); useGps(); };
+$('#btnEdit').onclick = openSheet;
+$('#btnClose').onclick = closeSheet;
+$('#sheet').onclick = e => { if (e.target.id === 'sheet') closeSheet(); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+$('#btnSearch').onclick = geoSearch;
+$('#q').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); geoSearch(); } });
+$('#modeA').onclick = () => { S.mode = 'a'; saveSettings(); shown = PAGE; renderHeader(); renderList(); };
+$('#modeK').onclick = () => { S.mode = 'k'; saveSettings(); shown = PAGE; renderHeader(); renderList(); };
+$('#sortTop').onclick = () => { S.sort = 'top'; saveSettings(); renderHeader(); renderList(); };
+$('#sortNear').onclick = () => { S.sort = 'near'; saveSettings(); renderHeader(); renderList(); };
+$('#rad').addEventListener('input', e => { $('#radVal').textContent = RADII[+e.target.value] + ' km'; });
+$('#rad').addEventListener('change', e => { S.ri = +e.target.value; saveSettings(); shown = PAGE; renderHeader(); search(false); });
+$('#btnReload').onclick = () => { if (S.loc && S.loc.gps) useGps(); else search(true); };
+$('#btnReset').onclick = () => {
+  if (!confirm('Einstellungen und gespeicherte Ergebnisse auf diesem Gerät löschen?')) return;
+  store.clear(); location.reload();
+};
+
+/* ---------- Start ---------- */
+renderHeader();
+if (S.loc) {
+  renderList(false, false);
+  search(false);
+  // „Aktueller Standort“ beim Öffnen auffrischen
+  if (S.loc.gps) navigator.geolocation?.getCurrentPosition(p => {
+    const now = { lat: +p.coords.latitude.toFixed(5), lon: +p.coords.longitude.toFixed(5) };
+    if (distM(S.loc, now) > 1500) useGps();
+  }, () => {}, { timeout: 15000, maximumAge: 300000 });
+} else renderWelcome();
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
