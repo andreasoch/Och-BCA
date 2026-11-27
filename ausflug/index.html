@@ -62,7 +62,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:32px;margin:4px 0
 .chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none;margin:0 -16px;padding-left:16px;padding-right:16px}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:0 0 auto;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:14px;cursor:pointer;white-space:nowrap}
-.chip[aria-pressed="false"]{opacity:.45;text-decoration:line-through}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
 .status{font-size:14px;color:var(--muted);margin:6px 2px 10px;min-height:20px}
 .status.err{color:var(--warn)}
 .list{display:flex;flex-direction:column;gap:10px}
@@ -147,7 +147,7 @@ footer{font-size:12px;color:var(--muted);margin-top:18px;text-align:center}
     <p>Technisch bedingt sieht jeder angefragte Dienst deine IP-Adresse. Es gibt kein Konto, keinen eigenen Server und keine Tracker. Einstellungen und die zuletzt geladenen Ergebnisse liegen nur im Speicher dieses Browsers.</p>
     <p>Öffnungszeiten und Preise bitte vor dem Besuch auf der Website prüfen. Die Daten sind von Freiwilligen gepflegt und können lückenhaft sein.</p>
     <p><button class="btn sm" id="btnReset">Alle gespeicherten Daten löschen</button></p>
-    <p>Version 1.1</p>
+    <p>Version 1.2</p>
   </details>
   <footer>Daten © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap-Mitwirkende</a> (ODbL) · Wikidata (CC0) · Wikipedia (CC BY-SA)</footer>
 </div>
@@ -245,9 +245,10 @@ const CACHE_MS = 7 * 24 * 3600 * 1000, CACHE_PARTIAL_MS = 10 * 60 * 1000;
 const PAGE = 30;
 
 /* ---------- Zustand ---------- */
-const S = Object.assign({ mode: 'a', ri: 3, sort: 'top', loc: null, off: [] }, store.get('ausflug.settings') || {});
+const S = Object.assign({ mode: 'a', ri: 3, sort: 'top', loc: null, only: [] }, store.get('ausflug.settings') || {});
+delete S.off;   // Version 1.1 speicherte abgewählte Kategorien, ab 1.2 die gewählten
 if (!(S.ri >= 0 && S.ri < RADII.length)) S.ri = 3;
-if (!Array.isArray(S.off)) S.off = [];
+if (!Array.isArray(S.only)) S.only = [];
 let DATA = store.get('ausflug.data');   // {lat, lon, r, ts, items}
 let shown = PAGE, seq = 0, loading = false;
 const saveSettings = () => store.set('ausflug.settings', S);
@@ -507,18 +508,27 @@ function visibleItems() {
   const all = DATA.items.filter(i => i.name && catOf(i)).map(i => (i.d = distM(S.loc, i), i)).filter(i => i.d <= rM);
   all.forEach(i => i.sc = score(i, rM));
   const counts = {}; all.forEach(i => counts[catOf(i)] = (counts[catOf(i)] || 0) + 1);
-  const list = all.filter(i => !S.off.includes(catOf(i)));
+  // Gewählte Kategorien (leer = alle). Kategorien ohne Treffer im aktuellen Umkreis zählen nicht.
+  const sel = S.only.filter(id => counts[id]);
+  const list = sel.length ? all.filter(i => sel.includes(catOf(i))) : all;
   list.sort(S.sort === 'near' ? (a, b) => a.d - b.d : (a, b) => b.sc - a.sc);
   return { list, counts, inMode, all };
 }
-function renderChips(counts, inMode) {
-  const box = $('#chips');
-  box.replaceChildren(...inMode.filter(id => counts[id]).map(id => {
-    const c = CAT[id], on = !S.off.includes(id);
-    return h('button', { class: 'chip', 'aria-pressed': on, onclick: () => {
-      S.off = on ? [...S.off, id] : S.off.filter(x => x !== id); saveSettings(); shown = PAGE; renderList();
-    } }, c.ico + ' ' + c.label + ' ' + counts[id]);
-  }));
+// Ein Tipp auf eine Kategorie zeigt nur diese; weitere Tipps nehmen Kategorien dazu oder heraus; „Alle“ setzt zurück.
+function renderChips(counts, inMode, total) {
+  const box = $('#chips'), x = box.scrollLeft;
+  const ids = inMode.filter(id => counts[id]);
+  const sel = S.only.filter(id => counts[id]);
+  const pick = next => { S.only = next; saveSettings(); shown = PAGE; renderList(); };
+  if (!ids.length) { box.replaceChildren(); return; }
+  box.replaceChildren(
+    h('button', { class: 'chip', 'aria-pressed': String(!sel.length), onclick: () => pick([]) }, 'Alle ' + total),
+    ...ids.map(id => {
+      const c = CAT[id], on = sel.includes(id);
+      return h('button', { class: 'chip', 'aria-pressed': String(on), onclick: () => pick(on ? sel.filter(v => v !== id) : [...sel, id]) },
+        c.ico + ' ' + c.label + ' ' + counts[id]);
+    }));
+  box.scrollLeft = x;   // Position der Leiste beim Neuzeichnen behalten
 }
 function wikiUrl(i) {
   if (i.dew) return 'https://de.wikipedia.org/wiki/' + encodeURIComponent(i.dew.replace(/ /g, '_'));
@@ -578,14 +588,14 @@ function renderList(partial, stale) {
   if (!S.loc) { status(''); renderWelcome(); return; }
   if (!DATA || distM(DATA, S.loc) >= 500) return;
   const { list, counts, inMode, all } = visibleItems();
-  renderChips(counts, inMode);
+  renderChips(counts, inMode, all.length);
   const box = $('#list'), more = $('#more');
   if (!stale) {
     if (partial) status(h('span', null, h('span', { class: 'spin' }), list.length + ' Ziele gefunden, weitere werden geladen …'));
-    else status((all.length ? list.length + ' Ziele im Umkreis von ' + RADII[S.ri] + ' km' + (S.mode === 'k' ? ' (für Kinder)' : '') + '. ' : '') + (DATA.note || ''));
+    else status((all.length ? (list.length < all.length ? list.length + ' von ' + all.length : list.length) + ' Ziele im Umkreis von ' + RADII[S.ri] + ' km' + (S.mode === 'k' ? ' (für Kinder)' : '') + '. ' : '') + (DATA.note || ''));
   }
   if (!list.length) {
-    box.replaceChildren(h('div', { class: 'empty' }, all.length ? 'Alle Kategorien ausgeblendet. Tippe oben auf eine Kategorie.' : 'Keine passenden Ziele gefunden. Vergrößere den Umkreis oder wähle einen anderen Ort.'));
+    box.replaceChildren(h('div', { class: 'empty' }, all.length ? 'Keine Ziele in der gewählten Kategorie. Tippe oben auf „Alle“.' : 'Keine passenden Ziele gefunden. Vergrößere den Umkreis oder wähle einen anderen Ort.'));
     more.replaceChildren(); return;
   }
   const page = list.slice(0, shown);
@@ -644,8 +654,8 @@ $('#sheet').onclick = e => { if (e.target.id === 'sheet') closeSheet(); };
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
 $('#btnSearch').onclick = geoSearch;
 $('#q').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); geoSearch(); } });
-$('#modeA').onclick = () => { S.mode = 'a'; saveSettings(); shown = PAGE; renderHeader(); renderList(); };
-$('#modeK').onclick = () => { S.mode = 'k'; saveSettings(); shown = PAGE; renderHeader(); renderList(); };
+$('#modeA').onclick = () => { if (S.mode !== 'a') S.only = []; S.mode = 'a'; saveSettings(); shown = PAGE; renderHeader(); renderList(); };
+$('#modeK').onclick = () => { if (S.mode !== 'k') S.only = []; S.mode = 'k'; saveSettings(); shown = PAGE; renderHeader(); renderList(); };
 $('#sortTop').onclick = () => { S.sort = 'top'; saveSettings(); renderHeader(); renderList(); };
 $('#sortNear').onclick = () => { S.sort = 'near'; saveSettings(); renderHeader(); renderList(); };
 $('#rad').addEventListener('input', e => { $('#radVal').textContent = RADII[+e.target.value] + ' km'; });

@@ -14,7 +14,7 @@ Standorts oder eines frei gewählten Orts.
     Aussicht & Türme, Natur & Gärten, Denkmäler, Zoos, Aquarien, Freizeitparks, Planetarien
   - Kinder: Freizeitparks, Zoos & Tierparks, Aquarien, Erlebnisbäder, Rodeln & Klettern,
     Mitmach- & Technikmuseen, Burgen, Natur, Aussichtstürme, Sehenswürdigkeiten, Planetarien, Minigolf
-- **Sortierung**: „★ Top“ (Bekanntheit, Art und Entfernung) oder „Nächste zuerst“. Kategorien lassen sich über die Chips ein- und ausblenden.
+- **Sortierung**: „★ Top“ (Bekanntheit, Art und Entfernung) oder „Nächste zuerst“. Kategorien filtern: Ein Tipp auf eine Kategorie zeigt nur diese, weitere Tipps nehmen Kategorien dazu oder wieder heraus, „Alle“ zeigt wieder alles. Beim Wechsel Erwachsene/Kinder wird der Filter zurückgesetzt.
 - **Je Ziel**: Entfernung, Kurzbeschreibung, Bild, Öffnungszeiten (soweit hinterlegt) und die Knöpfe
   🧭 Route (Apple Karten), Google Maps, 🌐 Website, 📞 Anrufen, Ⓦ Wikipedia, ↗ Teilen.
   Ein Tipp auf den Namen öffnet den Ort in Apple Karten.
@@ -77,4 +77,4 @@ Die App fragt nur auf Knopfdruck bzw. bei Ortswechsel ab, nicht laufend, und die
   drehte der Kreisel minutenlang. Seit Version 1.1 laufen beide Quellen parallel, mit höchstens 45 Sekunden Wartezeit.
 - Dateien: `index.html` (App), `sw.js` (Offline-Cache, nur App-Dateien), `manifest.webmanifest`, Icons.
 
-Version 1.1
+Version 1.2

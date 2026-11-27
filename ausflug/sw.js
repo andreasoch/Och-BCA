@@ -1,6 +1,6 @@
 // Ausflug – Service Worker: macht die App installierbar und offline startbar.
 // Er speichert nur die App-Dateien. Ergebnisse liegen im localStorage des Browsers.
-const CACHE = 'ausflug-v2';
+const CACHE = 'ausflug-v3';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
