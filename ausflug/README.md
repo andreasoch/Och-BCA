@@ -20,9 +20,25 @@ Standorts oder eines frei gewählten Orts.
   Ein Tipp auf den Namen öffnet den Ort in Apple Karten.
 - Kein Konto, kein Passwort. Hell- und Dunkelmodus. Die zuletzt geladenen Ergebnisse bleiben 7 Tage gespeichert und sind auch offline verfügbar.
 
+## Datenabruf
+
+Die App fragt zwei Quellen gleichzeitig ab und zeigt an, was zuerst ankommt:
+
+1. **OpenStreetMap** über die Overpass-API. Die drei Server werden gestaffelt angefragt
+   (sofort, nach 6 s, nach 12 s; bei einem Fehler sofort der nächste). Die erste Antwort gewinnt.
+2. **Wikidata-Umkreissuche** (`nearcoord` + `haswbstatement:P31=…`), je Kategorie eine Suche.
+
+Nach spätestens 45 Sekunden zeigt die App, was da ist. Hat nur eine Quelle geantwortet, steht das als Hinweis
+„Unvollständig, weil … gerade nicht erreichbar ist“ unter den Knöpfen. Solche Teilergebnisse werden nur 10 Minuten
+gespeichert, vollständige 7 Tage. Kommt gar nichts, nennt die Fehlermeldung den Grund je Quelle
+(z. B. „OpenStreetMap: keine Antwort · Wikidata: Fehler 429“).
+
+Website, Telefon und Bild ergänzt die App für die angezeigten Ziele aus Wikidata (P856, P1329, P18),
+wenn OpenStreetMap dazu nichts hat.
+
 ## Wie „herausragend“ bestimmt wird
 
-Die App wertet OpenStreetMap aus. Allgemeine Kategorien (Museen, Burgen, Sehenswürdigkeiten usw.) werden nur
+Die App wertet OpenStreetMap und Wikidata aus. Allgemeine Kategorien (Museen, Burgen, Sehenswürdigkeiten usw.) werden nur
 berücksichtigt, wenn es einen Wikidata-Eintrag gibt. Das filtert Unbekanntes heraus. Die Punktzahl setzt sich
 zusammen aus dem Gewicht der Kategorie (je nach Erwachsene/Kinder), der Zahl der Wikipedia-Sprachversionen
 (Bekanntheit), dem Vorhandensein von Website und Öffnungszeiten sowie einem Abschlag für die Entfernung
@@ -41,9 +57,9 @@ zusammen aus dem Gewicht der Kategorie (je nach Erwachsene/Kinder), der Zahl der
 
 | Zweck | Dienst | Übertragen werden |
 |---|---|---|
-| Ausflugsziele | OpenStreetMap über Overpass-API (overpass-api.de, Ausweich: overpass.private.coffee, maps.mail.ru) – ODbL | Koordinaten, Umkreis, IP-Adresse |
-| Bekanntheit, Kurzbeschreibung | Wikidata – CC0 | Kennungen der gefundenen Ziele, IP-Adresse |
-| Bilder | Wikipedia / Wikimedia Commons | Artikeltitel, IP-Adresse |
+| Ausflugsziele | OpenStreetMap über Overpass-API (overpass-api.de, Ausweich: overpass.private.coffee, overpass.kumi.systems) – ODbL; Wikidata-Suche – CC0 | Koordinaten, Umkreis, IP-Adresse |
+| Bekanntheit, Beschreibung, Website, Telefon | Wikidata – CC0 | Kennungen der gefundenen Ziele, IP-Adresse |
+| Bilder | Wikimedia Commons, Wikipedia | Dateiname bzw. Artikeltitel, IP-Adresse |
 | Ortssuche, Ortsname zu GPS | Nominatim (OpenStreetMap) | Suchbegriff bzw. Koordinaten, IP-Adresse |
 | Route | Apple Karten, Google Maps | erst beim Antippen |
 
@@ -57,8 +73,8 @@ Die App fragt nur auf Knopfdruck bzw. bei Ortswechsel ab, nicht laufend, und die
 ## Hinweise
 
 - Die Daten pflegen Freiwillige. Öffnungszeiten und Preise vor dem Besuch auf der Website prüfen.
-- Bei 75–100 km Umkreis kann die erste Suche bis zu einer Minute dauern. Ist der Server ausgelastet,
-  versucht die App automatisch zwei Ausweichserver.
+- Version 1.0 wartete pro Overpass-Server bis zu 100 Sekunden nacheinander. War Overpass überlastet,
+  drehte der Kreisel minutenlang. Seit Version 1.1 laufen beide Quellen parallel, mit höchstens 45 Sekunden Wartezeit.
 - Dateien: `index.html` (App), `sw.js` (Offline-Cache, nur App-Dateien), `manifest.webmanifest`, Icons.
 
-Version 1.0
+Version 1.1

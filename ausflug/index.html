@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: https://upload.wikimedia.org; connect-src 'self' https://overpass-api.de https://overpass.private.coffee https://maps.mail.ru https://www.wikidata.org https://de.wikipedia.org https://nominatim.openstreetmap.org; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: https://upload.wikimedia.org https://commons.wikimedia.org; connect-src 'self' https://overpass-api.de https://overpass.private.coffee https://overpass.kumi.systems https://www.wikidata.org https://de.wikipedia.org https://nominatim.openstreetmap.org; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="theme-color" content="#F4F1EA" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#11181F" media="(prefers-color-scheme: dark)">
 <title>Ausflugsziele</title>
@@ -136,18 +136,18 @@ footer{font-size:12px;color:var(--muted);margin-top:18px;text-align:center}
 
   <details class="info">
     <summary>Info, Datenquellen &amp; Datenschutz</summary>
-    <p>Die App sucht im gewählten Umkreis nach bekannten Ausflugszielen aus OpenStreetMap. „Herausragend“ heißt hier: Ziele, zu denen es Einträge in Wikidata/Wikipedia gibt, werden nach ihrer Bekanntheit (Zahl der Wikipedia-Sprachversionen), ihrer Art und der Entfernung gewichtet. Die Reihenfolge ist eine automatische Schätzung, keine redaktionelle Bewertung.</p>
+    <p>Die App sucht im gewählten Umkreis gleichzeitig in OpenStreetMap und in Wikidata nach bekannten Ausflugszielen und zeigt an, was zuerst ankommt. „Herausragend“ heißt hier: Ziele, zu denen es Einträge in Wikidata/Wikipedia gibt, werden nach ihrer Bekanntheit (Zahl der Wikipedia-Sprachversionen), ihrer Art und der Entfernung gewichtet. Die Reihenfolge ist eine automatische Schätzung, keine redaktionelle Bewertung.</p>
     <table>
-      <tr><td><b>Ziele</b></td><td>OpenStreetMap über die Overpass-API (overpass-api.de, Ausweichserver: overpass.private.coffee, maps.mail.ru). Übertragen werden Koordinaten und Umkreis.</td></tr>
-      <tr><td><b>Bekanntheit, Beschreibung</b></td><td>Wikidata (wikidata.org). Übertragen werden nur die Kennungen der gefundenen Ziele.</td></tr>
-      <tr><td><b>Bilder</b></td><td>Deutsche Wikipedia / Wikimedia Commons.</td></tr>
+      <tr><td><b>Ziele</b></td><td>OpenStreetMap über die Overpass-API (overpass-api.de, Ausweichserver: overpass.private.coffee, overpass.kumi.systems) und die Wikidata-Umkreissuche (wikidata.org). Übertragen werden Koordinaten und Umkreis.</td></tr>
+      <tr><td><b>Bekanntheit, Beschreibung, Website, Telefon</b></td><td>Wikidata (wikidata.org). Übertragen werden die Kennungen der gefundenen Ziele.</td></tr>
+      <tr><td><b>Bilder</b></td><td>Wikimedia Commons, deutsche Wikipedia.</td></tr>
       <tr><td><b>Ortssuche, Ortsname</b></td><td>Nominatim (nominatim.openstreetmap.org). Übertragen werden Suchbegriff bzw. Koordinaten.</td></tr>
       <tr><td><b>Route</b></td><td>Apple Karten bzw. Google Maps, erst wenn du den Knopf antippst.</td></tr>
     </table>
     <p>Technisch bedingt sieht jeder angefragte Dienst deine IP-Adresse. Es gibt kein Konto, keinen eigenen Server und keine Tracker. Einstellungen und die zuletzt geladenen Ergebnisse liegen nur im Speicher dieses Browsers.</p>
     <p>Öffnungszeiten und Preise bitte vor dem Besuch auf der Website prüfen. Die Daten sind von Freiwilligen gepflegt und können lückenhaft sein.</p>
     <p><button class="btn sm" id="btnReset">Alle gespeicherten Daten löschen</button></p>
-    <p>Version 1.0</p>
+    <p>Version 1.1</p>
   </details>
   <footer>Daten © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap-Mitwirkende</a> (ODbL) · Wikidata (CC0) · Wikipedia (CC BY-SA)</footer>
 </div>
@@ -219,28 +219,29 @@ function telUrl(p) {
 // aud: a = Erwachsene, k = Kinder. w = Gewicht Erwachsene, wk = Gewicht Kinder.
 const KIDSMUS = /^(children|technology|science|natural_history|railway|transport|nature|toy)$/;
 const CATS = [
-  { id: 'theme', label: 'Freizeitparks', ico: '🎢', aud: 'ak', w: 18, wk: 34, q: ['nwr["tourism"="theme_park"]["name"]'], m: t => t.tourism === 'theme_park' },
-  { id: 'zoo', label: 'Zoos & Tierparks', ico: '🦁', aud: 'ak', w: 16, wk: 30, q: ['nwr["tourism"="zoo"]["name"]'], m: t => t.tourism === 'zoo' },
-  { id: 'aqua', label: 'Aquarien', ico: '🐠', aud: 'ak', w: 14, wk: 24, q: ['nwr["tourism"="aquarium"]["name"]'], m: t => t.tourism === 'aquarium' },
-  { id: 'water', label: 'Erlebnisbäder', ico: '🌊', aud: 'k', w: 0, wk: 22, q: ['nwr["leisure"="water_park"]["name"]'], m: t => t.leisure === 'water_park' },
+  { id: 'theme', wd: ['Q194195','Q2416723','Q15982170'], label: 'Freizeitparks', ico: '🎢', aud: 'ak', w: 18, wk: 34, q: ['nwr["tourism"="theme_park"]["name"]'], m: t => t.tourism === 'theme_park' },
+  { id: 'zoo', wd: ['Q43501','Q1711697','Q642682','Q1995305'], label: 'Zoos & Tierparks', ico: '🦁', aud: 'ak', w: 16, wk: 30, q: ['nwr["tourism"="zoo"]["name"]'], m: t => t.tourism === 'zoo' },
+  { id: 'aqua', wd: ['Q2281788'], label: 'Aquarien', ico: '🐠', aud: 'ak', w: 14, wk: 24, q: ['nwr["tourism"="aquarium"]["name"]'], m: t => t.tourism === 'aquarium' },
+  { id: 'water', wd: ['Q740326'], label: 'Erlebnisbäder', ico: '🌊', aud: 'k', w: 0, wk: 22, q: ['nwr["leisure"="water_park"]["name"]'], m: t => t.leisure === 'water_park' },
   { id: 'action', label: 'Rodeln & Klettern', ico: '🧗', aud: 'k', w: 0, wk: 20, q: ['nwr["attraction"="summer_toboggan"]["name"]', 'nwr["sport"="climbing_adventure"]["name"]'], m: t => t.attraction === 'summer_toboggan' || t.sport === 'climbing_adventure' },
-  { id: 'kidsmus', label: 'Mitmach- & Technikmuseen', ico: '🚂', aud: 'k', w: 0, wk: 18, q: ['nwr["tourism"="museum"]["museum"~"^(children|technology|science|natural_history|railway|transport|nature|toy)$"]["name"]'], m: t => t.tourism === 'museum' && KIDSMUS.test(t.museum || '') },
-  { id: 'planet', label: 'Planetarien & Sternwarten', ico: '🪐', aud: 'ak', w: 10, wk: 14, q: ['nwr["amenity"="planetarium"]["name"]', 'nwr["man_made"="observatory"]["wikidata"]'], m: t => t.amenity === 'planetarium' || t.man_made === 'observatory' },
-  { id: 'museum', label: 'Museen', ico: '🏛️', aud: 'a', w: 12, wk: 0, q: ['nwr["tourism"="museum"]["wikidata"]'], m: t => t.tourism === 'museum' },
-  { id: 'castle', label: 'Burgen & Schlösser', ico: '🏰', aud: 'ak', w: 16, wk: 14, q: ['nwr["historic"~"^(castle|palace|fort)$"]["wikidata"]'], m: t => /^(castle|palace|fort)$/.test(t.historic || '') },
-  { id: 'sacred', label: 'Klöster & Dome', ico: '⛪', aud: 'a', w: 10, wk: 0, q: ['nwr["historic"="monastery"]["wikidata"]', 'nwr["amenity"="monastery"]["wikidata"]', 'nwr["building"~"^(cathedral|basilica)$"]["wikidata"]'], m: t => t.historic === 'monastery' || t.amenity === 'monastery' || /^(cathedral|basilica)$/.test(t.building || '') },
-  { id: 'ruins', label: 'Ruinen & Ausgrabungen', ico: '🏺', aud: 'a', w: 7, wk: 0, q: ['nwr["historic"~"^(ruins|archaeological_site)$"]["wikidata"]'], m: t => /^(ruins|archaeological_site)$/.test(t.historic || '') },
-  { id: 'nature', label: 'Natur & Gärten', ico: '🌲', aud: 'ak', w: 10, wk: 10, q: ['nwr["boundary"="national_park"]["name"]', 'nwr["natural"~"^(waterfall|cave_entrance|gorge|arch)$"]["wikidata"]', 'nwr["leisure"="garden"]["garden:type"="botanical"]["name"]', 'nwr["leisure"="park"]["wikidata"]'], m: t => t.boundary === 'national_park' || /^(waterfall|cave_entrance|gorge|arch)$/.test(t.natural || '') || t.leisure === 'garden' || t.leisure === 'park' },
-  { id: 'view', label: 'Aussicht & Türme', ico: '⛰️', aud: 'ak', w: 9, wk: 8, q: ['nwr["tourism"="viewpoint"]["wikidata"]', 'nwr["tower:type"="observation"]["wikidata"]'], m: t => t.tourism === 'viewpoint' || t['tower:type'] === 'observation' },
-  { id: 'attr', label: 'Sehenswürdigkeiten', ico: '⭐', aud: 'ak', w: 9, wk: 6, q: ['nwr["tourism"="attraction"]["wikidata"]'], m: t => t.tourism === 'attraction' },
-  { id: 'monument', label: 'Denkmäler', ico: '🗿', aud: 'a', w: 5, wk: 0, q: ['nwr["historic"="monument"]["wikidata"]'], m: t => t.historic === 'monument' },
+  { id: 'kidsmus', wd: ['Q842478','Q588140','Q2398990','Q1970365','Q18704634','Q2516357','Q2310465'], alsoA: 'museum', label: 'Mitmach- & Technikmuseen', ico: '🚂', aud: 'k', w: 0, wk: 18, q: ['nwr["tourism"="museum"]["museum"~"^(children|technology|science|natural_history|railway|transport|nature|toy)$"]["name"]'], m: t => t.tourism === 'museum' && KIDSMUS.test(t.museum || '') },
+  { id: 'planet', wd: ['Q148319','Q62832'], label: 'Planetarien & Sternwarten', ico: '🪐', aud: 'ak', w: 10, wk: 14, q: ['nwr["amenity"="planetarium"]["name"]', 'nwr["man_made"="observatory"]["wikidata"]'], m: t => t.amenity === 'planetarium' || t.man_made === 'observatory' },
+  { id: 'museum', wd: ['Q33506','Q207694','Q16735822','Q756102','Q1595639','Q2087181'], label: 'Museen', ico: '🏛️', aud: 'a', w: 12, wk: 0, q: ['nwr["tourism"="museum"]["wikidata"]'], m: t => t.tourism === 'museum' },
+  { id: 'castle', wd: ['Q23413','Q16560','Q751876','Q57821','Q1785071','Q15710038','Q615810','Q1424449','Q88205'], label: 'Burgen & Schlösser', ico: '🏰', aud: 'ak', w: 16, wk: 14, q: ['nwr["historic"~"^(castle|palace|fort)$"]["wikidata"]'], m: t => /^(castle|palace|fort)$/.test(t.historic || '') },
+  { id: 'sacred', wd: ['Q44613','Q160742','Q2977','Q163687'], label: 'Klöster & Dome', ico: '⛪', aud: 'a', w: 10, wk: 0, q: ['nwr["historic"="monastery"]["wikidata"]', 'nwr["amenity"="monastery"]["wikidata"]', 'nwr["building"~"^(cathedral|basilica)$"]["wikidata"]'], m: t => t.historic === 'monastery' || t.amenity === 'monastery' || /^(cathedral|basilica)$/.test(t.building || '') },
+  { id: 'ruins', wd: ['Q17715832','Q109607','Q839954'], label: 'Ruinen & Ausgrabungen', ico: '🏺', aud: 'a', w: 7, wk: 0, q: ['nwr["historic"~"^(ruins|archaeological_site)$"]["wikidata"]'], m: t => /^(ruins|archaeological_site)$/.test(t.historic || '') },
+  { id: 'nature', wd: ['Q46169','Q34038','Q2232001','Q167346','Q2244647'], label: 'Natur & Gärten', ico: '🌲', aud: 'ak', w: 10, wk: 10, q: ['nwr["boundary"="national_park"]["name"]', 'nwr["natural"~"^(waterfall|cave_entrance|gorge|arch)$"]["wikidata"]', 'nwr["leisure"="garden"]["garden:type"="botanical"]["name"]', 'nwr["leisure"="park"]["wikidata"]'], m: t => t.boundary === 'national_park' || /^(waterfall|cave_entrance|gorge|arch)$/.test(t.natural || '') || t.leisure === 'garden' || t.leisure === 'park' },
+  { id: 'view', wd: ['Q1440300','Q6017969'], label: 'Aussicht & Türme', ico: '⛰️', aud: 'ak', w: 9, wk: 8, q: ['nwr["tourism"="viewpoint"]["wikidata"]', 'nwr["tower:type"="observation"]["wikidata"]'], m: t => t.tourism === 'viewpoint' || t['tower:type'] === 'observation' },
+  { id: 'attr', wd: ['Q570116'], label: 'Sehenswürdigkeiten', ico: '⭐', aud: 'ak', w: 9, wk: 6, q: ['nwr["tourism"="attraction"]["wikidata"]'], m: t => t.tourism === 'attraction' },
+  { id: 'monument', wd: ['Q4989906'], label: 'Denkmäler', ico: '🗿', aud: 'a', w: 5, wk: 0, q: ['nwr["historic"="monument"]["wikidata"]'], m: t => t.historic === 'monument' },
   { id: 'minigolf', label: 'Minigolf', ico: '⛳', aud: 'k', w: 0, wk: 5, q: ['nwr["leisure"="miniature_golf"]["name"]'], m: t => t.leisure === 'miniature_golf' }
 ];
 const CAT = Object.fromEntries(CATS.map(c => [c.id, c]));
 const RADII = [5, 10, 15, 20, 30, 50, 75, 100];
-const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
+const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+const DEADLINE = 45000;   // spätestens nach 45 s zeigt die App, was da ist
 const KEEP = ['website', 'contact:website', 'url', 'phone', 'contact:phone', 'opening_hours', 'wikipedia', 'wikidata', 'fee', 'addr:city', 'addr:place'];
-const CACHE_MS = 7 * 24 * 3600 * 1000;
+const CACHE_MS = 7 * 24 * 3600 * 1000, CACHE_PARTIAL_MS = 10 * 60 * 1000;
 const PAGE = 30;
 
 /* ---------- Zustand ---------- */
@@ -309,19 +310,36 @@ function openSheet() { $('#sheet').classList.add('open'); $('#results').replaceC
 function closeSheet() { $('#sheet').classList.remove('open'); }
 
 /* ---------- Daten laden ---------- */
+// Zwei Quellen laufen parallel: OpenStreetMap (Overpass) und die Wikidata-Umkreissuche.
+// Was zuerst da ist, wird sofort angezeigt. Nach DEADLINE ms ist Schluss mit Warten.
 function buildQuery(loc, rKm) {
   const around = `(around:${Math.round(rKm * 1000)},${loc.lat},${loc.lon});`;
   const parts = CATS.flatMap(c => c.q.map(s => s + around));
-  return `[out:json][timeout:90];(${parts.join('')});out center tags;`;
+  return `[out:json][timeout:40];(${parts.join('')});out center tags;`;
 }
-async function overpass(query) {
-  let last;
-  for (const ep of OVERPASS) {
-    try {
-      return await fetchJson(ep, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'data=' + encodeURIComponent(query) }, 100000);
-    } catch (e) { last = e; }
-  }
-  throw last || new Error('Overpass nicht erreichbar');
+// Overpass-Server gestaffelt starten (sofort, nach 6 s, nach 12 s; bei Fehler sofort den nächsten). Erste Antwort gewinnt.
+function overpassRace(query, ms) {
+  return new Promise((resolve, reject) => {
+    let next = 0, running = 0, done = false, stagger; const ctls = new Set(), errs = [], t0 = Date.now();
+    const finish = (ok, v) => { if (done) return; done = true; clearTimeout(stagger); ctls.forEach(c => c.abort()); ok ? resolve(v) : reject(v); };
+    const start = () => {
+      if (done || next >= OVERPASS.length) return;
+      const ep = OVERPASS[next++]; running++;
+      const ctl = new AbortController(); ctls.add(ctl);
+      const to = setTimeout(() => ctl.abort(), Math.max(5000, ms - (Date.now() - t0)));
+      clearTimeout(stagger); stagger = setTimeout(start, 6000);
+      fetch(ep, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'data=' + encodeURIComponent(query), signal: ctl.signal })
+        .then(r => { if (!r.ok) throw new Error('Fehler ' + r.status); return r.json(); })
+        .then(j => { ctls.delete(ctl); finish(true, j); })
+        .catch(e => {
+          ctls.delete(ctl); running--;
+          errs.push(e.name === 'AbortError' ? 'keine Antwort' : (/^Fehler/.test(e.message) ? e.message : 'nicht erreichbar'));
+          if (next < OVERPASS.length) start(); else if (running === 0) finish(false, new Error(errs[errs.length - 1]));
+        })
+        .finally(() => clearTimeout(to));
+    };
+    start();
+  });
 }
 function classify(json) {
   const out = [], seen = new Map();
@@ -347,21 +365,53 @@ function classify(json) {
   }
   return out;
 }
+// Wikidata-Umkreissuche: je Kategorie eine Suche nach „ist ein(e) …“ im Umkreis
+async function wikidataSearch(loc, rKm, ms) {
+  const jobs = [];
+  for (const c of CATS) {
+    if (!c.wd) continue;
+    for (let i = 0; i < c.wd.length; i += 8) jobs.push({ c, cls: c.wd.slice(i, i + 8) });
+  }
+  const res = await Promise.allSettled(jobs.map(j => fetchJson('https://www.wikidata.org/w/api.php?' + new URLSearchParams({
+    action: 'query', format: 'json', origin: '*', generator: 'search', gsrnamespace: '0', gsrlimit: 'max',
+    gsrsearch: `nearcoord:${rKm}km,${loc.lat},${loc.lon} haswbstatement:${j.cls.map(q => 'P31=' + q).join('|')}`,
+    prop: 'coordinates|pageprops', ppprop: 'wb-sitelinks', colimit: 'max'
+  }), {}, ms).then(r => ({ j, r }))));
+  const ok = res.filter(x => x.status === 'fulfilled');
+  if (!ok.length) throw new Error(res[0]?.reason?.status ? 'Fehler ' + res[0].reason.status : (res[0]?.reason?.name === 'AbortError' ? 'keine Antwort' : 'nicht erreichbar'));
+  const out = new Map();
+  for (const { value: { j, r } } of ok) {
+    for (const p of Object.values(r.query?.pages || {})) {
+      const co = (p.coordinates || [])[0];
+      if (!co || !/^Q\d+$/.test(p.title)) continue;
+      const ca = j.c.aud.includes('a') ? j.c.id : (j.c.alsoA || null), ck = j.c.aud.includes('k') ? j.c.id : null;
+      const prev = out.get(p.title);
+      if (prev) { prev.ca = prev.ca || ca; prev.ck = prev.ck || ck; continue; }
+      const sl = p.pageprops && p.pageprops['wb-sitelinks'] != null ? +p.pageprops['wb-sitelinks'] : null;
+      out.set(p.title, { id: p.title, wd: p.title, name: null, lat: co.lat, lon: co.lon, ca, ck, sl, t: {} });
+    }
+  }
+  // Nur die bekanntesten 300 weiterverarbeiten
+  return [...out.values()].sort((a, b) => (b.sl || 0) - (a.sl || 0)).slice(0, 300);
+}
+// Name, Beschreibung, Bekanntheit (Zahl der Wikipedia-Sprachversionen) und Wikipedia-Titel aus Wikidata
 async function enrich(items, my) {
   const byWd = new Map();
-  for (const i of items) if (i.wd && i.sl == null) { if (!byWd.has(i.wd)) byWd.set(i.wd, []); byWd.get(i.wd).push(i); }
+  for (const i of items) if (i.wd && !i.en) { if (!byWd.has(i.wd)) byWd.set(i.wd, []); byWd.get(i.wd).push(i); }
   const ids = [...byWd.keys()].sort((a, b) => baseOf(byWd.get(b)[0]) - baseOf(byWd.get(a)[0])).slice(0, 400);
   const chunks = []; for (let i = 0; i < ids.length; i += 50) chunks.push(ids.slice(i, i + 50));
   const run = async ch => {
     try {
-      const j = await fetchJson('https://www.wikidata.org/w/api.php?' + new URLSearchParams({ action: 'wbgetentities', format: 'json', origin: '*', props: 'sitelinks|descriptions', languages: 'de|en', ids: ch.join('|') }), {}, 20000);
+      const j = await fetchJson('https://www.wikidata.org/w/api.php?' + new URLSearchParams({ action: 'wbgetentities', format: 'json', origin: '*', props: 'sitelinks|descriptions|labels', languages: 'de|en', ids: ch.join('|') }), {}, 20000);
       for (const [id, e] of Object.entries(j.entities || {})) {
         const sl = e.sitelinks || {};
         for (const it of byWd.get(id) || []) {
+          it.en = true;
           it.sl = Object.keys(sl).filter(k => /wiki$/.test(k) && k !== 'commonswiki' && k !== 'specieswiki').length;
           it.desc = e.descriptions?.de?.value || e.descriptions?.en?.value || null;
           it.dew = sl.dewiki?.title || null;
           it.enw = sl.enwiki?.title || null;
+          if (!it.name) it.name = e.labels?.de?.value || e.labels?.en?.value || null;
         }
       }
     } catch { /* ohne Bekanntheitswert weiter */ }
@@ -371,33 +421,62 @@ async function enrich(items, my) {
     if (my !== seq) return;
   }
 }
+// Ergebnisse zusammenführen: gleiche Wikidata-Kennung oder gleicher Name in < 3 km
+function mergeItems(base, add) {
+  for (const a of add) {
+    if (!a.name) continue;
+    const n = a.name.toLowerCase();
+    const b = base.find(x => (a.wd && x.wd === a.wd) || (x.name && x.name.toLowerCase() === n && distM(x, a) < 3000));
+    if (!b) { base.push(a); continue; }
+    b.ca = b.ca || a.ca; b.ck = b.ck || a.ck; b.wd = b.wd || a.wd;
+    if (b.sl == null) b.sl = a.sl;
+    b.desc = b.desc || a.desc; b.dew = b.dew || a.dew; b.enw = b.enw || a.enw; b.en = b.en || a.en;
+    b.t = { ...a.t, ...b.t };
+  }
+  return base;
+}
 async function search(force) {
   if (!S.loc) { renderList(); return; }
   const r = RADII[S.ri];
-  if (!force && DATA && distM(DATA, S.loc) < 500 && DATA.r >= r && Date.now() - DATA.ts < CACHE_MS) { renderList(); return; }
-  const my = ++seq; loading = true;
-  const hint = r >= 50 ? ' Bei großem Umkreis kann das bis zu einer Minute dauern.' : '';
-  status(h('span', null, h('span', { class: 'spin' }), 'Suche Ausflugsziele im Umkreis von ' + r + ' km …' + hint));
-  if (!DATA || distM(DATA, S.loc) >= 500) $('#list').replaceChildren();
-  try {
-    const json = await overpass(buildQuery(S.loc, r));
-    if (my !== seq) return;
-    const items = classify(json);
-    DATA = { lat: S.loc.lat, lon: S.loc.lon, r, ts: Date.now(), items };
-    shown = PAGE; renderList(true);
-    await enrich(items, my);
-    if (my !== seq) return;
-    loading = false;
-    store.set('ausflug.data', DATA);
-    renderList();
-  } catch (e) {
-    if (my !== seq) return;
-    loading = false;
-    const old = DATA && distM(DATA, S.loc) < 500;
-    status(old ? 'Keine Verbindung zum Datendienst. Angezeigt werden die zuletzt geladenen Ergebnisse vom ' + new Date(DATA.ts).toLocaleDateString('de-DE') + '.'
-      : 'Die Ausflugsziele konnten nicht geladen werden (keine Verbindung oder Server ausgelastet). Bitte gleich noch einmal mit „Aktualisieren“ versuchen.', true);
-    if (old) renderList(false, true); else $('#list').replaceChildren();
+  const fresh = DATA && Date.now() - DATA.ts < (DATA.partial ? CACHE_PARTIAL_MS : CACHE_MS);
+  if (!force && fresh && distM(DATA, S.loc) < 500 && DATA.r >= r) { renderList(); return; }
+  const my = ++seq, loc = { lat: S.loc.lat, lon: S.loc.lon };
+  loading = true;
+  status(h('span', null, h('span', { class: 'spin' }), 'Suche Ausflugsziele im Umkreis von ' + r + ' km …'));
+  if (!DATA || distM(DATA, loc) >= 500) $('#list').replaceChildren();
+  const items = [], errs = {}; let got = 0, final = false;
+  const show = () => {
+    if (my !== seq || !items.length) return;
+    DATA = { lat: loc.lat, lon: loc.lon, r, ts: Date.now(), items, partial: got < 2, note: final && got < 2 ? noteText(errs) : '' };
+    shown = PAGE; renderList(!final);
+    if (final) store.set('ausflug.data', DATA);
+  };
+  const pOsm = overpassRace(buildQuery(loc, r), DEADLINE - 5000)
+    .then(j => { if (my !== seq) return; mergeItems(items, classify(j)); got++; show(); })
+    .catch(e => { errs.osm = e.message; });
+  const pWd = wikidataSearch(loc, r, 20000)
+    .then(async list => { await enrich(list, my); if (my !== seq) return; mergeItems(items, list); got++; show(); })
+    .catch(e => { errs.wd = e.message; });
+  await Promise.race([Promise.allSettled([pOsm, pWd]), new Promise(res => setTimeout(res, DEADLINE))]);
+  if (my !== seq) return;
+  if (items.length) await enrich(items, my);   // Bekanntheit für OpenStreetMap-Treffer
+  if (my !== seq) return;
+  loading = false; final = true;
+  if (items.length) { show(); return; }
+  if (got) {   // Quellen haben geantwortet, aber nichts gefunden
+    DATA = { lat: loc.lat, lon: loc.lon, r, ts: Date.now(), items: [], partial: got < 2, note: got < 2 ? noteText(errs) : '' };
+    store.set('ausflug.data', DATA); renderList(); return;
   }
+  const old = DATA && distM(DATA, loc) < 500 && DATA.items.length;
+  const why = 'OpenStreetMap: ' + (errs.osm || 'keine Antwort') + ' · Wikidata: ' + (errs.wd || 'keine Antwort');
+  status(old ? 'Keine Verbindung zu den Datendiensten (' + why + '). Angezeigt werden die zuletzt geladenen Ergebnisse vom ' + new Date(DATA.ts).toLocaleDateString('de-DE') + '.'
+    : 'Die Ausflugsziele konnten nicht geladen werden. Bitte gleich noch einmal mit „Aktualisieren“ versuchen. (' + why + ')', true);
+  if (old) renderList(false, true); else $('#list').replaceChildren();
+}
+// Hinweis, wenn nur eine der beiden Quellen geantwortet hat
+function noteText(errs) {
+  const miss = errs.osm != null ? 'OpenStreetMap (' + errs.osm + ')' : errs.wd != null ? 'Wikidata (' + errs.wd + ')' : 'eine Quelle (keine Antwort)';
+  return 'Unvollständig, weil ' + miss + ' gerade nicht erreichbar ist. „Aktualisieren“ versucht es erneut.';
 }
 
 /* ---------- Bewertung ---------- */
@@ -425,7 +504,7 @@ function renderHeader() {
 function visibleItems() {
   const rM = RADII[S.ri] * 1000;
   const inMode = CATS.filter(c => c.aud.includes(S.mode)).map(c => c.id);
-  const all = DATA.items.filter(i => catOf(i)).map(i => (i.d = distM(S.loc, i), i)).filter(i => i.d <= rM);
+  const all = DATA.items.filter(i => i.name && catOf(i)).map(i => (i.d = distM(S.loc, i), i)).filter(i => i.d <= rM);
   all.forEach(i => i.sc = score(i, rM));
   const counts = {}; all.forEach(i => counts[catOf(i)] = (counts[catOf(i)] || 0) + 1);
   const list = all.filter(i => !S.off.includes(catOf(i)));
@@ -502,8 +581,8 @@ function renderList(partial, stale) {
   renderChips(counts, inMode);
   const box = $('#list'), more = $('#more');
   if (!stale) {
-    if (partial) status(h('span', null, h('span', { class: 'spin' }), 'Bewerte Bekanntheit …'));
-    else status(all.length ? list.length + ' Ziele im Umkreis von ' + RADII[S.ri] + ' km' + (S.mode === 'k' ? ' (für Kinder)' : '') + '.' : '');
+    if (partial) status(h('span', null, h('span', { class: 'spin' }), list.length + ' Ziele gefunden, weitere werden geladen …'));
+    else status((all.length ? list.length + ' Ziele im Umkreis von ' + RADII[S.ri] + ' km' + (S.mode === 'k' ? ' (für Kinder)' : '') + '. ' : '') + (DATA.note || ''));
   }
   if (!list.length) {
     box.replaceChildren(h('div', { class: 'empty' }, all.length ? 'Alle Kategorien ausgeblendet. Tippe oben auf eine Kategorie.' : 'Keine passenden Ziele gefunden. Vergrößere den Umkreis oder wähle einen anderen Ort.'));
@@ -512,12 +591,33 @@ function renderList(partial, stale) {
   const page = list.slice(0, shown);
   box.replaceChildren(...page.map(card));
   more.replaceChildren(list.length > shown ? h('button', { class: 'btn', onclick: () => { shown += PAGE; renderList(); } }, 'Weitere anzeigen (' + (list.length - shown) + ')') : '');
-  if (!partial) loadThumbs(page);
+  if (!partial) { const gen = ++renderGen; loadDetails(page).then(ch => { if (ch && gen === renderGen) renderList(); else loadThumbs(page); }); }
+}
+// Website, Telefon und Bild aus Wikidata nachladen, nur für die angezeigten Ziele
+let renderGen = 0;
+async function loadDetails(page) {
+  const need = page.filter(i => i.wd && !i.cl).slice(0, 25);
+  if (!need.length) return false;
+  need.forEach(i => i.cl = true);
+  let changed = false;
+  try {
+    const j = await fetchJson('https://www.wikidata.org/w/api.php?' + new URLSearchParams({ action: 'wbgetentities', format: 'json', origin: '*', props: 'claims', ids: [...new Set(need.map(i => i.wd))].join('|') }), {}, 20000);
+    const val = (e, p) => { const c = (e.claims?.[p] || []).find(x => x.rank !== 'deprecated' && x.mainsnak?.datavalue); return c ? c.mainsnak.datavalue.value : null; };
+    for (const i of need) {
+      const e = j.entities?.[i.wd]; if (!e) continue;
+      const web = val(e, 'P856'), tel = val(e, 'P1329'), img = val(e, 'P18');
+      if (typeof web === 'string' && !i.t.website && !i.t['contact:website']) { i.t.website = web; changed = true; }
+      if (typeof tel === 'string' && !i.t.phone && !i.t['contact:phone']) { i.t.phone = tel; changed = true; }
+      if (typeof img === 'string' && !i.thumb) { i.thumb = 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(img.replace(/ /g, '_')) + '?width=200'; changed = true; }
+    }
+    if (DATA && !loading) store.set('ausflug.data', DATA);
+  } catch { /* ohne Zusatzangaben weiter */ }
+  return changed;
 }
 async function loadThumbs(page) {
-  const need = page.filter(i => i.dew && i.thumb === undefined).slice(0, 50);
+  const need = page.filter(i => i.dew && !i.thumb && !i.pi).slice(0, 50);
   if (!need.length) return;
-  need.forEach(i => i.thumb = null);
+  need.forEach(i => i.pi = true);
   try {
     const j = await fetchJson('https://de.wikipedia.org/w/api.php?' + new URLSearchParams({ action: 'query', format: 'json', origin: '*', prop: 'pageimages', piprop: 'thumbnail', pithumbsize: '200', redirects: '1', titles: need.map(i => i.dew).join('|') }), {}, 15000);
     const map = {}; for (const x of [...(j.query?.normalized || []), ...(j.query?.redirects || [])]) map[x.from] = x.to;
