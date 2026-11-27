@@ -1,0 +1,17 @@
+{
+  "name": "Ausflugsziele in der Nähe",
+  "short_name": "Ausflug",
+  "description": "Herausragende Ausflugsziele im Umkreis, für Erwachsene oder Kinder, mit Route, Website und Telefon",
+  "lang": "de",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F4F1EA",
+  "theme_color": "#F4F1EA",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
